@@ -16,4 +16,10 @@ public class GenController {
 		serviceDatabase.showTables();
 		return "index";
 	}
+	
+	@RequestMapping(value = "/input")
+	public String input() throws Exception {
+		serviceDatabase.showTables();
+		return "input";
+	}
 }
