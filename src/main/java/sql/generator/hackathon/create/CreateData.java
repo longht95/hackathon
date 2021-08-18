@@ -1,8 +1,11 @@
 package sql.generator.hackathon.create;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -68,18 +71,19 @@ public class CreateData {
 			
 			// Sort list priority execute operator
 			Collections.sort(t, new Comparator<String[]>() {
-
 				@Override
 				public int compare(String[] o1, String[] o2) {
 					return Integer.parseInt(o1[2]) - Integer.parseInt(o2[2]);
 				}
 			});
+			System.out.println("---- Show sorted list ----");
+			System.out.println(t.toString());
 		}
 		
 		// Check all condition in mapValOfColumn With key is tableName.columName
 		// Calculator valid value for column
 		// Key = tableName.colName, Value = 
-//		Map<String, String[]> mapValOfColumn = calExactlyValueOfColumn(mapValOfColumn);
+//		Map<String, String[]> mapValOfColumn = calValidValueOfColumn(mapValOfColumn);
 	}
 	
 	/**
@@ -141,16 +145,23 @@ public class CreateData {
 	 * Calculator exactly value for column
 	 * @return Map<String, String> Key = tableName.colName, Value = Valid value.
 	 */
-	private Map<String, String[]> calExactlyValueOfColumn(Map<String, List<String[]>> mapValOfColumn) {
-		Map<String, String[]> m = new HashMap<>();
+	private Map<String, List<Cond>> caValidValueOfColumn(Map<String, List<String[]>> mapValOfColumn) {
+		Map<String, List<Cond>> m = new HashMap<>();
 		for (Map.Entry<String, List<String[]>> entry : mapValOfColumn.entrySet()) {
 			String key = entry.getKey();
+			
+			// Get data type of column?
+			// a Trung
+			// char
+			// number [p,s] OR [p]
+			// date
+			String type = "char";
 			
 			// operator, value
 			List<String[]> list = entry.getValue();
 			int sz = list.size();
 			boolean flgNext = false;
-			List<String[]> tmpVal = new ArrayList<>();
+			List<Cond> tmpVal = new ArrayList<>();
 			
 			for (int i = 0; i < sz; ++i) {
 				// String[operator, value, priority] 
@@ -177,22 +188,47 @@ public class CreateData {
 					addValueToColWithInOperator(cur, tmpVal);
 					break;
 				case "<=":
-					
+					try {
+						addValueToColWithComparationsOperator(type, cur, tmpVal);
+					} catch (ParseException e) {
+						e.printStackTrace();
+						System.out.println("Error parse from String to (Date OR Number) !");
+					}
 					break;
 				case ">=":
+					try {
+						addValueToColWithComparationsOperator(type, cur, tmpVal);
+					} catch (ParseException e) {
+						e.printStackTrace();
+						System.out.println("Error parse from String to (Date OR Number) !");
+					}
 					break;
 				case "<":
+					try {
+						addValueToColWithComparationsOperator(type, cur, tmpVal);
+					} catch (ParseException e) {
+						e.printStackTrace();
+						System.out.println("Error parse from String to (Date OR Number) !");
+					}
 					break;
 				case ">":
+					try {
+						addValueToColWithComparationsOperator(type, cur, tmpVal);
+					} catch (ParseException e) {
+						e.printStackTrace();
+						System.out.println("Error parse from String to (Date OR Number) !");
+					}
 					break;
 				case "NOT IN":
+					addValueToColWithNotInOperator(cur, tmpVal);
 					break;
 				case "<>":
+					addValueToColWithDifferentOperator(cur, tmpVal);
 				case "!=":
 					break;
 				default:
-					assert(false);
 					System.out.println("Not valid case!");
+					assert(false);
 					break;
 				}
 			}
@@ -209,7 +245,7 @@ public class CreateData {
 	 * @param String[] cur (Each condition) [operator, value, priority]
 	 * @param List<String> String[value] exactly value can save 
 	 */
-	public void addValueToColWithInOperator(String[] cur, List<String[]> values) {
+	public void addValueToColWithInOperator(String[] cur, List<Cond> values) {
 		// Value of IN ("123", "456")
 		int lenValue = cur[1].length();
 		
@@ -217,7 +253,7 @@ public class CreateData {
 		String[] val = cur[1].substring(1, lenValue - 1).split(",");
 		for (int i = 0; i < val.length; ++i) {
 			// Remove \" \" just get 123
-			values.add(new String[] {"=", removeSpecifyCharacter("\"'", val[i])});
+			values.add(new Cond("=", removeSpecifyCharacter("\"'", val[i])));
 		}
 	}
 	
@@ -226,7 +262,7 @@ public class CreateData {
 	 * @param String[] cur (Each condition) [operator, value, priority]
 	 * @param List<String> String[value] exactly value can save 
 	 */
-	public void addValueToColWithNotInOperator(String[] cur, List<String[]> values) {
+	public void addValueToColWithNotInOperator(String[] cur, List<Cond> values) {
 		// Value of IN ("123", "456")
 		int lenValue = cur[1].length();
 		
@@ -235,8 +271,9 @@ public class CreateData {
 		for (int i = 0; i < val.length; ++i) {
 			// Remove \" \" just get 123
 			String v = removeSpecifyCharacter("\"'", val[i]);
-			if (values.contains(v)) {
-				values.remove(v);
+			Cond obj = new Cond("!=", v);
+			if (values.contains(obj)) {
+				values.remove(obj);
 			}
 		}
 	}
@@ -246,41 +283,119 @@ public class CreateData {
 	 * @param String[] cur (Each condition) [operator, value, priority]
 	 * @param List<String> String[value] exactly value can save 
 	 */
-	public void addValueToColWithDifferentOperator(String[] cur, List<String> values) {
+	public void addValueToColWithDifferentOperator(String[] cur, List<Cond> values) {
 		String v = removeSpecifyCharacter("\"'", cur[1]);
-		if (values.contains(v)) {
-			values.remove(v);
+		Cond obj = new Cond("!=", v);
+		if (values.contains(obj)) {
+			values.remove(obj);
 		}
 	}
+	
+	
 	
 	/**
-	 * 
-	 * @param type
-	 * @param len (When type == date no save)
-	 * @return
+	 * Execute add value for column with operator <=, >=, <, >
+	 * Just apply for data type is DATE OR NUMBER
+	 * @param data type of value. (date, number, char)
+	 * @param String[] cur (Each condition) [operator, value, priority]
+	 * @param List<String> String[value] valid value can save 
+	 * @throws ParseException 
 	 */
-	private List<String> genValueForCol(String type, int len) {
-		List<String> res = new ArrayList<>();
+	public void addValueToColWithComparationsOperator(String type, String[] cur, 
+			List<Cond> values) throws ParseException {
+		int sz = values.size();
+		String operator = cur[0];
 		
-		// 3 case
-		// Data for date
-		// Data for number
-		// Data for char
+		// Convert to date when type = date
 		if (type.equals("date")) {
-			
+			SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+			Date curD = sdf.parse(cur[1]);
+			for (int i = 0; i < sz; ++i) {
+				if (type.equals("date")) {
+					Date ld = sdf.parse(values.get(i).value);
+					Cond cond = new Cond("", sdf.format(ld));
+					
+					// Just remove all element > curD
+					if (operator.equals("<=")) {
+						if (ld.compareTo(curD) > 0) {
+							values.remove(cond);
+						} else {
+							break;
+						}
+					// Just remove all element > curD
+					} else if (operator.equals(">=")) {
+						if (ld.compareTo(curD) < 0) {
+							values.remove(cond);
+						} else {
+							break;
+						}
+					// Just remove all element > curD
+					} else if (operator.equals("<")) {
+						if (ld.compareTo(curD) >= 0) {
+							values.remove(cond);
+						} else {
+							break;
+						}
+					} else if (operator.equals(">")) {
+						if (ld.compareTo(curD) <= 0) {
+							values.remove(cond);
+						} else {
+							break;
+						}
+					} else {
+						// TODO
+					}
+					
+				}
+			}
 		} else if (type.equals("number")) {
+			// Convert to long
+			long curV = Long.parseLong(cur[1]);
 			
-		} else if (type.equals("char")) {
-			
+			for (int i = 0; i < sz; ++i) {
+				long innerV = Long.parseLong(values.get(i).value);
+				Cond cond = new Cond("", values.get(i).value);
+				
+				// Search in list to remove add value > this value;
+				if (operator.equals("<=")) {
+					if (innerV > curV) {
+						values.remove(cond);
+					} else {
+						break;
+					}
+				// Search in list to remove add value < this value;
+				} else if (operator.equals(">=")) {
+					if (innerV < curV) {
+						values.remove(cond);
+					} else {
+						break;
+					}
+				} else if (operator.equals("<")) {
+					if (innerV >= curV) {
+						values.remove(cond);
+					} else {
+						break;
+					}
+				} else if (operator.equals(">")) {
+					if (innerV <= curV) {
+						values.remove(cond);
+					} else {
+						break;
+					}
+				} else {
+					// TODO
+					// Other operator
+				}
+			}
 		} else {
 			// TODO
-			// Maybe other data type?
-			assert(false);
+			// Other data type?
 		}
-		return res;
+		
+		// Add new element
+		// With character "\'
+		values.add(new Cond(operator, cur[1]));
 	}
-	
-	
 	
 	/**
 	 * Remove all specify character in string origin
@@ -296,5 +411,36 @@ public class CreateData {
 			}
 		}
 		return sb.toString();
+	}
+	
+	class Cond {
+		public String operator;
+		public String value;
+		
+		public Cond() {
+			
+		}
+		
+		public Cond(String operator, String value) {
+			this.operator = operator;
+			this.value = value;
+		}
+		
+		@Override
+		public boolean equals(Object o) {
+			if (this == o) {
+				return true;
+			}
+			if (!(o instanceof Cond)) {
+				return false;
+			}
+			Cond obj = (Cond) o;
+			return this.value.equals(obj.value);
+		}
+		
+		@Override
+		public int hashCode() {
+			return operator.hashCode() + value.hashCode() * 31;
+		}
 	}
 }
