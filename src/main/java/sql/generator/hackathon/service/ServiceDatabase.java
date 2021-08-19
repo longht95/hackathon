@@ -5,15 +5,19 @@ import java.sql.ResultSet;
 
 import javax.sql.DataSource;
 
+import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
 public class ServiceDatabase {
+//	@Autowired
+//    protected DataSource dataSource;
+//
 	@Autowired
-    protected DataSource dataSource;
-
+	BeanFactory beanFactory;
     public void showTables() throws Exception {
+    	DataSource dataSource = (DataSource)beanFactory.getBean("dataSource", "account");
         DatabaseMetaData metaData = dataSource.getConnection().getMetaData();
         ResultSet tables = metaData.getTables(null, null, null, new String[] { "TABLE" });
         while (tables.next()) {
