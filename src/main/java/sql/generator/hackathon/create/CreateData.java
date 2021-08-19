@@ -31,7 +31,7 @@ public class CreateData {
 	// Load resource data example
 	private static Resource resource = new ClassPathResource("/example_data.properties");
 	private static HashMap<String, String> dataExamples = new HashMap<>();
-	
+
 	// Priority of operator
 	private static Map<String, Integer> priorityOfOperator = new HashMap<>();
 	{
@@ -48,23 +48,23 @@ public class CreateData {
 
 	// Save mapping table.column mapping with other table.column
 	private Map<String, Set<Cond>> columnMap = new HashMap<>();
-	
+
 	// Save Key exists
 	private List<TableSQL> tables = new ArrayList<>();
 	private Map<String, List<String>> keys = new HashMap<>();
 
 	// alias.Name => <tableName.columnName, operator>
 	private Map<String, String[]> infoCol = new HashMap<>();
-	
+
 	// Data current values
 	// TableName => List ColumnInfo
 	private Map<String, List<ColumnInfo>> tableData = new HashMap<>();
-	
+
 	public CreateData(List<TableSQL> tables, Map<String, List<String>> keys) {
 		this.tables = tables;
 		this.keys = keys;
 	}
-	
+
 	public void create() {
 		try {
 			// Load data example
@@ -77,24 +77,28 @@ public class CreateData {
 			e.printStackTrace();
 			return;
 		}
-		
-//		int sz = tables.size();
-//		for (int i = 0; i < sz; ++i) {
-//			exeEachTable(tables.get(i));
-//		}
+
+		int sz = tables.size();
+		for (int i = 0; i < sz; ++i) {
+			exeEachTable(tables.get(i));
+		}
+
+		// Get column Mapping (Key1 -> Key2, Key2 -> Key) in keys
+		Map<String, Set<String>> colMapping = getMappingColumn();
+		getAllMappingColum(colMapping);
 	}
-	
+
 	private void exeEachTable(TableSQL table) {
-		
+
 		String tableName = table.tableName;
-		
+
 		// Save cur value of column table
 		// Key = table.column, Value = [operator, value] in Where
 		Map<String, List<String[]>> mapValOfColumn = new HashMap<>();
-		
+
 		// Read list condition
 		List<ConditionTest> conditions = table.condition;
-		
+
 		// Read all condition.
 		int szCond = conditions.size();
 		for (int i = 0; i < szCond; ++i) {
@@ -102,12 +106,12 @@ public class CreateData {
 				// Normal case
 				readValueForColumn(tableName, conditions.get(i), mapValOfColumn);
 				continue;
-			} 
-			
+			}
+
 			String left = conditions.get(i).left;
 			String operator = conditions.get(i).operator;
 			String right = conditions.get(i).right;
-			
+
 			// Execute find valid value column = KEY
 			// Find mapping = KEY of all column
 			// Save to columnMap
@@ -115,17 +119,19 @@ public class CreateData {
 				System.out.println("Error not found KEY Mapping!");
 				return;
 			}
-			
-			// Put aliasTable.aliasName => [tableName.columnName]
+
 			// TODO when columnname is alias?
+			// Put aliasTable.aliasName => [tableName.columnName]
+			// Save for calculator all mapping
 			String[] sp = left.split(".");
-			infoCol.put(left, new String[] {tableName + "." + sp[1], operator});
+			infoCol.put(left, new String[] { tableName + "." + sp[1], operator });
+
 		}
-		
+
 		// Calculator Priority of condition.
 		for (Map.Entry<String, List<String[]>> entry : mapValOfColumn.entrySet()) {
 			List<String[]> t = entry.getValue();
-			
+
 			// Sort list priority execute operator
 			Collections.sort(t, new Comparator<String[]>() {
 				@Override
@@ -136,34 +142,32 @@ public class CreateData {
 			System.out.println("---- Show sorted list ----");
 			System.out.println(t.toString());
 		}
-		
+
 		// Check all condition in mapValOfColumn With key is tableName.columName
 		// Calculator valid value for column
-		// Key = tableName.colName, Value = List<Cond>  
+		// Key = tableName.colName, Value = List<Cond>
 		Map<String, List<Cond>> validValuesForColumn = calValidValueOfColumn(mapValOfColumn);
-		
-		// Get column Mapping (Key1 -> Key2, Key2 -> Key) in keys
-		Map<String, Set<String>> colMapping = getMappingColumn();
-		getAllMappingColum(colMapping);
+
 	}
-	
+
 	/**
 	 * Read value to mapValOfColumn to execute bridging case (Bắc cầu)
+	 * 
 	 * @param condition
 	 * @param mapValueOfColumn
 	 */
-	private void readValueForColumn(String tableName, ConditionTest condition, 
+	private void readValueForColumn(String tableName, ConditionTest condition,
 			Map<String, List<String[]>> mapValOfColumn) {
 		String col = condition.left;
 		String operator = condition.operator;
 		String val = condition.right;
-		
+
 		// Check has alias => save, if normal case no save.
 		// Save to execute with bridging case (Bắc cầu)
-		if (!hasAliasName(val)) {
-			return;
-		}
-		
+//		if (!hasAliasName(col)) { //hasAliasName(val)
+//			return;
+//		}
+
 		// TableName.columnName
 		String fullColName = tableName + "." + getTableAndColName(col)[1];
 
@@ -176,11 +180,24 @@ public class CreateData {
 			t = new ArrayList<>();
 			mapValOfColumn.put(fullColName, t);
 		}
-		t.add(new String[] {operator, val, String.valueOf(priorityOfOperator.get(operator))});
+		if (!(operator.equals("NOT IN") || operator.equals("IN"))) {
+			t.add(new String[] { operator, val, String.valueOf(priorityOfOperator.get(operator)) });
+		} else {
+			List<String> listRight = condition.listRight;
+			StringBuilder sb = new StringBuilder();
+			for (int i = 0; i < listRight.size(); ++i) {
+				sb.append(listRight.get(i));
+				if (i != listRight.size() - 1) {
+					sb.append(",");
+				}
+			}
+			t.add(new String[] { operator, sb.toString(), String.valueOf(priorityOfOperator.get(operator)) });
+		}
 	}
-	
+
 	/**
 	 * Check column has alias Name?
+	 * 
 	 * @param column (table.colName || colName)
 	 * @return true has aliasName, otherwise return false
 	 */
@@ -190,51 +207,58 @@ public class CreateData {
 		}
 		return true;
 	}
-	
-	
+
 	/**
 	 * Get table name and column name
-	 * @param column table.colName
-	 * @return String[2], String[0] = tableName, String[1] = columnName   
+	 * 
+	 * @param column table.colName || colName
+	 * @return String[2], String[0] = tableName, String[1] = columnName
 	 */
 	private String[] getTableAndColName(String input) {
-		String[] res = input.split("\\.");
+		String[] res = new String[2];
+		if (input.indexOf(".") != -1) {
+			res = input.split("\\.");
+			;
+		} else {
+			res[1] = input;
+		}
 		return res;
 	}
-	
+
 	/**
 	 * Calculator exactly value for column
+	 * 
 	 * @return Map<String, String> Key = tableName.colName, Value = Valid value.
 	 */
 	private Map<String, List<Cond>> calValidValueOfColumn(Map<String, List<String[]>> mapValOfColumn) {
 		Map<String, List<Cond>> m = new HashMap<>();
 		for (Map.Entry<String, List<String[]>> entry : mapValOfColumn.entrySet()) {
 			String key = entry.getKey();
-			
+
 			// Get data type of column?
 			// a Trung
 			// char
 			// number [p,s] OR [p]
 			// date
-			String type = "char";
-			
+			String type = "number";
+
 			// operator, value
 			List<String[]> list = entry.getValue();
 			int sz = list.size();
-			boolean flgNext = false;
 			List<Cond> tmpVal = new ArrayList<>();
+			List<Cond> listCondIN = new ArrayList<>();
+			boolean flgCheckCondIN = false;
 			
 			for (int i = 0; i < sz; ++i) {
-				// String[operator, value, priority] 
+				// String[operator, value, priority]
 				String[] cur = list.get(i);
 				String operator = cur[0];
-				
+
 				// When priority = 1 stop here
 				if (operator.equals("=")) {
-					flgNext = true;
 					break;
 				}
-				
+
 //				priorityOfOperator.put("IN", 2);
 //				priorityOfOperator.put("<=", 3);
 //				priorityOfOperator.put(">=", 4);
@@ -243,9 +267,10 @@ public class CreateData {
 //				priorityOfOperator.put("NOT IN", 7);
 //				priorityOfOperator.put("!=", 8);
 //				priorityOfOperator.put("<>", 9);
-				
+
 				switch (operator) {
 				case "IN":
+					flgCheckCondIN = true;
 					addValueToColWithInOperator(cur, tmpVal);
 					break;
 				case "<=":
@@ -284,51 +309,78 @@ public class CreateData {
 					addValueToColWithNotInOperator(cur, tmpVal);
 					break;
 				case "<>":
-					addValueToColWithDifferentOperator(cur, tmpVal);
 				case "!=":
+					addValueToColWithDifferentOperator(cur, tmpVal);
 					break;
 				default:
 					System.out.println("Not valid case!");
-					assert(false);
+					assert (false);
 					break;
 				}
 			}
-			
-			if(flgNext) {
-				continue;
+
+			// When filter not contains conditions => query invalid
+			if (tmpVal.isEmpty()) {
+				System.out.println("SQL condition invalid!");
 			}
+			
+			if (flgCheckCondIN) {
+				int cnt = 0;
+				for (int i = 0; i < tmpVal.size(); ++i) {
+					// Just check 1 condition IN pass => SQL valid
+					if (cnt > 0) {
+						break;
+					}
+					if (listCondIN.contains(tmpVal.get(i))) {
+						cnt++;
+					}
+				}
+				
+				if (cnt == 0) {
+					System.out.println("SQL condition IN invalid!");
+				}
+			}
+			
+			m.put(key, tmpVal);
 		}
 		return m;
 	}
-	
+
 	/**
 	 * Execute add value for column with operator IN
-	 * @param String[] cur (Each condition) [operator, value, priority]
-	 * @param List<String> String[value] exactly value can save 
+	 * 
+	 * @param String[]     cur (Each condition) [operator, value, priority]
+	 * @param List<String> String[value] exactly value can save
 	 */
-	public void addValueToColWithInOperator(String[] cur, List<Cond> values) {
-		// Value of IN ("123", "456")
-		int lenValue = cur[1].length();
-		
+	public List<Cond> addValueToColWithInOperator(String[] cur, List<Cond> values) {
 		// Just get "123","123","123"
-		String[] val = cur[1].substring(1, lenValue - 1).split(",");
+		String[] val = cur[1].split(",");
 		for (int i = 0; i < val.length; ++i) {
 			// Remove \" \" just get 123
 			values.add(new Cond("=", removeSpecifyCharacter("\"'", val[i])));
 		}
+		
+		List<Cond> res = new ArrayList<>();
+		
+		// Copy all values to new listCondIN
+		for (int i = 0; i < values.size(); ++i) {
+			res.add(values.get(i));
+		}
+		return res;
 	}
-	
+
 	/**
 	 * Execute add value for column with operator NOT IN
-	 * @param String[] cur (Each condition) [operator, value, priority]
-	 * @param List<String> String[value] exactly value can save 
+	 * 
+	 * @param String[]     cur (Each condition) [operator, value, priority]
+	 * @param List<String> String[value] exactly value can save
 	 */
 	public void addValueToColWithNotInOperator(String[] cur, List<Cond> values) {
 		// Value of IN ("123", "456")
 		int lenValue = cur[1].length();
-		
+
 		// Just get "123","123","123"
-		String[] val = cur[1].substring(1, lenValue - 1).split(",");
+		String[] val = cur[1].split(",");
 		for (int i = 0; i < val.length; ++i) {
 			// Remove \" \" just get 123
 			String v = removeSpecifyCharacter("\"'", val[i]);
@@ -338,11 +390,12 @@ public class CreateData {
 			}
 		}
 	}
-	
+
 	/**
 	 * Execute add value for column with operator <>, !=
-	 * @param String[] cur (Each condition) [operator, value, priority]
-	 * @param List<String> String[value] exactly value can save 
+	 * 
+	 * @param String[]     cur (Each condition) [operator, value, priority]
+	 * @param List<String> String[value] exactly value can save
 	 */
 	public void addValueToColWithDifferentOperator(String[] cur, List<Cond> values) {
 		String v = removeSpecifyCharacter("\"'", cur[1]);
@@ -351,18 +404,18 @@ public class CreateData {
 			values.remove(obj);
 		}
 	}
-	
-	
+
 	/**
-	 * Execute add value for column with operator <=, >=, <, >
-	 * Just apply for data type is DATE OR NUMBER
-	 * @param data type of value. (date, number, char)
-	 * @param String[] cur (Each condition) [operator, value, priority]
-	 * @param List<String> String[value] valid value can save 
-	 * @throws ParseException 
+	 * Execute add value for column with operator <=, >=, <, > Just apply for data
+	 * type is DATE OR NUMBER
+	 * 
+	 * @param data         type of value. (date, number, char)
+	 * @param String[]     cur (Each condition) [operator, value, priority]
+	 * @param List<String> String[value] valid value can save
+	 * @throws ParseException
 	 */
-	public void addValueToColWithComparationsOperator(String type, String[] cur, 
-			List<Cond> values) throws ParseException {
+	public void addValueToColWithComparationsOperator(String type, String[] cur, List<Cond> values)
+			throws ParseException {
 		int sz = values.size();
 		String operator = cur[0];
 		String strVal = cur[1];
@@ -370,52 +423,49 @@ public class CreateData {
 		if (type.equals("date")) {
 			SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 			Date curD = sdf.parse(cur[1]);
-			for (int i = 0; i < sz; ++i) {
-				if (type.equals("date")) {
-					Date ld = sdf.parse(values.get(i).value);
-					Cond cond = new Cond("", sdf.format(ld));
-					
-					// Just remove all element > curD
-					if (operator.equals("<=")) {
-						if (ld.compareTo(curD) > 0) {
-							values.remove(cond);
-						} else {
-							break;
-						}
-					// Just remove all element > curD
-					} else if (operator.equals(">=")) {
-						if (ld.compareTo(curD) < 0) {
-							values.remove(cond);
-						} else {
-							break;
-						}
-					// Just remove all element > curD
-					} else if (operator.equals("<")) {
-						if (ld.compareTo(curD) >= 0) {
-							values.remove(cond);
-						} else {
-							break;
-						}
-					} else if (operator.equals(">")) {
-						if (ld.compareTo(curD) <= 0) {
-							values.remove(cond);
-						} else {
-							break;
-						}
-					} else {
-						// TODO
+			
+			Queue<Cond> toExploder = new LinkedList<>();
+			
+			for (int i = 0; i < values.size(); ++i) {
+				toExploder.add(values.get(i));
+			}
+			
+			while (!toExploder.isEmpty()) {
+				Cond cond = toExploder.poll();
+				Date ld = sdf.parse(cond.value);
+				
+				// Just remove all element > curD
+				if (operator.equals("<=")) {
+					if (ld.compareTo(curD) > 0) {
+						values.remove(cond);
 					}
+					// Just remove all element > curD
+				} else if (operator.equals(">=")) {
+					if (ld.compareTo(curD) < 0) {
+						values.remove(cond);
+					}
+					// Just remove all element > curD
+				} else if (operator.equals("<")) {
+					if (ld.compareTo(curD) >= 0) {
+						values.remove(cond);
+					}
+				} else if (operator.equals(">")) {
+					if (ld.compareTo(curD) <= 0) {
+						values.remove(cond);
+					}
+				} else {
+					// TODO
 				}
 			}
 			
 			// Not operator <= and >=
 			if (!(operator.equals("<=") && operator.equals(">="))) {
-				Calendar c = Calendar.getInstance(); 
+				Calendar c = Calendar.getInstance();
 				c.setTime(curD);
 				// current Date + 1
 				if (operator.equals(">")) {
 					c.add(Calendar.DATE, 1);
-				// current Date - 1
+					// current Date - 1
 				} else {
 					c.add(Calendar.DATE, -1);
 				}
@@ -427,36 +477,34 @@ public class CreateData {
 		} else if (type.equals("number")) {
 			// Convert to long
 			long curV = Long.parseLong(cur[1]);
+
+			Queue<Cond> toExploder = new LinkedList<>();
 			
-			for (int i = 0; i < sz; ++i) {
-				long innerV = Long.parseLong(values.get(i).value);
-				Cond cond = new Cond("", values.get(i).value);
+			for (int i = 0; i < values.size(); ++i) {
+				toExploder.add(values.get(i));
+			}
+
+			while (!toExploder.isEmpty()) {
+				Cond cond = toExploder.poll();
+				long innerV = Long.parseLong(cond.value);
 				
 				// Search in list to remove add value > this value;
 				if (operator.equals("<=")) {
 					if (innerV > curV) {
 						values.remove(cond);
-					} else {
-						break;
 					}
-				// Search in list to remove add value < this value;
+					// Search in list to remove add value < this value;
 				} else if (operator.equals(">=")) {
 					if (innerV < curV) {
 						values.remove(cond);
-					} else {
-						break;
 					}
 				} else if (operator.equals("<")) {
 					if (innerV >= curV) {
 						values.remove(cond);
-					} else {
-						break;
 					}
 				} else if (operator.equals(">")) {
 					if (innerV <= curV) {
 						values.remove(cond);
-					} else {
-						break;
 					}
 				} else {
 					// TODO
@@ -465,11 +513,11 @@ public class CreateData {
 			}
 			
 			// Not operator <= and >=
-			if (!(operator.equals("<=") && operator.equals(">="))) {
+			if (!(operator.equals("<=") || operator.equals(">="))) {
 				// currentValue - 1
 				if (operator.equals("<")) {
 					strVal = String.valueOf(curV - 1);
-				// currentValue + 1
+					// currentValue + 1
 				} else {
 					strVal = String.valueOf(curV + 1);
 				}
@@ -478,14 +526,14 @@ public class CreateData {
 			// TODO
 			// Other data type?
 		}
-		
 		// Add new element
 		// With character "\' ?
 		values.add(new Cond(operator, strVal));
 	}
-	
+
 	/**
 	 * Read Mapping in keys With each key add 2 mapping
+	 * 
 	 * @return Map<String, String> Key1 - Key2, Key2 - Key1
 	 */
 	private Map<String, Set<String>> getMappingColumn() {
@@ -506,11 +554,10 @@ public class CreateData {
 		}
 		return m;
 	}
-	
+
 	/**
-	 * Get all mapping for each column
-	 * With each column will find all related column.
-	 * Put data to columnMap variable 
+	 * Get all mapping for each column With each column will find all related
+	 * column. Put data to columnMap variable
 	 */
 	private void getAllMappingColum(Map<String, Set<String>> columnMapping) {
 		for (Map.Entry<String, Set<String>> e : columnMapping.entrySet()) {
@@ -528,13 +575,13 @@ public class CreateData {
 					}
 				}
 			}
-			
+
 			// Save ben luc read list object.
 			// Need Set<Cond>
 			// KEY ==> aliasTable.aliasColumn => alias
 			// VALUE COND {operator, value{KEY}}
 			Set<Cond> s = new HashSet<Cond>();
-			
+
 //			columnMap.put(infoCol.get(e.getKey()), set);
 			for (String c : mappings) {
 				Cond cond = new Cond(infoCol.get(c)[1], infoCol.get(c)[0]);
@@ -543,9 +590,10 @@ public class CreateData {
 			columnMap.put(infoCol.get(e.getKey())[0], s);
 		}
 	}
-	
+
 	/**
 	 * Remove all specify character in string origin
+	 * 
 	 * @param specifyStr String of specify character to remove.
 	 * @param origin
 	 * @return String without character in specifyStr.
