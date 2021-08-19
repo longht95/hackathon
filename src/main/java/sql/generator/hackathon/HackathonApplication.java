@@ -8,6 +8,7 @@ import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 import net.sf.jsqlparser.statement.select.Select;
+import sql.generator.hackathon.create.main.TestInsertDB;
 
 @SpringBootApplication
 public class HackathonApplication {
@@ -18,6 +19,7 @@ public class HackathonApplication {
 		System.out.println(plain.getJoins().get(0).getRightItem().getAlias());
 		System.out.println(plain.getJoins().get(0).getOnExpression());
 		System.out.println(plain.getWhere());
+		TestInsertDB.connect();
 		SpringApplication.run(HackathonApplication.class, args);
 	}
 
