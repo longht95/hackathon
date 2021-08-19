@@ -1,22 +1,39 @@
 package sql.generator.hackathon.create;
 
+import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
+import java.util.Queue;
+import java.util.Set;
 
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.support.PropertiesLoaderUtils;
+
+import sql.generator.hackathon.model.ColumnInfo;
+import sql.generator.hackathon.model.Cond;
 import sql.generator.hackathon.model.ConditionTest;
 import sql.generator.hackathon.model.TableSQL;
 
 public class CreateData {
 
+	// Load resource data example
+	private static Resource resource = new ClassPathResource("/example_data.properties");
+	private static HashMap<String, String> dataExamples = new HashMap<>();
+	
 	// Priority of operator
-	static Map<String, Integer> priorityOfOperator = new HashMap<>();
+	private static Map<String, Integer> priorityOfOperator = new HashMap<>();
 	{
 		priorityOfOperator.put("=", 1);
 		priorityOfOperator.put("IN", 2);
@@ -28,10 +45,20 @@ public class CreateData {
 		priorityOfOperator.put("!=", 8);
 		priorityOfOperator.put("<>", 9);
 	}
+
+	// Save mapping table.column mapping with other table.column
+	private Map<String, Set<Cond>> columnMap = new HashMap<>();
 	
 	// Save Key exists
-	private List<TableSQL> tables;
-	private Map<String, List<String>> keys;
+	private List<TableSQL> tables = new ArrayList<>();
+	private Map<String, List<String>> keys = new HashMap<>();
+
+	// alias.Name => <tableName.columnName, operator>
+	private Map<String, String[]> infoCol = new HashMap<>();
+	
+	// Data current values
+	// TableName => List ColumnInfo
+	private Map<String, List<ColumnInfo>> tableData = new HashMap<>();
 	
 	public CreateData(List<TableSQL> tables, Map<String, List<String>> keys) {
 		this.tables = tables;
@@ -39,10 +66,22 @@ public class CreateData {
 	}
 	
 	public void create() {
-		int sz = tables.size();
-		for (int i = 0; i < sz; ++i) {
-			exeEachTable(tables.get(i));
+		try {
+			// Load data example
+			Properties props = PropertiesLoaderUtils.loadProperties(resource);
+			Set<String> keys = props.stringPropertyNames();
+			for (String key : keys) {
+				dataExamples.put(key, props.getProperty(key));
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+			return;
 		}
+		
+//		int sz = tables.size();
+//		for (int i = 0; i < sz; ++i) {
+//			exeEachTable(tables.get(i));
+//		}
 	}
 	
 	private void exeEachTable(TableSQL table) {
@@ -62,7 +101,25 @@ public class CreateData {
 			if (!conditions.get(i).right.startsWith("KEY")) {
 				// Normal case
 				readValueForColumn(tableName, conditions.get(i), mapValOfColumn);
+				continue;
+			} 
+			
+			String left = conditions.get(i).left;
+			String operator = conditions.get(i).operator;
+			String right = conditions.get(i).right;
+			
+			// Execute find valid value column = KEY
+			// Find mapping = KEY of all column
+			// Save to columnMap
+			if (!keys.containsKey(right)) {
+				System.out.println("Error not found KEY Mapping!");
+				return;
 			}
+			
+			// Put aliasTable.aliasName => [tableName.columnName]
+			// TODO when columnname is alias?
+			String[] sp = left.split(".");
+			infoCol.put(left, new String[] {tableName + "." + sp[1], operator});
 		}
 		
 		// Calculator Priority of condition.
@@ -82,8 +139,12 @@ public class CreateData {
 		
 		// Check all condition in mapValOfColumn With key is tableName.columName
 		// Calculator valid value for column
-		// Key = tableName.colName, Value = 
-//		Map<String, String[]> mapValOfColumn = calValidValueOfColumn(mapValOfColumn);
+		// Key = tableName.colName, Value = List<Cond>  
+		Map<String, List<Cond>> validValuesForColumn = calValidValueOfColumn(mapValOfColumn);
+		
+		// Get column Mapping (Key1 -> Key2, Key2 -> Key) in keys
+		Map<String, Set<String>> colMapping = getMappingColumn();
+		getAllMappingColum(colMapping);
 	}
 	
 	/**
@@ -145,7 +206,7 @@ public class CreateData {
 	 * Calculator exactly value for column
 	 * @return Map<String, String> Key = tableName.colName, Value = Valid value.
 	 */
-	private Map<String, List<Cond>> caValidValueOfColumn(Map<String, List<String[]>> mapValOfColumn) {
+	private Map<String, List<Cond>> calValidValueOfColumn(Map<String, List<String[]>> mapValOfColumn) {
 		Map<String, List<Cond>> m = new HashMap<>();
 		for (Map.Entry<String, List<String[]>> entry : mapValOfColumn.entrySet()) {
 			String key = entry.getKey();
@@ -292,7 +353,6 @@ public class CreateData {
 	}
 	
 	
-	
 	/**
 	 * Execute add value for column with operator <=, >=, <, >
 	 * Just apply for data type is DATE OR NUMBER
@@ -305,7 +365,7 @@ public class CreateData {
 			List<Cond> values) throws ParseException {
 		int sz = values.size();
 		String operator = cur[0];
-		
+		String strVal = cur[1];
 		// Convert to date when type = date
 		if (type.equals("date")) {
 			SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
@@ -345,9 +405,25 @@ public class CreateData {
 					} else {
 						// TODO
 					}
-					
 				}
 			}
+			
+			// Not operator <= and >=
+			if (!(operator.equals("<=") && operator.equals(">="))) {
+				Calendar c = Calendar.getInstance(); 
+				c.setTime(curD);
+				// current Date + 1
+				if (operator.equals(">")) {
+					c.add(Calendar.DATE, 1);
+				// current Date - 1
+				} else {
+					c.add(Calendar.DATE, -1);
+				}
+				curD = c.getTime();
+			}
+			
+			// Convert date time to string
+			strVal = sdf.format(curD);
 		} else if (type.equals("number")) {
 			// Convert to long
 			long curV = Long.parseLong(cur[1]);
@@ -387,14 +463,85 @@ public class CreateData {
 					// Other operator
 				}
 			}
+			
+			// Not operator <= and >=
+			if (!(operator.equals("<=") && operator.equals(">="))) {
+				// currentValue - 1
+				if (operator.equals("<")) {
+					strVal = String.valueOf(curV - 1);
+				// currentValue + 1
+				} else {
+					strVal = String.valueOf(curV + 1);
+				}
+			}
 		} else {
 			// TODO
 			// Other data type?
 		}
 		
 		// Add new element
-		// With character "\'
-		values.add(new Cond(operator, cur[1]));
+		// With character "\' ?
+		values.add(new Cond(operator, strVal));
+	}
+	
+	/**
+	 * Read Mapping in keys With each key add 2 mapping
+	 * @return Map<String, String> Key1 - Key2, Key2 - Key1
+	 */
+	private Map<String, Set<String>> getMappingColumn() {
+		Map<String, Set<String>> m = new HashMap<>();
+		for (Map.Entry<String, List<String>> e : keys.entrySet()) {
+			List<String> v = e.getValue();
+			for (int i = 0; i < v.size(); ++i) {
+				Set<String> t;
+				if (m.containsKey(v.get(i))) {
+					t = m.get(v.get(i));
+				} else {
+					t = new HashSet<>();
+					m.put(v.get(i), t);
+				}
+				// Add other.
+				t.add(v.get(i == 0 ? 1 : 0));
+			}
+		}
+		return m;
+	}
+	
+	/**
+	 * Get all mapping for each column
+	 * With each column will find all related column.
+	 * Put data to columnMap variable 
+	 */
+	private void getAllMappingColum(Map<String, Set<String>> columnMapping) {
+		for (Map.Entry<String, Set<String>> e : columnMapping.entrySet()) {
+			Set<String> mappings = new HashSet<>();
+			for (String val : e.getValue()) {
+				Queue<String> toExploder = new LinkedList<>();
+				toExploder.add(val);
+				while (!toExploder.isEmpty()) {
+					String cur = toExploder.remove();
+					mappings.add(cur);
+					if (columnMapping.containsKey(cur)) {
+						for (String t : columnMapping.get(cur)) {
+							toExploder.add(t);
+						}
+					}
+				}
+			}
+			
+			// Save ben luc read list object.
+			// Need Set<Cond>
+			// KEY ==> aliasTable.aliasColumn => alias
+			// VALUE COND {operator, value{KEY}}
+			Set<Cond> s = new HashSet<Cond>();
+			
+//			columnMap.put(infoCol.get(e.getKey()), set);
+			for (String c : mappings) {
+				Cond cond = new Cond(infoCol.get(c)[1], infoCol.get(c)[0]);
+				s.add(cond);
+			}
+			columnMap.put(infoCol.get(e.getKey())[0], s);
+		}
 	}
 	
 	/**
@@ -411,36 +558,5 @@ public class CreateData {
 			}
 		}
 		return sb.toString();
-	}
-	
-	class Cond {
-		public String operator;
-		public String value;
-		
-		public Cond() {
-			
-		}
-		
-		public Cond(String operator, String value) {
-			this.operator = operator;
-			this.value = value;
-		}
-		
-		@Override
-		public boolean equals(Object o) {
-			if (this == o) {
-				return true;
-			}
-			if (!(o instanceof Cond)) {
-				return false;
-			}
-			Cond obj = (Cond) o;
-			return this.value.equals(obj.value);
-		}
-		
-		@Override
-		public int hashCode() {
-			return operator.hashCode() + value.hashCode() * 31;
-		}
 	}
 }
