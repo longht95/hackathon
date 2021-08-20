@@ -24,6 +24,7 @@ import org.springframework.core.io.support.PropertiesLoaderUtils;
 import sql.generator.hackathon.model.ColumnInfo;
 import sql.generator.hackathon.model.Cond;
 import sql.generator.hackathon.model.ConditionTest;
+import sql.generator.hackathon.model.NodeColumn;
 import sql.generator.hackathon.model.TableSQL;
 
 public class CreateData {
@@ -60,6 +61,9 @@ public class CreateData {
 	// TableName => List ColumnInfo
 	private Map<String, List<ColumnInfo>> tableData = new HashMap<>();
 
+	// Calculator valid values in Where.
+	private Map<String, List<Cond>> validValuesForColumn = new HashMap<>();
+	
 	public CreateData(List<TableSQL> tables, Map<String, List<String>> keys) {
 		this.tables = tables;
 		this.keys = keys;
@@ -85,7 +89,13 @@ public class CreateData {
 
 		// Get column Mapping (Key1 -> Key2, Key2 -> Key) in keys
 		Map<String, Set<String>> colMapping = getMappingColumn();
+		// Get all mapping of 1 column (Key1 -> key2,key3,key4)
 		getAllMappingColum(colMapping);
+		
+		// execute calculator for mapping key.
+		exeCalcForMappingKey();
+		
+		// Create data
 	}
 
 	private void exeEachTable(TableSQL table) {
@@ -146,8 +156,7 @@ public class CreateData {
 		// Check all condition in mapValOfColumn With key is tableName.columName
 		// Calculator valid value for column
 		// Key = tableName.colName, Value = List<Cond>
-		Map<String, List<Cond>> validValuesForColumn = calValidValueOfColumn(mapValOfColumn);
-
+		validValuesForColumn = calValidValueOfColumn(mapValOfColumn);
 	}
 
 	/**
@@ -591,6 +600,486 @@ public class CreateData {
 		}
 	}
 
+	/**
+	 * columnMap variable (mapping of column)
+	 * validValuesForColumn valid values current of column
+	 * @return push value to dataTable
+	 */
+	private void exeCalcForMappingKey() {
+		// table.colName => all column mapping of current table.colName
+		// Map<String, Set<Cond>> columnMap;
+		
+		// table.colName => condition valid
+		// Map<String, List<Cond>> validValuesForColumn;
+		for (Map.Entry<String, Set<Cond>> e : columnMap.entrySet()) {
+			String col = e.getKey();
+			
+			// Check current col is not primary key or foriegn key
+			// Then create with hand!.
+			// If this col isPrimaryKey then get all key this key!
+			// if (!isPrimaryKey(col) && !isForignKey(col)
+			
+			// Init flag check
+			List<Boolean> flgCheck = new ArrayList<>();
+			
+			// Get valid value of column
+			List<Cond> validV = validValuesForColumn.get(col);
+			
+			// Call method cua a Trung
+			// Number
+			// Date
+			// char
+			String dataType = "number";
+			
+			List<String> validOfCol = new ArrayList<>();
+			
+			// When size = 1 => use equals(=)
+			if (validV.size() == 1) {
+				validOfCol.add(validV.get(0).value);
+			} else {
+				boolean flgUseEquals = false;
+				boolean flgLess = false;
+				boolean flgGreater = false;
+				String valLess = "";
+				String valGreater = "";
+				
+				// Get all valid value of current value
+				for (int i = 0; i < validV.size(); ++i) {
+					if (validV.get(i).operator.equals("=")) {
+						flgUseEquals = true;
+						validOfCol.add(validV.get(i).value);
+					} else if (validV.get(i).operator.equals("<=")) {
+						if(!flgUseEquals) {
+							valLess = validV.get(i).value;
+						}
+						flgLess = true;
+					} else if (validV.get(i).operator.equals(">=")){
+						if(!flgUseEquals) {
+							valGreater = validV.get(i).value;
+						}
+						flgGreater = true;
+					}
+				}
+				
+				if (!flgUseEquals && (flgLess || flgGreater)) {
+					if (flgLess && flgGreater) {
+						// gen with limit!
+						validOfCol = genAutoKey(valLess, valGreater, dataType);
+					} else if (flgLess) {
+						validOfCol = genAutoKey(valLess, valGreater, dataType);
+					} else if (flgGreater) {
+						validOfCol = genAutoKey(valLess, valGreater, dataType);
+					}
+				}
+				
+				// When not validValue for this column => free style this case.
+				// Maybe data type, min-len => push default key for this.
+			}
+			
+			// Save in there!
+			// Use BSF confirm this case!
+			Queue<NodeColumn> toExploder = new LinkedList<>();
+			Map<NodeColumn, NodeColumn> parentMap = new HashMap<>();
+			
+			// Visited
+			Set<NodeColumn> visited = new HashSet<>();
+			
+			// Init 
+			// index -> Cond in e.getValue()
+			// 0 -> Cond in e.getValue()
+			// 0 -> Cond = value => columnName.tableName, operator => <=, >=, >, <, !=
+			HashMap<Integer, Cond> l = new HashMap<>(e.getValue().size());
+			int i = 0;
+			for (Cond conD : e.getValue()) {
+				l.put(i, conD);
+				++i;
+			}
+			
+			// Init
+			i = 0;
+			for (; i < validOfCol.size(); ++i) {
+				NodeColumn nodeCol = new NodeColumn(col, validOfCol.get(i), 0);
+				toExploder.add(nodeCol);
+			}
+			
+			NodeColumn nodeGoal = null;
+			
+			boolean[] checkMeet = new boolean[e.getValue().size()];
+			
+			while (!toExploder.isEmpty()) {
+				NodeColumn curNode = toExploder.poll();
+				if (visited.contains(curNode)) {
+					continue;
+				}
+				
+				String tableColName = curNode.tableColumnName;
+				String val = curNode.val;
+				int index = curNode.index;
+				
+				// Find goal then stop
+				if (index == e.getValue().size()) {
+					nodeGoal = curNode;
+					break;
+				}
+				
+				// Get next mapping.
+				Cond nextCond = l.get(index + 1);
+				
+				// Remove value generator
+				// Just calculator first meet index
+				// Valid value will increase
+				if (!checkMeet[index + 1]) {
+					calculatorValidValWithColumnCondition(validOfCol, dataType,
+							validValuesForColumn.get(nextCond.value));
+				}
+				
+				checkMeet[index + 1] = true;
+				
+				i = 0;
+				for (; i < validOfCol.size(); ++i) {
+					boolean flgAdd = false;
+					switch (nextCond.operator) {
+					case "=":
+						if (val.equals(validOfCol.get(i))) {
+							flgAdd = true;
+						}
+						break;
+					case "<=":
+						if (dataType.equals("date")) {
+							// date
+							Date tmp1 = parseStringToDate(val);
+							Date tmp2 = parseStringToDate(validOfCol.get(i));
+							if (tmp2.compareTo(tmp1) <= 0) {
+								flgAdd = true;
+							}
+						} else if (dataType.equals("number")) {
+							Integer int1 = parseStringToInt(val);
+							Integer int2 = parseStringToInt(validOfCol.get(i));
+							if (int2 <= int1) {
+								flgAdd = true;
+							}
+						}
+						// number
+						break;
+					case ">=":
+						if (dataType.equals("date")) {
+							// date
+							Date tmp1 = parseStringToDate(val);
+							Date tmp2 = parseStringToDate(validOfCol.get(i));
+							if (tmp2.compareTo(tmp1) >= 0) {
+								flgAdd = true;
+							}
+						} else if (dataType.equals("number")) {
+							Integer int1 = parseStringToInt(val);
+							Integer int2 = parseStringToInt(validOfCol.get(i));
+							if (int2 >= int1) {
+								flgAdd = true;
+							}
+						}
+						break;
+					case "<":
+						if (dataType.equals("date")) {
+							// date
+							Date tmp1 = parseStringToDate(val);
+							Date tmp2 = parseStringToDate(validOfCol.get(i));
+							if (tmp2.compareTo(tmp1) < 0) {
+								flgAdd = true;
+							}
+						} else if (dataType.equals("number")) {
+							Integer int1 = parseStringToInt(val);
+							Integer int2 = parseStringToInt(validOfCol.get(i));
+							if (int2 < int1) {
+								flgAdd = true;
+							}
+						}
+						break;
+					case ">":
+						if (dataType.equals("date")) {
+							// date
+							Date tmp1 = parseStringToDate(val);
+							Date tmp2 = parseStringToDate(validOfCol.get(i));
+							if (tmp2.compareTo(tmp1) < 0) {
+								flgAdd = true;
+							}
+						} else if (dataType.equals("number")) {
+							Integer int1 = parseStringToInt(val);
+							Integer int2 = parseStringToInt(validOfCol.get(i));
+							if (int2 < int1) {
+								flgAdd = true;
+							}
+						}
+						break;
+					case "!=":
+						if (!val.equals(validOfCol.get(i))) {
+							flgAdd = true;
+						}
+						break;
+					default:
+						System.out.println("Not have other condition!");
+						assert(false);
+					}
+					
+					if (flgAdd) {
+						// Table columnName, value, index
+						NodeColumn innerNode = new NodeColumn(nextCond.value, validOfCol.get(i), index + 1);
+						parentMap.put(curNode, innerNode);
+						toExploder.add(innerNode);
+					}
+				}
+			} // end while
+			
+			// Find valid value path
+			// Next to insert to data table.
+			// Flag true all Set<condtion> include this column! 
+			// Will not execute again this link mapping.
+			List<String> pathValidValue = findPathValidForMapping(parentMap, nodeGoal);
+		}
+	}
+	
+	/**
+	 * @param List<Boolean> flgCheck
+	 * @return true when all boolean = true, otherwiser return false
+	 */
+	private boolean checkFlgMapping(List<Boolean> flgCheck) {
+		if (flgCheck.isEmpty()) {
+			return false;
+		}
+		for (int i = 0; i < flgCheck.size(); ++i) {
+			if (!flgCheck.get(i)) {
+				return false;
+			}
+		}
+		return true;
+	}
+	
+	/**
+	 * @param 1 value start with operator >=
+	 * @param 2 value end operator <=
+	 * @param 3 datatype of column
+	 * @return List key
+	 */
+	public List<String> genAutoKey(String valGreater, String valLess, String dataType) {
+		List<String> res = new ArrayList<>();
+		
+		// Calculator increase or decrease?
+		boolean isIncrease = valGreater.length() != 0 ? true : false;
+		String curVal = isIncrease ? valGreater : valLess;
+		
+		int limit = 100;
+		for (int i = 1; i <= limit; ++i) {
+			res.add(curVal);
+			String newVal = "";
+			if (dataType.equals("date")) {
+				newVal = genKeyWithTypeDate(isIncrease, curVal);
+			} else if (dataType.equals("number")) {
+				newVal = genKeyWithTypeNumber(isIncrease, curVal);
+			} else if (dataType.equals("char")) {
+				newVal = genKeyWithTypeChar(isIncrease, curVal);
+			}
+			curVal = newVal;
+		}
+		return res;
+	}
+	
+	/**
+	 * Just confirm in normal character [26 character]
+	 * @param type (++, --)
+	 * @param curVal current value
+	 * @return String new value after (++, --)
+	 */
+	public String genKeyWithTypeChar(boolean isIncrease, String curVal) {
+		// Init character
+		char[] chr = new char[26];
+		for (int i = 0; i < 26; ++i) {
+			chr[i] = (char) ('a' + i); 
+		}
+		
+		char[] curChar = curVal.toCharArray();
+		
+		// Increase
+		// 'abcde' -> 'abcdf'
+		if (isIncrease) {
+			int remain = 0;
+			for (int i = curChar.length - 1; i >= 0; --i) {
+				char c = curChar[i];
+				if (c == 'z') {
+					remain = 1;
+				} else {
+					remain = 0;	
+					curChar[i] = (char) (c + 1);
+				}
+				
+				if (remain == 0) {
+					return curChar.toString();
+				}
+			}
+		}
+		
+		// Decrease
+		// 'abcdf' -> 'abcde'
+		int remain = 0;
+		for (int i = curChar.length - 1; i >= 0; --i) {
+			char c = curChar[i];
+			if (c == 'a') {
+				remain = 1;
+			} else {
+				remain = 0;	
+				curChar[i] = (char) (c - 1);
+			}
+			
+			if (remain == 0) {
+				break;
+			}
+		}
+		
+		return curChar.toString();
+	}
+	
+	/**
+	 * @param type (++, --)
+	 * @param curVal current value
+	 * @return String new value after (++, --)
+	 */
+	public String genKeyWithTypeDate(boolean isIncrease, String curVal) {
+		Date curD;
+		Calendar c = Calendar.getInstance();
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+		try {
+			curD = sdf.parse(curVal);
+			c.setTime(curD);
+		} catch(ParseException e) {
+			e.printStackTrace();
+		}
+		
+		if (isIncrease) {
+			c.add(Calendar.DATE, 1);
+		} else {
+			// Decrease
+			c.add(Calendar.DATE, -1);
+		}
+		curD = c.getTime();
+		
+		return sdf.format(curD);
+	}
+	
+	/**
+	 * @param type (++, --)
+	 * @param curVal current value
+	 * @return String new value after (++, --)
+	 */
+	public String genKeyWithTypeNumber(boolean isIncrease, String curVal) {
+		String val = "";
+		try {
+			Integer i = Integer.parseInt(curVal);
+			if (isIncrease) {
+				i++;
+			} else {
+				i--;
+			}
+			val = String.valueOf(i);
+		} catch (NumberFormatException e) {
+			System.out.println("Format number error!");
+		}
+		
+		return val;
+	}
+	
+	public void calculatorValidValWithColumnCondition(List<String> curValValid, String dataType,
+			List<Cond> conditionInWhere) {
+		List<String> res = new ArrayList<>();
+		
+		// Check condition mapping
+		for (int i = 0; i < conditionInWhere.size(); ++i) {
+			String operator = conditionInWhere.get(i).operator;
+			String value = conditionInWhere.get(i).value;
+			
+			// Parse from string.
+			Date curD = parseStringToDate(value);
+			Integer curI = Integer.parseInt(value);
+			
+			for (int j = 0; j < curValValid.size(); ++j) {
+				
+				String curValue = curValValid.get(i);
+				switch (operator) {
+				case "=":
+					if (value.equals(curValValid.get(j))) {
+						res.add(curValue);
+					}
+					break;
+				case "<=":
+					if (dataType.equals("number")) {
+						Integer innerI = parseStringToInt(curValue);
+						if (innerI <= curI) {
+							res.add(curValue);
+						}
+					} else if (dataType.equals("date")) {
+						Date innerD = parseStringToDate(curValue);
+						if (innerD.compareTo(curD) <= 0) {
+							res.add(curValue);
+						}
+					}
+					break;
+				case ">=":
+					if (dataType.equals("number")) {
+						Integer innerI = parseStringToInt(curValue);
+						if (innerI >= curI) {
+							res.add(curValue);
+						}
+					} else if (dataType.equals("date")) {
+						Date innerD = parseStringToDate(curValue);
+						if (innerD.compareTo(curD) >= 0) {
+							res.add(curValue);
+						}
+					}
+					break;
+				default:
+					System.out.println("Not other condition in there!");
+					assert(false);
+					break;
+				}
+			}
+			curValValid = res;
+			res.clear();
+		}
+	}
+	
+	
+	/**
+	 * Parse string to date with format yyyy-MM-dd
+	 * @return date formated
+	 */
+	public Date parseStringToDate(String origin) {
+		Date curDate = new Date();
+		try {
+			SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+			curDate = sdf.parse(origin);
+		} catch (ParseException e) {
+			System.out.println("Parse string to date error!");
+		}
+		return curDate;
+	}
+	
+	public Integer parseStringToInt(String origin) {
+		Integer res = 0;
+		try {
+			res = Integer.parseInt(origin);
+		} catch (NumberFormatException e) {
+			System.out.println("Parse string to number error!");
+		}
+		return res;
+	}
+	
+	public List<String> findPathValidForMapping(Map<NodeColumn, NodeColumn> parentMap, 
+			NodeColumn nodeGoal) {
+		List<String> res = new ArrayList<>();
+		NodeColumn curNode = nodeGoal;
+		while (curNode != null) {
+			res.add(curNode.val);
+			curNode = parentMap.get(curNode);
+		}
+		return res;
+	}
+	
 	/**
 	 * Remove all specify character in string origin
 	 * 

@@ -1,6 +1,6 @@
 package sql.generator.hackathon.model;
 
-public class Cond {
+public class Cond{
 	public String operator;
 	public String value;
 	
