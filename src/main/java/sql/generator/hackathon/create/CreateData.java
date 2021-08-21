@@ -50,6 +50,8 @@ public class CreateData {
 		priorityOfOperator.put("<>", 9);
 	}
 
+	private CreateService createService = new CreateService();;
+	
 	// Save mapping table.column mapping with other table.column
 	private Map<String, Set<Cond>> columnMap = new HashMap<>();
 
@@ -74,6 +76,7 @@ public class CreateData {
 	// Key tableName.colName
 	private Map<String, String> lastEndValidValue = new HashMap<>();
 	
+	// Tmp will remove after!
 	private String dataType = "date";
 	
 	public CreateData(List<TableSQL> tables, Map<String, List<String>> keys) {
@@ -113,8 +116,49 @@ public class CreateData {
 		// Insert each table
 		for (Map.Entry<String, List<ColumnInfo>> e : tableData.entrySet()) {
 			// Call JDBC execute insert data to table!
-			CreateService createService = new CreateService();
 			createService.insert(e.getKey(), e.getValue());
+		}
+	}
+	
+	/**
+	 * Execute update data from client!
+	 * @param dataClient String = tableName => List<ColumnInfo>
+	 */
+	public void update(Map<String, List<ColumnInfo>> dataClient) {
+		// Get data from client?
+		// Check current data valid?
+		
+		// use columnMap
+		// Save mapping table.column mapping with other table.column
+		// Calculator valid values in Where.
+		// Key = tableName.colName => Value = List<Cond> => Cond
+//		private Map<String, List<Cond>> validValuesForColumn = new HashMap<>();
+		
+		// Key = tableName.colName => List data use operator (NOT IN, !=, <>)
+//		private Map<String, List<String>> valueInValidOfColumn = new HashMap<>();
+		
+		// Check this condition valid?
+		for (Map.Entry<String, List<ColumnInfo>> e : dataClient.entrySet()) {
+			String tableName = e.getKey();
+			
+			// Array flag check when all column in flg = true => insert, otherwise will update
+			
+			// Execute update
+			for (ColumnInfo curCol : e.getValue()) {
+			
+				// Check valid value in ValidValues
+
+				// Check valid value for all mapping
+				
+				// Check value in value different with value of (NOT IN, !=, <>)
+				
+				// Add to flg Check
+			}
+			
+			// When insert just call method insert and input List<ColumnInfo>
+			
+			// When update -> List<ColumnInfo> can Update,
+			// List<ColumnInfo> condition of primary key in this table!
 		}
 	}
 
@@ -275,6 +319,11 @@ public class CreateData {
 			// number [p,s] OR [p]
 			// date
 //			String dataType = "number";
+			
+			// Get dataType of column
+			String tableName = getTableAndColName(key)[0];
+			String colName = getTableAndColName(key)[1];
+			String dataType = createService.getDataTypeOfColumn(createService.getColumInfo(tableName, colName));
 
 			// {operator, value, priority}
 			// operator => (=, <>, !=, ..)
@@ -350,7 +399,7 @@ public class CreateData {
 						t = new ArrayList<>();
 						valueInValidOfColumn.put(key, t);
 					}
-					addValueToColWithNotInOperator(cur, tmpVal, t);
+					addValueToColWithNotInOperator(dataType, cur, tmpVal, t);
 					break;
 				case "<>":
 				case "!=":
@@ -361,7 +410,7 @@ public class CreateData {
 						t2 = new ArrayList<>();
 						valueInValidOfColumn.put(key, t2);
 					}
-					addValueToColWithDifferentOperator(cur, tmpVal, t2);
+					addValueToColWithDifferentOperator(dataType, cur, tmpVal, t2);
 					break;
 				default:
 					System.out.println("Not valid case!");
@@ -375,6 +424,7 @@ public class CreateData {
 //				System.out.println("SQL condition invalid!");
 //			}
 			
+			// When has condition IN => get value of IN
 			if (flgCheckCondIN) {
 				int cnt = 0;
 				for (int i = 0; i < tmpVal.size(); ++i) {
@@ -426,7 +476,7 @@ public class CreateData {
 	 * @param String[]     cur (Each condition) [operator, value, priority]
 	 * @param List<String> String[value] exactly value can save
 	 */
-	public void addValueToColWithNotInOperator(String[] cur, List<Cond> values, List<String> valNotIN) {
+	public void addValueToColWithNotInOperator(String dataType, String[] cur, List<Cond> values, List<String> valNotIN) {
 		// Just get "123","123","123"
 		String[] val = cur[1].split(",");
 		for (int i = 0; i < val.length; ++i) {
@@ -489,7 +539,7 @@ public class CreateData {
 	 * @param String[]     cur (Each condition) [operator, value, priority]
 	 * @param List<String> String[value] exactly value can save
 	 */
-	public void addValueToColWithDifferentOperator(String[] cur, List<Cond> values, List<String> valNotIn) {
+	public void addValueToColWithDifferentOperator(String dataType, String[] cur, List<Cond> values, List<String> valNotIn) {
 		String v = removeSpecifyCharacter("\"'", cur[1]);
 		
 		// Add value to not in table.column!
@@ -552,7 +602,6 @@ public class CreateData {
 	 */
 	public void addValueToColWithComparationsOperator(String type, String[] cur, List<Cond> values)
 			throws ParseException {
-		int sz = values.size();
 		String operator = cur[0];
 		String strVal = cur[1];
 		// Convert to date when type = date
@@ -700,11 +749,15 @@ public class CreateData {
 			String lastVal = e.getValue();
 			String fullTableColName = e.getKey();
 			
+			// Get tableName and colName
+			String tableName = getTableAndColName(fullTableColName)[0];
+			String colName = getTableAndColName(fullTableColName)[1];
+			
 			// When last have calculator in mapping
-			List<ColumnInfo> l = tableData.get(getTableAndColName(fullTableColName)[0]);
+			List<ColumnInfo> l = tableData.get(tableName);
 			if (!lastVal.isEmpty()) {
 				// New columnInfo
-				ColumnInfo columnInfo = new ColumnInfo(getTableAndColName(fullTableColName)[1], lastVal);
+				ColumnInfo columnInfo = new ColumnInfo(colName, lastVal);
 				l.add(columnInfo);
 			} else {
 				// When calculator not in mapping 
@@ -720,12 +773,14 @@ public class CreateData {
 				// TODO
 				// Get len of column;
 				// Call tu a Trung
-				int len = 1;
+				ColumnInfo colInfo = createService.getColumInfo(tableName, colName); 
+				int len = createService.getLengthOfColumn(colInfo);
 				
 				// TODO
 				// Get dataType
 				// Call tu a trung
 				// String dataType
+				String dataType = createService.getDataTypeOfColumn(colInfo);
 				
 				// Get
 				List<String> curValidVal = new ArrayList<>();
@@ -771,7 +826,7 @@ public class CreateData {
 				// Remove
 				for (int i = 0; i < curValidVal.size(); ++i) {
 					if (invalidVal == null || (!invalidVal.contains(curValidVal.get(i)))) {
-						ColumnInfo columnInfo = new ColumnInfo(getTableAndColName(fullTableColName)[1], curValidVal.get(i));
+						ColumnInfo columnInfo = new ColumnInfo(colName, curValidVal.get(i));
 						l.add(columnInfo);
 						break;
 					}
@@ -839,6 +894,8 @@ public class CreateData {
 		// Map<String, List<Cond>> validValuesForColumn;
 		for (Map.Entry<String, Set<Cond>> e : columnMap.entrySet()) {
 			String col = e.getKey();
+			String tableName = getTableAndColName(col)[0];
+			String colName = getTableAndColName(col)[1];
 			
 			// calculated this column!
 			if (visitedMapping.contains(col)) {
@@ -850,9 +907,6 @@ public class CreateData {
 			// If this col isPrimaryKey then get all key this key!
 			// if (!isPrimaryKey(col) && !isForignKey(col)
 			
-			// Init flag check
-			List<Boolean> flgCheck = new ArrayList<>();
-			
 			// Get valid value of column
 			List<Cond> validV = validValuesForColumn.get(col);
 			
@@ -860,7 +914,9 @@ public class CreateData {
 			// Number
 			// Date
 			// char
-//			String dataType = "number";
+			ColumnInfo colInfo = createService.getColumInfo(tableName, colName);
+			String dataType = createService.getDataTypeOfColumn(colInfo);
+			int len = createService.getLengthOfColumn(colInfo);
 			
 			List<String> validOfCol = new ArrayList<>();
 			
@@ -869,7 +925,7 @@ public class CreateData {
 				// When not validValue for this column => free style this case.
 				// Maybe data type, min-len => push default key for this.
 				// Get len from a Trung
-				validOfCol = genAutoKey("", "", dataType, 2);
+				validOfCol = genAutoKey("", "", dataType, len);
 			} else if (validV.size() == 1) {
 				validOfCol.add(validV.get(0).value);
 			} else if (validV.size() > 1) {
@@ -899,7 +955,7 @@ public class CreateData {
 				
 				if (!flgUseEquals && (flgLess || flgGreater)) {
 					// gen with limit!
-					validOfCol = genAutoKey(valLess, valGreater, dataType, 0);
+					validOfCol = genAutoKey(valLess, valGreater, dataType, len);
 				}
 			}
 			
@@ -1412,6 +1468,8 @@ public class CreateData {
 		if (dataType.equals("date")) {
 			SimpleDateFormat sdformat = new SimpleDateFormat("yyyy-MM-dd");
 			LocalDateTime now = LocalDateTime.now();
+			// TODO
+			// more?
 			return "2000-10-10";  
 		}
 		
@@ -1442,4 +1500,6 @@ public class CreateData {
 		}
 		return sb.toString();
 	}
+	
+		
 }

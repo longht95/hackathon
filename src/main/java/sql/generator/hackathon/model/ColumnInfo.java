@@ -2,7 +2,8 @@ package sql.generator.hackathon.model;
 
 public class ColumnInfo {
 	public String name;
-	public String dataType;
+	public String typeName;
+	public int typeValue;
 	public String val;
 	
 	public ColumnInfo() {
@@ -14,9 +15,16 @@ public class ColumnInfo {
 		this.val = val;
 	}
 	
-	public ColumnInfo(String name, String dataType, String val) {
+	public ColumnInfo(String name, String typeName, String val) {
 		this.name = name;
-		this.dataType = dataType;
+		this.typeName = typeName;
+		this.val = val;
+	}
+	
+	public ColumnInfo(String name, String typeName, int typeValue, String val) {
+		this.name = name;
+		this.typeName = typeName;
+		this.typeValue = typeValue;
 		this.val = val;
 	}
 	
@@ -29,7 +37,7 @@ public class ColumnInfo {
 			return false;
 		}
 		ColumnInfo ci = (ColumnInfo) o;
-		return this.name.equals(ci.name) && this.dataType.equals(ci.dataType) && this.val.equals(ci.val);
+		return this.name.equals(ci.name) && this.typeName.equals(ci.typeName) && this.val.equals(ci.val);
 	}
 	
 	@Override
