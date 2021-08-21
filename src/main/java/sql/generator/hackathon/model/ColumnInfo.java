@@ -3,52 +3,52 @@ package sql.generator.hackathon.model;
 public class ColumnInfo {
 	public String name;
 	public String typeName;
-	public int typeValue;
-	public String val;
-	public boolean isPrimaryKey;
-	public boolean isForeignKey;
+	public String typeValue;
+	public Boolean isNull;
+	public Boolean isPrimarykey;
+	public Boolean isForeignKey;
+	public Boolean unique;
 	
-	public ColumnInfo() {
-		
+	public String getName() {
+		return name;
 	}
-	
-	public ColumnInfo(String name, String val) {
+	public void setName(String name) {
 		this.name = name;
-		this.val = val;
 	}
-	
-	public ColumnInfo(String name, String typeName, String val) {
-		this.name = name;
+	public String getTypeName() {
+		return typeName;
+	}
+	public void setTypeName(String typeName) {
 		this.typeName = typeName;
-		this.val = val;
 	}
-	
-	public ColumnInfo(String name, String typeName, int typeValue, String val) {
-		this.name = name;
-		this.typeName = typeName;
+	public String getTypeValue() {
+		return typeValue;
+	}
+	public void setTypeValue(String typeValue) {
 		this.typeValue = typeValue;
-		this.val = val;
 	}
-	
-	@Override
-	public boolean equals(Object o) {
-		if (this == o) {
-			return true;
-		}
-		if (!(o instanceof ColumnInfo)) {
-			return false;
-		}
-		ColumnInfo ci = (ColumnInfo) o;
-		return this.name.equals(ci.name) && this.typeName.equals(ci.typeName) && this.val.equals(ci.val);
+	public Boolean getIsNull() {
+		return isNull;
 	}
-	
-	@Override
-	public int hashCode() {
-		int k = 31;
-		return (this.name.hashCode() + this.val.hashCode()) * k;
+	public void setIsNull(Boolean isNull) {
+		this.isNull = isNull;
 	}
-	
-	public boolean isKey() {
-		return this.isForeignKey || this.isPrimaryKey;
+	public Boolean getIsPrimarykey() {
+		return isPrimarykey;
+	}
+	public void setIsPrimarykey(Boolean isPrimarykey) {
+		this.isPrimarykey = isPrimarykey;
+	}
+	public Boolean getIsForeignKey() {
+		return isForeignKey;
+	}
+	public void setIsForeignKey(Boolean isForeignKey) {
+		this.isForeignKey = isForeignKey;
+	}
+	public Boolean getUnique() {
+		return unique;
+	}
+	public void setUnique(Boolean unique) {
+		this.unique = unique;
 	}
 }
