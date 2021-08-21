@@ -18,11 +18,11 @@ import org.springframework.context.annotation.Scope;
 public class Config {
 	@Bean
 	@Scope("prototype")
-	public DataSource dataSource(String name) {
+	public DataSource dataSource(String url, String name, String pass) {
 		DataSourceBuilder dataSourceBuilder = DataSourceBuilder.create();
-		dataSourceBuilder.url("jdbc:mysql://localhost/testdb");
-		dataSourceBuilder.username("dbuser");
-		dataSourceBuilder.password("dbpass");
+		dataSourceBuilder.url(url);
+		dataSourceBuilder.username(name);
+		dataSourceBuilder.password(pass);
 		return dataSourceBuilder.build();
 	}
 }
