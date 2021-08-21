@@ -5,10 +5,10 @@ import java.util.List;
 public class TableSQL {
 	public String tableName;
 	public String alias;
-	public List<String> condition ;
+	public List<ConditionTest> condition ;
 	
 	public TableSQL() {
-		condition = new ArrayList<String>();
+		condition = new ArrayList<ConditionTest>();
 	}
 
 	@Override
