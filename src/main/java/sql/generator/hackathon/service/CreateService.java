@@ -187,10 +187,10 @@ public class CreateService {
 		case "nchar":
 		case "varchar":
 		case "nvarchar":
-			len = columnInfo.typeValue;
+			len = Integer.parseInt(columnInfo.typeValue);
 			break;
 		case "number":
-			len = columnInfo.typeValue; // case [p,s]?
+			len = Integer.parseInt(columnInfo.typeValue); // case [p,s]?
 			break;
 		case "date":
 			break;
