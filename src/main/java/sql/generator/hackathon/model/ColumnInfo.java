@@ -9,6 +9,11 @@ public class ColumnInfo {
 		
 	}
 	
+	public ColumnInfo(String name, String val) {
+		this.name = name;
+		this.val = val;
+	}
+	
 	public ColumnInfo(String name, String dataType, String val) {
 		this.name = name;
 		this.dataType = dataType;

@@ -1,0 +1,7 @@
+<?xml version="1.0"?>  
+<class>  
+	<key>
+		<name>KEY1</name>  
+	    <mapping>test.column1,comp.column1</mapping>
+	</key>
+</class>  
