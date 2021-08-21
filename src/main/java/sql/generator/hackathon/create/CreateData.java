@@ -76,9 +76,6 @@ public class CreateData {
 	// Key tableName.colName
 	private Map<String, String> lastEndValidValue = new HashMap<>();
 	
-	// Tmp will remove after!
-	private String dataType = "date";
-	
 	public CreateData(List<TableSQL> tables, Map<String, List<String>> keys) {
 		this.tables = tables;
 		this.keys = keys;
@@ -122,6 +119,7 @@ public class CreateData {
 	
 	/**
 	 * Execute update data from client!
+	 * When click gen data will call this method
 	 * @param dataClient String = tableName => List<ColumnInfo>
 	 */
 	public void update(Map<String, List<ColumnInfo>> dataClient) {
@@ -132,33 +130,82 @@ public class CreateData {
 		// Save mapping table.column mapping with other table.column
 		// Calculator valid values in Where.
 		// Key = tableName.colName => Value = List<Cond> => Cond
-//		private Map<String, List<Cond>> validValuesForColumn = new HashMap<>();
+		// private Map<String, List<Cond>> validValuesForColumn = new HashMap<>();
+		
+		// Save mapping table.column mapping with other table.column
+		// private Map<String, Set<Cond>> columnMap = new HashMap<>();
+		
 		
 		// Key = tableName.colName => List data use operator (NOT IN, !=, <>)
-//		private Map<String, List<String>> valueInValidOfColumn = new HashMap<>();
+		// private Map<String, List<String>> valueInValidOfColumn = new HashMap<>();
 		
 		// Check this condition valid?
 		for (Map.Entry<String, List<ColumnInfo>> e : dataClient.entrySet()) {
 			String tableName = e.getKey();
+			List<ColumnInfo> l = e.getValue();
 			
 			// Array flag check when all column in flg = true => insert, otherwise will update
+			boolean[] arrFlg = new boolean[l.size()];
+			
+			List<ColumnInfo> listConditionUpdate = new ArrayList<>();
 			
 			// Execute update
-			for (ColumnInfo curCol : e.getValue()) {
+			for (int i = 0; i < l.size(); ++i) {
 			
-				// Check valid value in ValidValues
+				boolean flgCur = true;
+				
+				ColumnInfo colInfo = createService.getColumInfo(tableName, l.get(i).name);
+				String dataType = createService.getDataTypeOfColumn(colInfo);
+				
+				String fullTableColName = tableName + "." + colInfo.name;
 
+				// Check valid value in ValidValues
+				List<Cond> validValue = validValuesForColumn.get(fullTableColName);
+				if (!checkValidValue(validValue, colInfo.val, dataType)) {
+					flgCur = false;
+				}
+				
 				// Check valid value for all mapping
+//				Set<Cond> allMapping = columnMap.get(fullTableColName);
+//				if (!checkValueValidMapping(allMapping, colInfo.val, dataType)) {
+//					continue;
+//				}
 				
 				// Check value in value different with value of (NOT IN, !=, <>)
+				List<String> inValidVal = valueInValidOfColumn.get(fullTableColName);
+				if (inValidVal.contains(colInfo.val)) {
+					flgCur = false;
+				}
+				
+				// TODO
+				// Not unikey for this
+				if (colInfo.isKey()) {
+					flgCur = false;
+					// Get value in tableData
+					List<ColumnInfo> tmp = tableData.get(fullTableColName);
+					for (ColumnInfo col : tmp) {
+						if (col.name.equals(colInfo.name)) {
+							listConditionUpdate.add(col);
+						}
+					}
+				}
 				
 				// Add to flg Check
+				arrFlg[i] = flgCur;
 			}
 			
+			List<ColumnInfo> listColUpdate = new ArrayList<>();
+
 			// When insert just call method insert and input List<ColumnInfo>
-			
 			// When update -> List<ColumnInfo> can Update,
 			// List<ColumnInfo> condition of primary key in this table!
+			for (int i = 0; i < l.size(); ++i) {
+				if (arrFlg[i]) {
+					listColUpdate.add(l.get(i));
+				}
+			}
+			
+			createService.update(tableName, listColUpdate, listConditionUpdate);
 		}
 	}
 
@@ -902,10 +949,13 @@ public class CreateData {
 				continue;
 			}
 			
+			// TODO
 			// Check current col is not primary key or foriegn key
 			// Then create with hand!.
 			// If this col isPrimaryKey then get all key this key!
 			// if (!isPrimaryKey(col) && !isForignKey(col)
+			// Call method genKey for this column
+			// check flag and not call line 936
 			
 			// Get valid value of column
 			List<Cond> validV = validValuesForColumn.get(col);
@@ -915,6 +965,8 @@ public class CreateData {
 			// Date
 			// char
 			ColumnInfo colInfo = createService.getColumInfo(tableName, colName);
+
+					
 			String dataType = createService.getDataTypeOfColumn(colInfo);
 			int len = createService.getLengthOfColumn(colInfo);
 			
@@ -1500,6 +1552,95 @@ public class CreateData {
 		}
 		return sb.toString();
 	}
+
+	/**
+	 * Check valid value
+	 * @param List<Cond> validValueOfColumn
+	 * @param value String current value
+	 * @param dataType dataType of column
+	 * @return return when val Valid in list<Cond>
+	 */
+	public boolean checkValidValue(List<Cond> validVal, String val, String dataType) {
+		boolean flgCheck = true;
+		for (Cond cond : validVal) {
+			switch (cond.operator) {
+			case "=":
+				if (!cond.value.equals(val)) {
+					flgCheck = false;
+				}
+				break;
+			case ">=":
+				if (dataType.equals("number")) {
+					Integer curI = parseStringToInt(val);
+					Integer innerI = parseStringToInt(cond.value);
+					if (curI < innerI) {
+						flgCheck = false;
+						break;
+					}
+				} else if (dataType.equals("date")) {
+					Date curD = parseStringToDate(val);
+					Date innerD = parseStringToDate(cond.value);
+					if (curD.compareTo(innerD) < 0) {
+						flgCheck = false;
+						break;
+					}
+				}
+				break;
+			case "<=":
+				if (dataType.equals("number")) {
+					Integer curI = parseStringToInt(val);
+					Integer innerI = parseStringToInt(cond.value);
+					if (curI > innerI) {
+						flgCheck = false;
+						break;
+					}
+				} else if (dataType.equals("date")) {
+					Date curD = parseStringToDate(val);
+					Date innerD = parseStringToDate(cond.value);
+					if (curD.compareTo(innerD) > 0) {
+						flgCheck = false;
+						break;
+					}
+				}
+				break;
+			default:
+				System.out.println("Other operator?");
+				break;
+			}
+		}
+		return flgCheck;
+	}
 	
-		
+	// TODO
+	// Thinking? 
+//	/**
+//	 * Check valid value
+//	 * @param Set<Cond> allMappingOfColumn
+//	 * @param value String current value
+//	 * @param dataType dataType of column
+//	 * @return return when val Valid in list<Cond>
+//	 */
+//	public checkValueValidMapping(Set<Cond> allMapping, String val, String dataType) {
+//		boolean flgCheck = true;
+//		for (Cond cond : allMapping) {
+//			switch(cond.operator) {
+//			case "=":
+//				break;
+//			case "<=":
+//				break;
+//			case ">=":
+//				break;
+//			case ">":
+//				break;
+//			case "<":
+//				break;
+//			case "!=":
+//				break;
+//			default:
+//				System.out.println("Other operator?");
+//				break;
+//			}
+//		}
+//		return flgCheck;
+//	}
 }

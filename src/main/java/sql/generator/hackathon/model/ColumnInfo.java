@@ -5,6 +5,8 @@ public class ColumnInfo {
 	public String typeName;
 	public int typeValue;
 	public String val;
+	public boolean isPrimaryKey;
+	public boolean isForeignKey;
 	
 	public ColumnInfo() {
 		
@@ -44,5 +46,9 @@ public class ColumnInfo {
 	public int hashCode() {
 		int k = 31;
 		return (this.name.hashCode() + this.val.hashCode()) * k;
+	}
+	
+	public boolean isKey() {
+		return this.isForeignKey || this.isPrimaryKey;
 	}
 }

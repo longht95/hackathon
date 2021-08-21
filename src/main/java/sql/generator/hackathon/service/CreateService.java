@@ -56,11 +56,10 @@ public class CreateService {
 	 * @param columnInfos
 	 */
 	public void update(String tableName, List<ColumnInfo> columnInfos, List<ColumnInfo> condition) {
-		// Get all column
-		// Get all value sorted follumn column
-		Map<String, String> m = getMapColumnsAndValues(columnInfos);
-		
-		String sqlInsert = "Update " + tableName + " SET " + m.get("columns") + ") VALUES (" + m.get("values") + ")";
+		String colUpdate = getStrColumnUpdate(columnInfos);
+		String conditionUpdate = getStrColUpdateCondition(condition);
+
+		String sqlInsert = "Update " + tableName + " SET " + colUpdate + " WHERE " + conditionUpdate;
         try {
             // crate statement to insert student
             PreparedStatement stmt = conn.prepareStatement(sqlInsert);
@@ -118,6 +117,7 @@ public class CreateService {
 		}
 		return res.toString();
 	}
+	
 	
 	/**
 	 * Get str column in condition where
