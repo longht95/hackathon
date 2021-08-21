@@ -5,24 +5,14 @@
         <alias>Test</alias>  
         <condition>
         	<left>test.column1</left>
-        	<operator>"="</operator>
-        	<right>KEY1</right>
+        	<operator>"&gt;="</operator>
+        	<right>2010-10-10</right>
         	<listRight></listRight>
         </condition>
         <condition>
         	<left>test.column1</left>
-        	<operator>"NOT IN"</operator>
-        	<right></right>
-        	<listRight>99,100,2,15</listRight>
-        </condition>
-    </table>
-    <table>  
-        <name>Company</name>  
-        <alias>comp</alias>  
-        <condition>
-        	<left>comp.column1</left>
-        	<operator>"="</operator>
-        	<right>KEY1</right>
+        	<operator>"&lt;="</operator>
+        	<right>2019-04-15</right>
         	<listRight></listRight>
         </condition>
     </table>

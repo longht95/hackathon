@@ -74,7 +74,7 @@ public class CreateData {
 	// Key tableName.colName
 	private Map<String, String> lastEndValidValue = new HashMap<>();
 	
-	private String dataType = "number";
+	private String dataType = "date";
 	
 	public CreateData(List<TableSQL> tables, Map<String, List<String>> keys) {
 		this.tables = tables;
@@ -203,6 +203,8 @@ public class CreateData {
 		// TableName.columnName
 		String fullColName = tableName + "." + getTableAndColName(col)[1];
 
+		lastEndValidValue.put(fullColName, "");
+		
 		// Add all condition.
 		List<String[]> t;
 		if (mapValOfColumn.containsKey(fullColName)) {
@@ -436,7 +438,46 @@ public class CreateData {
 			
 			// Check in previous condition, and remove it if exists!
 			Cond obj = new Cond("!=", v);
+			Cond c = null;
+			for (int j = 0; j < values.size(); ++j) {
+				if (values.get(j).equals(obj)) {
+					if (values.get(j).operator.equals("<=") || values.get(j).operator.equals(">=")) {
+						c = values.get(j);
+						break;
+					}
+				}
+			}
+			
+			// Remove if contains
 			if (values.contains(obj)) {
+				// Check when not in mapping with less than or greater than!
+				if (c != null) {
+					
+					Cond tmp = new Cond();
+					tmp.operator = c.operator;
+
+					// TODO
+					// Get datatype of this column
+					
+					if (c.operator.equals("<=")) {
+						// Decrease - 1
+//						values.add(new Cond(c.operator, c.))
+						
+						if (dataType.equals("number")) {
+							tmp.value = genKeyWithTypeNumber(false, c.value);
+						} else if (dataType.equals("date")) {
+							tmp.value = genKeyWithTypeDate(false, c.value);
+						}
+					} else if (c.operator.equals(">=")) {
+						// Increase + 1
+						if (dataType.equals("number")) {
+							tmp.value = genKeyWithTypeNumber(true, c.value);
+						} else if (dataType.equals("date")) {
+							tmp.value = genKeyWithTypeDate(true, c.value);
+						}
+					}
+					values.add(tmp);
+				}
 				values.remove(obj);
 			}
 		}
@@ -453,10 +494,49 @@ public class CreateData {
 		
 		// Add value to not in table.column!
 		valNotIn.add(v);
-
-		// Check if exists in previous condition then remove it!
+		// Check in previous condition, and remove it if exists!
 		Cond obj = new Cond("!=", v);
+		Cond c = null;
+		for (int j = 0; j < values.size(); ++j) {
+			if (values.get(j).equals(obj)) {
+				if (values.get(j).operator.equals("<=") || values.get(j).operator.equals(">=")) {
+					c = values.get(j);
+					break;
+				}
+			}
+		}
+		
+		// Check if exists in previous condition then remove it!
 		if (values.contains(obj)) {
+			
+			if (c != null) {
+
+				Cond tmp = new Cond();
+				tmp.operator = c.operator;
+				
+				// TODO
+				// Get datatype of this column
+				
+				if (c.operator.equals("<=")) {
+					// Decrease - 1
+//					values.add(new Cond(c.operator, c.))
+					
+					if (dataType.equals("number")) {
+						tmp.value = genKeyWithTypeNumber(false, c.value);
+					} else if (dataType.equals("date")) {
+						tmp.value = genKeyWithTypeDate(false, c.value);
+					}
+				} else if (c.operator.equals(">=")) {
+					// Increase + 1
+					if (dataType.equals("number")) {
+						tmp.value = genKeyWithTypeNumber(true, c.value);
+					} else if (dataType.equals("date")) {
+						tmp.value = genKeyWithTypeDate(true, c.value);
+					}
+				}
+				values.add(tmp);
+			}
+			
 			values.remove(obj);
 		}
 	}
@@ -624,7 +704,7 @@ public class CreateData {
 			List<ColumnInfo> l = tableData.get(getTableAndColName(fullTableColName)[0]);
 			if (!lastVal.isEmpty()) {
 				// New columnInfo
-				ColumnInfo columnInfo = new ColumnInfo(fullTableColName, lastVal);
+				ColumnInfo columnInfo = new ColumnInfo(getTableAndColName(fullTableColName)[1], lastVal);
 				l.add(columnInfo);
 			} else {
 				// When calculator not in mapping 
@@ -640,7 +720,7 @@ public class CreateData {
 				// TODO
 				// Get len of column;
 				// Call tu a Trung
-				int len = 5;
+				int len = 1;
 				
 				// TODO
 				// Get dataType
@@ -648,42 +728,50 @@ public class CreateData {
 				// String dataType
 				
 				// Get
-				String curVal;
 				List<String> curValidVal = new ArrayList<>();
 				
-				boolean flgEqual = false;
-				boolean flgGreater = false;
-				boolean flgLess = false;
-				
-				String valLess = "";
-				String valGreater = "";
-				for (Cond cond : validVal) {
-					String operator = cond.operator;
-					String val = cond.value;
+				if (validVal == null) {
+					curValidVal = genAutoKey("", "", dataType, len);
+				} else {
+					boolean flgEqual = false;
+					boolean flgGreater = false;
+					boolean flgLess = false;
+					
+					String valLess = "";
+					String valGreater = "";
+					
+					for (Cond cond : validVal) {
+						String operator = cond.operator;
+						String val = cond.value;
 
-					switch (operator) {
-					case "=":
-						flgEqual = true;
-						curValidVal.add(val);
-						break;
-					case "<=":
-						flgLess = true;
-						valLess = val;
-						break;
-					case ">=":
-						flgGreater = true;
-						valGreater = val;
-						break;
+						switch (operator) {
+						case "=":
+							flgEqual = true;
+							curValidVal.add(val);
+							break;
+						case "<=":
+							flgLess = true;
+							valLess = val;
+							break;
+						case ">=":
+							flgGreater = true;
+							valGreater = val;
+							break;
+						}
 					}
 					
+					// Gen auto key
+					// May be call method a Trung get primarykey
+					// input(tableName.colName) => List<Primary key>
 					if (!flgEqual && (flgLess || flgGreater)) {
-						curValidVal = genAutoKey(valLess, valGreater, dataType, len);
+						curValidVal = genAutoKey(valGreater, valLess, dataType, len);
 					}
 				}
 				
+				// Remove
 				for (int i = 0; i < curValidVal.size(); ++i) {
-					if (!invalidVal.contains(curValidVal.get(i))) {
-						ColumnInfo columnInfo = new ColumnInfo(fullTableColName, curValidVal.get(i));
+					if (invalidVal == null || (!invalidVal.contains(curValidVal.get(i)))) {
+						ColumnInfo columnInfo = new ColumnInfo(getTableAndColName(fullTableColName)[1], curValidVal.get(i));
 						l.add(columnInfo);
 						break;
 					}
@@ -874,7 +962,6 @@ public class CreateData {
 				// Just calculator first meet index
 				// Valid value will increase
 				if (!checkMeet[index]) {
-					boolean flgCall = false;
 					List<Cond> conditionInWhere = new ArrayList<>();
 					// When has condition will remove current 
 					if (validValuesForColumn.get(nextCond.value) != null) {
@@ -1023,8 +1110,15 @@ public class CreateData {
 	public List<String> genAutoKey(String valGreater, String valLess, String dataType, int len) {
 		List<String> res = new ArrayList<>();
 		
+		boolean hasLess = !valLess.isEmpty();
+		
 		// Calculator increase or decrease?
-		boolean isIncrease = valGreater.isEmpty() ? true : valGreater.length() != 0 ? true : false;
+		boolean isIncrease = false;
+		if (valGreater.isEmpty() && valLess.isEmpty()) {
+			isIncrease = true;
+		} else if (!valGreater.isEmpty()) {
+			isIncrease = true;
+		}
 		String curVal = isIncrease ? valGreater.isEmpty() ? genKeyWithLen(dataType, len) : valGreater : valLess;
 		
 		int limit = 1000000;
@@ -1033,11 +1127,30 @@ public class CreateData {
 			String newVal = "";
 			if (dataType.equals("date")) {
 				newVal = genKeyWithTypeDate(isIncrease, curVal);
+				if (hasLess && isIncrease) {
+					Date t1 = parseStringToDate(valLess);
+					Date t2 = parseStringToDate(newVal);
+					
+					// New value large than limit value
+					if (t2.compareTo(t1) > 0) {
+						break;
+					}
+				}
 			} else if (dataType.equals("number")) {
 				newVal = genKeyWithTypeNumber(isIncrease, curVal);
 				// When greater len stop!
 				if (newVal.length() > len) {
 					break;
+				}
+				
+				if (hasLess && isIncrease) {
+					Integer t1 = parseStringToInt(valLess);
+					Integer t2 = parseStringToInt(newVal);
+					
+					// New value large than limit value
+					if (t2 > t1) {
+						break;
+					}
 				}
 			} else if (dataType.equals("char")) {
 				newVal = genKeyWithTypeChar(isIncrease, curVal);

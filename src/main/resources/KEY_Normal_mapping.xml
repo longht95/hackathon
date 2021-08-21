@@ -2,6 +2,6 @@
 <class>  
 	<key>
 		<name>KEY1</name>  
-	    <mapping>test.column1,comp.column1</mapping>
+	    <mapping>test.first_name,comp.name</mapping>
 	</key>
 </class>  

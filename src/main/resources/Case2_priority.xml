@@ -25,7 +25,7 @@
         	<left>test.column1</left>
         	<operator>"IN"</operator>
         	<right></right>
-        	<listRight>5,54,3</listRight>
+        	<listRight>3,54,11</listRight>
         </condition>
         <condition>
         	<left>test.column1</left>

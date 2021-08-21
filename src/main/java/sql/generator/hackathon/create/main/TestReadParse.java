@@ -31,7 +31,6 @@ public class TestReadParse {
 			readObjectTest(String.valueOf(i));
 		}
 		
-		
 		// Test create
 		CreateData createData = new CreateData(tables, keys);
 		createData.create();

@@ -1,0 +1,29 @@
+<?xml version="1.0"?>  
+<class>  
+    <table>  
+        <name>Persons</name>  
+        <alias>Test</alias>  
+        <condition>
+        	<left>test.first_name</left>
+        	<operator>"="</operator>
+        	<right>KEY1</right>
+        	<listRight></listRight>
+        </condition>
+        <condition>
+        	<left>test.column1</left>
+        	<operator>"NOT IN"</operator>
+        	<right></right>
+        	<listRight>99,100,2,15</listRight>
+        </condition>
+    </table>
+    <table>  
+        <name>Company</name>  
+        <alias>comp</alias>  
+        <condition>
+        	<left>comp.name</left>
+        	<operator>"="</operator>
+        	<right>KEY1</right>
+        	<listRight></listRight>
+        </condition>
+    </table>
+</class>  

@@ -12,17 +12,20 @@ public class TestInsertDB {
     private static String PASSWORD = "password";
     private static Connection conn;
 
-    public static void connect() {
+    public static Connection connect() {
     	// connect to database
+    	Connection conn;
     	try {
     		Class.forName("org.h2.Driver");
             conn = DriverManager.getConnection(DB_URL, 
                     USER_NAME, PASSWORD);
+            return conn;
     	} catch (SQLException e) {
     		e.printStackTrace();
     	} catch (ClassNotFoundException e) {
     		e.printStackTrace();
     	}
+    	return null;
     }
     
     public void create() {
