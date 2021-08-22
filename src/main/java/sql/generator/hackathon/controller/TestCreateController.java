@@ -41,7 +41,7 @@ public class TestCreateController {
 	
 	@RequestMapping(value = "/testConnectT")
 	public String testConnect() throws Exception {
-		executeDBServer.connectDB("", "", "");
+		executeDBServer.connectDB("admindb", "root", "");
 
 		// Test read
 		int n = 1;
@@ -58,12 +58,11 @@ public class TestCreateController {
 		createService.connect(executeDBServer.connect);
 		createService.setTableInfo(executeDBServer.getInforTable("admindb", lstTableName));
 		
-		// Create data
 		// Need List<TableSQL> FROM PARSE
 		// Map<String, List<String> FROM PARSE
 		CreateData createData = new CreateData(createService, TestReadParse.tables, TestReadParse.keys);
 		createData.create();
-		
+
 		
 		// BEGIN: CALL WHEN USER CLICK BUTTON GEN DATA!
 		
