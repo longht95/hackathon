@@ -21,7 +21,7 @@ import org.springframework.stereotype.Service;
 
 import sql.generator.hackathon.model.ColumnInfo;
 import sql.generator.hackathon.model.Cond;
-import sql.generator.hackathon.model.ConditionTest;
+import sql.generator.hackathon.model.Condition;
 import sql.generator.hackathon.model.NodeColumn;
 import sql.generator.hackathon.model.TableSQL;
 import sql.generator.hackathon.service.CreateService;
@@ -213,7 +213,7 @@ public class CreateData {
 		Map<String, List<String[]>> mapValOfColumn = new HashMap<>();
 
 		// Read list condition
-		List<ConditionTest> conditions = table.condition;
+		List<Condition> conditions = table.condition;
 
 		// Read all condition.
 		int szCond = conditions.size();
@@ -225,7 +225,7 @@ public class CreateData {
 			}
 
 			String left = conditions.get(i).left;
-			String operator = conditions.get(i).operator;
+			String operator = conditions.get(i).expression;
 			String right = conditions.get(i).right;
 
 			// Execute find valid value column = KEY
@@ -269,10 +269,10 @@ public class CreateData {
 	 * @param condition
 	 * @param mapValueOfColumn
 	 */
-	private void readValueForColumn(String tableName, ConditionTest condition,
+	private void readValueForColumn(String tableName, Condition condition,
 			Map<String, List<String[]>> mapValOfColumn) {
 		String col = condition.left;
-		String operator = condition.operator;
+		String operator = condition.expression;
 		String val = condition.right;
 
 		// Check has alias => save, if normal case no save.

@@ -117,17 +117,18 @@ public class GenController {
 		tien.add(longa);
 		
 		
-        List<List<String>> listData = executeDBServer.getListData(tableName);
-        List<String> listColumn = executeDBServer.getListColumn("admindb", tableName);
-        listData.add(0,listColumn);
-        
-        mapper.enable(SerializationFeature.INDENT_OUTPUT);
-        String json = mapper.writeValueAsString(listData);
-        String json1 = mapper.writeValueAsString(listColumn);
-        System.out.println(json);
-        System.out.println(json1);
+//        List<List<String>> listData = executeDBServer.getListData(tableName);
+//        List<String> listColumn = executeDBServer.getListColumn("admindb", tableName);
+//        listData.add(0,listColumn);
+//        
+//        mapper.enable(SerializationFeature.INDENT_OUTPUT);
+//        String json = mapper.writeValueAsString(listData);
+//        String json1 = mapper.writeValueAsString(listColumn);
+//        System.out.println(json);
+//        System.out.println(json1);
 		
-		return mapper.writeValueAsString(json);
+//		return mapper.writeValueAsString(json);
+		return "";
 	}
 	
 	
