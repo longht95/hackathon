@@ -6,12 +6,18 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
+
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class TableSQL {
-	public String tableName;
-	public String alias;
-	public List<Condition> condition;
+@ToString
+public class Condition {
+	public String left;
+	public String right;
+	public String expression;
+	public List<String> listRight;
+	public String function;
+	
 }
