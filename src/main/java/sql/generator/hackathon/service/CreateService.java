@@ -1,26 +1,42 @@
 package sql.generator.hackathon.service;
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
 
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.support.PropertiesLoaderUtils;
 import org.springframework.stereotype.Service;
 
-import sql.generator.hackathon.create.main.TestInsertDB;
 import sql.generator.hackathon.model.ColumnInfo;
 
 @Service
 public class CreateService {
-
-	private HashMap<String, List<ColumnInfo>> tableInfo = new HashMap<>();
 	
-	private static Connection conn;
+	// Load resource data example
+	private static Resource resource = new ClassPathResource("/example_data.properties");
+	private static HashMap<String, String> dataExamples = new HashMap<>();
+	
+	private Map<String, List<ColumnInfo>> tableInfo = new HashMap<>();
+	
+	private Connection conn;
 	
 	public CreateService() {
-		conn = TestInsertDB.connect();
+	}
+	
+	public void connect(Connection conn) {
+		this.conn = conn;
+	}
+	
+	public void setTableInfo(Map<String, List<ColumnInfo>> tableInfo) {
+		this.tableInfo = tableInfo;
 	}
 	
 	/**
@@ -31,7 +47,7 @@ public class CreateService {
 	public void insert(String tableName, List<ColumnInfo> columnInfos) {
 		// Get all column
 		// Get all value sorted follumn column
-		Map<String, String> m = getMapColumnsAndValues(columnInfos);
+		Map<String, String> m = getMapColumnsAndValues(tableName, columnInfos);
 		
 		String sqlInsert = "INSERT INTO " + tableName + "(" + m.get("columns") + ") VALUES (" + m.get("values") + ")";
         try {
@@ -81,10 +97,13 @@ public class CreateService {
 	 * @param ColumnInfos List columnInfo
 	 * @return Map<String, String>all columnName
 	 */
-	public Map<String, String> getMapColumnsAndValues(List<ColumnInfo> columnInfos) {
+	public Map<String, String> getMapColumnsAndValues(String tableName, List<ColumnInfo> columnInfos) {
+		
+		// Init
 		Map<String, String> res = new HashMap<>();
 		StringBuilder colNames = new StringBuilder();
 		StringBuilder values = new StringBuilder();
+		
 		for (ColumnInfo columnInfo : columnInfos) {
 			if (colNames.length() != 0) {
 				colNames.append(",");
@@ -95,8 +114,45 @@ public class CreateService {
 			}
 			
 			colNames.append(columnInfo.name);
-			values.append(columnInfo.val);
+			
+			values.append(getCorrectValue(columnInfo));
 		}
+		
+		// Get structure of tableName
+		// Add default data when can't not null
+		List<ColumnInfo> structure = tableInfo.get(tableName);
+		for (ColumnInfo columnInfo : structure) {
+			if ((!columnInfo.isNull && !columnInfo.isKey()) && colNames.indexOf(columnInfo.name) == -1) {
+				if (colNames.length() != 0) {
+					colNames.append(",");
+				}
+				
+				if (values.length() != 0) {
+					values.append(",");
+				}
+				
+				colNames.append(columnInfo.name);
+				String type = getDataTypeOfColumn(columnInfo);
+				ColumnInfo innerInfo = new ColumnInfo(columnInfo.name, "");
+				switch(type) {
+				case "char":
+					innerInfo.val = dataExamples.get("name");
+					break;
+				case "number":
+					innerInfo.val = dataExamples.get("number");
+					break;
+				case "date":
+					// TODO
+					// Need check!
+					innerInfo.val = "2021-10-10";
+					break;
+				}
+				innerInfo.typeName = type;
+				values.append(getCorrectValue(innerInfo));
+			}
+		}
+		
+		
 		res.put("columns", colNames.toString());
 		res.put("values", values.toString());
 		return res;
@@ -113,7 +169,7 @@ public class CreateService {
 			if (res.length() != 0) {
 				res.append(", ");
 			}
-			res.append(columnInfo.name + " = " + columnInfo.val);
+			res.append(columnInfo.name + " = " + getCorrectValue(columnInfo));
 		}
 		return res.toString();
 	}
@@ -130,7 +186,7 @@ public class CreateService {
 			if (res.length() != 0) {
 				res.append("AND ");
 			}
-			res.append(columnInfo.name + " = " + columnInfo.val);
+			res.append(columnInfo.name + " = " + getCorrectValue(columnInfo));
 		}
 		return res.toString();
 	}
@@ -142,6 +198,9 @@ public class CreateService {
 	 */
 	public ColumnInfo getColumInfo(String tableName, String colName) {
 		List<ColumnInfo> listColInfo = tableInfo.get(tableName);
+		if (listColInfo == null) {
+			return null;
+		}
 		for (ColumnInfo columnInfo : listColInfo) {
 			if (columnInfo.name.equals(colName)) {
 				return columnInfo;
@@ -167,6 +226,8 @@ public class CreateService {
 			dataType = "date";
 			break;
 		case "number":
+		case "int":
+		case "bigint":
 			dataType = "number";
 			break;
 		default:
@@ -187,10 +248,16 @@ public class CreateService {
 		case "nchar":
 		case "varchar":
 		case "nvarchar":
-			len = columnInfo.typeValue;
+			if (columnInfo.typeValue != null) {
+				len = Integer.parseInt(columnInfo.typeValue);
+			}
 			break;
 		case "number":
-			len = columnInfo.typeValue; // case [p,s]?
+		case "int":
+		case "bigint":
+			if (columnInfo.typeValue != null) {
+				len = Integer.parseInt(columnInfo.typeValue); // case [p,s]?
+			}
 			break;
 		case "date":
 			break;
@@ -199,5 +266,54 @@ public class CreateService {
 			break;
 		}
 		return len;
+	}
+	
+	/**
+	 * Get correct value column
+	 */
+	private String getCorrectValue(ColumnInfo columnInfo) {
+		String type = getDataTypeOfColumn(columnInfo);
+		String res = "";
+		switch (type) {
+		case "date":
+			if (columnInfo.val.indexOf("'") >= 0) {
+				res = columnInfo.val;
+			} else {
+				res = "'" + columnInfo.val + "'";
+			}
+			break;
+		case "char":
+			// Has ''
+			if (columnInfo.val.indexOf("'") >= 0) {
+				res = columnInfo.val;
+			} else {
+				res = "'" + columnInfo.val + "'";
+			}
+			break;
+		case "number":
+			res = columnInfo.val;
+			break;
+		default:
+			System.out.println("Other?");
+			break;
+		}
+		return res;
+	}
+	
+	/**
+	 * Get data example
+	 */
+	public void getDataExample() {
+		try {
+			// Load data example
+			Properties props = PropertiesLoaderUtils.loadProperties(resource);
+			Set<String> keys = props.stringPropertyNames();
+			for (String key : keys) {
+				dataExamples.put(key, props.getProperty(key));
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+			return;
+		}
 	}
 }

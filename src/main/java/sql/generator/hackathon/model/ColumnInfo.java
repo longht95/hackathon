@@ -2,12 +2,22 @@ package sql.generator.hackathon.model;
 
 public class ColumnInfo {
 	public String name;
+	public String val;
 	public String typeName;
 	public String typeValue;
-	public Boolean isNull;
-	public Boolean isPrimarykey;
-	public Boolean isForeignKey;
-	public Boolean unique;
+	public boolean isNull;
+	public boolean isPrimarykey;
+	public boolean isForeignKey;
+	public boolean unique;
+	
+	public ColumnInfo() {
+		
+	}
+	
+	public ColumnInfo(String name, String val) {
+		this.name = name;
+		this.val = val;
+	}
 	
 	public String getName() {
 		return name;
@@ -50,5 +60,9 @@ public class ColumnInfo {
 	}
 	public void setUnique(Boolean unique) {
 		this.unique = unique;
+	}
+	
+	public Boolean isKey() {
+		return isPrimarykey || isForeignKey;
 	}
 }

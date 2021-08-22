@@ -1,34 +1,34 @@
 <?xml version="1.0"?>  
 <class>  
     <table>  
-        <name>Person</name>  
+        <name>persons</name>  
         <alias>Test</alias>  
         <condition>
-        	<left>column1</left>
+        	<left>age</left>
         	<operator>"&gt;="</operator>
         	<right>4</right>
         	<listRight></listRight>
         </condition>
         <condition>
-        	<left>column1</left>
+        	<left>Test.age</left>
         	<operator>"&lt;="</operator>
         	<right>7</right>
         	<listRight></listRight>
         </condition>
         <condition>
-        	<left>test.column1</left>
+        	<left>age</left>
         	<operator>"&lt;&gt;"</operator>
         	<right>7</right>
         	<listRight></listRight>
         </condition>
         <condition>
-        	<left>test.column1</left>
+        	<left>Test.age</left>
         	<operator>"IN"</operator>
         	<right></right>
-        	<listRight>3,54,11</listRight>
+        	<listRight>5,54,11</listRight>
         </condition>
         <condition>
-        	<left>test.column1</left>
+        	<left>age</left>
         	<operator>"NOT IN"</operator>
         	<right></right>
         	<listRight>222222,111</listRight>

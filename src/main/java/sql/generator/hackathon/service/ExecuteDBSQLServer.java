@@ -24,7 +24,7 @@ import sql.generator.hackathon.model.InfoDisplayScreen;
 @Service
 public class ExecuteDBSQLServer {
 	DataSource dataSource;
-	Connection connect;
+	public Connection connect;
 	Statement statement;
 	PreparedStatement p;
 	

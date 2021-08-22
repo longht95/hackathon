@@ -21,20 +21,8 @@ import sql.generator.hackathon.model.TableSQL;
 
 public class TestReadParse {
 
-	private static List<TableSQL> tables = new ArrayList<>();
-	private static HashMap<String, List<String>> keys = new HashMap<>();
-	
-	public static void main(String[] args) {
-
-		int n = 1;
-		for (int i = 1; i <= n; ++i) {
-			readObjectTest(String.valueOf(i));
-		}
-		
-		// Test create
-		CreateData createData = new CreateData(tables, keys);
-		createData.create();
-	}
+	public static List<TableSQL> tables = new ArrayList<>();
+	public static HashMap<String, List<String>> keys = new HashMap<>();
 	
 	public static void readObjectTest(String name) {
 		// Read file test xml

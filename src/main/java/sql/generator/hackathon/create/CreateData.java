@@ -22,6 +22,7 @@ import java.util.Stack;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PropertiesLoaderUtils;
+import org.springframework.stereotype.Service;
 
 import sql.generator.hackathon.model.ColumnInfo;
 import sql.generator.hackathon.model.Cond;
@@ -30,11 +31,8 @@ import sql.generator.hackathon.model.NodeColumn;
 import sql.generator.hackathon.model.TableSQL;
 import sql.generator.hackathon.service.CreateService;
 
+@Service
 public class CreateData {
-
-	// Load resource data example
-	private static Resource resource = new ClassPathResource("/example_data.properties");
-	private static HashMap<String, String> dataExamples = new HashMap<>();
 
 	// Priority of operator
 	private static Map<String, Integer> priorityOfOperator = new HashMap<>();
@@ -50,8 +48,6 @@ public class CreateData {
 		priorityOfOperator.put("<>", 9);
 	}
 
-	private CreateService createService = new CreateService();;
-	
 	// Save mapping table.column mapping with other table.column
 	private Map<String, Set<Cond>> columnMap = new HashMap<>();
 
@@ -76,24 +72,25 @@ public class CreateData {
 	// Key tableName.colName
 	private Map<String, String> lastEndValidValue = new HashMap<>();
 	
-	public CreateData(List<TableSQL> tables, Map<String, List<String>> keys) {
+	private CreateService createService;
+	
+	public CreateData() {
+		
+	}
+	
+	public CreateData(CreateService createService, List<TableSQL> tables, Map<String, List<String>> keys) {
+		// Connection for service
+		this.createService = createService;
+		createService.getDataExample();
+		
 		this.tables = tables;
 		this.keys = keys;
 	}
 
+	/**
+	 * Execute create data after parse object
+	 */
 	public void create() {
-		try {
-			// Load data example
-			Properties props = PropertiesLoaderUtils.loadProperties(resource);
-			Set<String> keys = props.stringPropertyNames();
-			for (String key : keys) {
-				dataExamples.put(key, props.getProperty(key));
-			}
-		} catch (IOException e) {
-			e.printStackTrace();
-			return;
-		}
-
 		int sz = tables.size();
 		for (int i = 0; i < sz; ++i) {
 			exeEachTable(tables.get(i));
@@ -263,8 +260,6 @@ public class CreateData {
 					return Integer.parseInt(o1[2]) - Integer.parseInt(o2[2]);
 				}
 			});
-			System.out.println("---- Show sorted list ----");
-			System.out.println(t.toString());
 		}
 
 		// Check all condition in mapValOfColumn With key is tableName.columName
@@ -389,6 +384,7 @@ public class CreateData {
 
 				// When priority = 1 stop here
 				if (operator.equals("=")) {
+					lastEndValidValue.put(tableName + "." + colName, cur[1]);
 					break;
 				}
 
@@ -404,7 +400,7 @@ public class CreateData {
 				switch (operator) {
 				case "IN":
 					flgCheckCondIN = true;
-					addValueToColWithInOperator(cur, tmpVal);
+					listCondIN = addValueToColWithInOperator(cur, tmpVal);
 					break;
 				case "<=":
 					try {
@@ -799,12 +795,17 @@ public class CreateData {
 			// Get tableName and colName
 			String tableName = getTableAndColName(fullTableColName)[0];
 			String colName = getTableAndColName(fullTableColName)[1];
+			ColumnInfo colInfo = createService.getColumInfo(tableName, colName);
 			
 			// When last have calculator in mapping
 			List<ColumnInfo> l = tableData.get(tableName);
 			if (!lastVal.isEmpty()) {
 				// New columnInfo
 				ColumnInfo columnInfo = new ColumnInfo(colName, lastVal);
+				
+				columnInfo.setTypeName(colInfo.typeName);
+				columnInfo.setTypeValue(colInfo.typeValue);
+				
 				l.add(columnInfo);
 			} else {
 				// When calculator not in mapping 
@@ -820,9 +821,9 @@ public class CreateData {
 				// TODO
 				// Get len of column;
 				// Call tu a Trung
-				ColumnInfo colInfo = createService.getColumInfo(tableName, colName); 
 				int len = createService.getLengthOfColumn(colInfo);
 				
+			
 				// TODO
 				// Get dataType
 				// Call tu a trung
@@ -832,7 +833,7 @@ public class CreateData {
 				// Get
 				List<String> curValidVal = new ArrayList<>();
 				
-				if (validVal == null) {
+				if (validVal.isEmpty()) {
 					curValidVal = genAutoKey("", "", dataType, len);
 				} else {
 					boolean flgEqual = false;
@@ -860,13 +861,23 @@ public class CreateData {
 							valGreater = val;
 							break;
 						}
+						
+						// Add value trong khoang
+						// Use for case NOT With between
+						if (flgLess && flgGreater) {
+							curValidVal.addAll(genAutoKey(valGreater, valLess, dataType, len));
+							flgLess = false;
+							valLess = "";
+							flgGreater = false;
+							valGreater = "";
+						}
 					}
 					
 					// Gen auto key
 					// May be call method a Trung get primarykey
 					// input(tableName.colName) => List<Primary key>
 					if (!flgEqual && (flgLess || flgGreater)) {
-						curValidVal = genAutoKey(valGreater, valLess, dataType, len);
+						curValidVal.addAll(genAutoKey(valGreater, valLess, dataType, len));
 					}
 				}
 				
@@ -874,6 +885,11 @@ public class CreateData {
 				for (int i = 0; i < curValidVal.size(); ++i) {
 					if (invalidVal == null || (!invalidVal.contains(curValidVal.get(i)))) {
 						ColumnInfo columnInfo = new ColumnInfo(colName, curValidVal.get(i));
+						
+						// Set type for excute case add ' or not!
+						columnInfo.setTypeName(colInfo.typeName);
+						columnInfo.setTypeValue(colInfo.typeValue);
+						
 						l.add(columnInfo);
 						break;
 					}
@@ -938,7 +954,7 @@ public class CreateData {
 		Set<String> visitedMapping = new HashSet<>();
 		
 		// table.colName => condition valid
-		// Map<String, List<Cond>> validValuesForColumn;
+		// Map<String, List<Cond>> columnMap;
 		for (Map.Entry<String, Set<Cond>> e : columnMap.entrySet()) {
 			String col = e.getKey();
 			String tableName = getTableAndColName(col)[0];
@@ -1053,7 +1069,6 @@ public class CreateData {
 					continue;
 				}
 				
-				String tableColName = curNode.tableColumnName;
 				String val = curNode.val;
 				int index = curNode.index;
 				

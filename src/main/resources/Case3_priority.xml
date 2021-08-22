@@ -1,25 +1,31 @@
 <?xml version="1.0"?>  
 <class>  
     <table>  
-        <name>Person</name>  
+        <name>persons</name>  
         <alias>Test</alias>  
         <condition>
-        	<left>test.column1</left>
+        	<left>age</left>
         	<operator>"&gt;="</operator>
         	<right>4</right>
         	<listRight></listRight>
         </condition>
         <condition>
-        	<left>test.column1</left>
+        	<left>Test.age</left>
         	<operator>"&lt;="</operator>
         	<right>7</right>
         	<listRight></listRight>
         </condition>
         <condition>
-        	<left>test.column1</left>
-        	<operator>"!="</operator>
+        	<left>age</left>
+        	<operator>"&lt;&gt;"</operator>
         	<right>7</right>
         	<listRight></listRight>
+        </condition>
+        <condition>
+        	<left>age</left>
+        	<operator>"NOT IN"</operator>
+        	<right></right>
+        	<listRight>4,5,222222,111</listRight>
         </condition>
     </table>
 </class>  

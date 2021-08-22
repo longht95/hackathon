@@ -2,23 +2,17 @@
 <class>  
     <table>  
         <name>persons</name>  
-        <alias>Test</alias>  
+        <alias>test</alias>
         <condition>
         	<left>age</left>
         	<operator>"&gt;="</operator>
-        	<right>4</right>
+        	<right>10</right>
         	<listRight></listRight>
         </condition>
         <condition>
-        	<left>Test.age</left>
-        	<operator>"&lt;"</operator>
-        	<right>7</right>
-        	<listRight></listRight>
-        </condition>
-        <condition>
-        	<left>age</left>
-        	<operator>"&gt;"</operator>
-        	<right>9</right>
+        	<left>test.age</left>
+        	<operator>"&lt;="</operator>
+        	<right>20</right>
         	<listRight></listRight>
         </condition>
     </table>
