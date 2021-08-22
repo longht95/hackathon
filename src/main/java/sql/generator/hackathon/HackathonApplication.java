@@ -19,7 +19,6 @@ public class HackathonApplication {
 		System.out.println(plain.getJoins().get(0).getRightItem().getAlias());
 		System.out.println(plain.getJoins().get(0).getOnExpression());
 		System.out.println(plain.getWhere());
-		TestInsertDB.connect();
 		SpringApplication.run(HackathonApplication.class, args);
 	}
 

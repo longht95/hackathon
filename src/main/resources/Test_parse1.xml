@@ -1,18 +1,24 @@
 <?xml version="1.0"?>  
 <class>  
     <table>  
-        <name>Person</name>  
-        <alias>Test</alias>  
+        <name>persons</name>  
+        <alias>test</alias>
         <condition>
-        	<left>test.column1</left>
-        	<operator>"&gt;="</operator>
-        	<right>2010-10-10</right>
+        	<left>name</left>
+        	<operator>"="</operator>
+        	<right>Tuan</right>
         	<listRight></listRight>
         </condition>
         <condition>
-        	<left>test.column1</left>
+        	<left>age</left>
+        	<operator>"&gt;="</operator>
+        	<right>10</right>
+        	<listRight></listRight>
+        </condition>
+        <condition>
+        	<left>test.age</left>
         	<operator>"&lt;="</operator>
-        	<right>2019-04-15</right>
+        	<right>20</right>
         	<listRight></listRight>
         </condition>
     </table>

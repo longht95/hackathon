@@ -24,7 +24,7 @@ import sql.generator.hackathon.model.InfoDisplayScreen;
 @Service
 public class ExecuteDBSQLServer {
 	DataSource dataSource;
-	Connection connect;
+	public Connection connect;
 	Statement statement;
 	PreparedStatement p;
 	
@@ -33,7 +33,7 @@ public class ExecuteDBSQLServer {
 	
 	//connect database
 	public void connectDB(String url, String account, String pass) throws Exception {
-		dataSource = (DataSource)beanFactory.getBean("dataSource", "jdbc:mysql://localhost:3306/admindb", "root", "Root123!");
+		dataSource = (DataSource)beanFactory.getBean("dataSource", "jdbc:mysql://localhost:3306/admindb", "root", "");
 //		dataSource = (DataSource)beanFactory.getBean("dataSource", url, account, pass);
     	connect = dataSource.getConnection();
 	}

@@ -22,6 +22,7 @@ import java.util.Stack;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PropertiesLoaderUtils;
+import org.springframework.stereotype.Service;
 
 import sql.generator.hackathon.model.ColumnInfo;
 import sql.generator.hackathon.model.Cond;
@@ -30,6 +31,7 @@ import sql.generator.hackathon.model.NodeColumn;
 import sql.generator.hackathon.model.TableSQL;
 import sql.generator.hackathon.service.CreateService;
 
+@Service
 public class CreateData {
 
 	// Load resource data example
@@ -50,8 +52,6 @@ public class CreateData {
 		priorityOfOperator.put("<>", 9);
 	}
 
-	private CreateService createService = new CreateService();;
-	
 	// Save mapping table.column mapping with other table.column
 	private Map<String, Set<Cond>> columnMap = new HashMap<>();
 
@@ -59,7 +59,7 @@ public class CreateData {
 	private List<TableSQL> tables = new ArrayList<>();
 	private Map<String, List<String>> keys = new HashMap<>();
 
-	// alias.Name => <tableName.columnName, operator>
+	// alias.Name => <tableName.colum	nName, operator>
 	private Map<String, String[]> infoCol = new HashMap<>();
 
 	// Data current values
@@ -76,11 +76,22 @@ public class CreateData {
 	// Key tableName.colName
 	private Map<String, String> lastEndValidValue = new HashMap<>();
 	
-	public CreateData(List<TableSQL> tables, Map<String, List<String>> keys) {
+	private CreateService createService;
+	
+	public CreateData() {
+		
+	}
+	
+	public CreateData(CreateService createService, List<TableSQL> tables, Map<String, List<String>> keys) {
+		// Connection for service
+		this.createService = createService;
 		this.tables = tables;
 		this.keys = keys;
 	}
 
+	/**
+	 * Execute create data after parse object
+	 */
 	public void create() {
 		try {
 			// Load data example
@@ -389,6 +400,7 @@ public class CreateData {
 
 				// When priority = 1 stop here
 				if (operator.equals("=")) {
+					lastEndValidValue.put(tableName + "." + colName, cur[1]);
 					break;
 				}
 
@@ -799,12 +811,17 @@ public class CreateData {
 			// Get tableName and colName
 			String tableName = getTableAndColName(fullTableColName)[0];
 			String colName = getTableAndColName(fullTableColName)[1];
+			ColumnInfo colInfo = createService.getColumInfo(tableName, colName);
 			
 			// When last have calculator in mapping
 			List<ColumnInfo> l = tableData.get(tableName);
 			if (!lastVal.isEmpty()) {
 				// New columnInfo
 				ColumnInfo columnInfo = new ColumnInfo(colName, lastVal);
+				
+				columnInfo.setTypeName(colInfo.typeName);
+				columnInfo.setTypeValue(colInfo.typeValue);
+				
 				l.add(columnInfo);
 			} else {
 				// When calculator not in mapping 
@@ -820,9 +837,9 @@ public class CreateData {
 				// TODO
 				// Get len of column;
 				// Call tu a Trung
-				ColumnInfo colInfo = createService.getColumInfo(tableName, colName); 
 				int len = createService.getLengthOfColumn(colInfo);
 				
+			
 				// TODO
 				// Get dataType
 				// Call tu a trung
@@ -874,6 +891,11 @@ public class CreateData {
 				for (int i = 0; i < curValidVal.size(); ++i) {
 					if (invalidVal == null || (!invalidVal.contains(curValidVal.get(i)))) {
 						ColumnInfo columnInfo = new ColumnInfo(colName, curValidVal.get(i));
+						
+						// Set type for excute case add ' or not!
+						columnInfo.setTypeName(colInfo.typeName);
+						columnInfo.setTypeValue(colInfo.typeValue);
+						
 						l.add(columnInfo);
 						break;
 					}
