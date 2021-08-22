@@ -9,18 +9,24 @@ import java.util.Map;
 
 import org.springframework.stereotype.Service;
 
-import sql.generator.hackathon.create.main.TestInsertDB;
 import sql.generator.hackathon.model.ColumnInfo;
 
 @Service
 public class CreateService {
 
-	private HashMap<String, List<ColumnInfo>> tableInfo = new HashMap<>();
+	private Map<String, List<ColumnInfo>> tableInfo = new HashMap<>();
 	
-	private static Connection conn;
+	private Connection conn;
 	
 	public CreateService() {
-		conn = TestInsertDB.connect();
+	}
+	
+	public void connect(Connection conn) {
+		this.conn = conn;
+	}
+	
+	public void setTableInfo(Map<String, List<ColumnInfo>> tableInfo) {
+		this.tableInfo = tableInfo;
 	}
 	
 	/**
@@ -95,7 +101,8 @@ public class CreateService {
 			}
 			
 			colNames.append(columnInfo.name);
-			values.append(columnInfo.val);
+			
+			values.append(getCorrectValue(columnInfo));
 		}
 		res.put("columns", colNames.toString());
 		res.put("values", values.toString());
@@ -113,7 +120,7 @@ public class CreateService {
 			if (res.length() != 0) {
 				res.append(", ");
 			}
-			res.append(columnInfo.name + " = " + columnInfo.val);
+			res.append(columnInfo.name + " = " + getCorrectValue(columnInfo));
 		}
 		return res.toString();
 	}
@@ -130,7 +137,7 @@ public class CreateService {
 			if (res.length() != 0) {
 				res.append("AND ");
 			}
-			res.append(columnInfo.name + " = " + columnInfo.val);
+			res.append(columnInfo.name + " = " + getCorrectValue(columnInfo));
 		}
 		return res.toString();
 	}
@@ -142,6 +149,9 @@ public class CreateService {
 	 */
 	public ColumnInfo getColumInfo(String tableName, String colName) {
 		List<ColumnInfo> listColInfo = tableInfo.get(tableName);
+		if (listColInfo == null) {
+			return null;
+		}
 		for (ColumnInfo columnInfo : listColInfo) {
 			if (columnInfo.name.equals(colName)) {
 				return columnInfo;
@@ -167,6 +177,8 @@ public class CreateService {
 			dataType = "date";
 			break;
 		case "number":
+		case "int":
+		case "bigint":
 			dataType = "number";
 			break;
 		default:
@@ -199,5 +211,35 @@ public class CreateService {
 			break;
 		}
 		return len;
+	}
+	
+	/**
+	 * Get correct value column
+	 */
+	private String getCorrectValue(ColumnInfo columnInfo) {
+		String type = getDataTypeOfColumn(columnInfo);
+		String res = "";
+		switch (type) {
+		case "date":
+			// TODO
+			// Need format?
+			res = columnInfo.val;
+			break;
+		case "char":
+			// Has ''
+			if (columnInfo.val.indexOf("'") > 0) {
+				res = columnInfo.val;
+			} else {
+				res = "'" + columnInfo.val + "'";
+			}
+			break;
+		case "number":
+			res = columnInfo.val;
+			break;
+		default:
+			System.out.println("Other?");
+			break;
+		}
+		return res;
 	}
 }
