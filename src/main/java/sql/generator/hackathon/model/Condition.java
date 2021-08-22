@@ -20,4 +20,15 @@ public class Condition {
 	public List<String> listRight;
 	public String function;
 	
+	public Condition() {
+		
+	}
+	
+	public Condition(String left, String expression, String right) {
+		this.left = left;
+		this.expression = expression;
+		this.right = right;
+	}
+	
+	
 }

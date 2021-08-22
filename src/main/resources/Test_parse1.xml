@@ -21,5 +21,11 @@
         	<right>9</right>
         	<listRight></listRight>
         </condition>
+        <condition>
+        	<left>age</left>
+        	<operator>"&lt;"</operator>
+        	<right>2</right>
+        	<listRight></listRight>
+        </condition>
     </table>
 </class>  

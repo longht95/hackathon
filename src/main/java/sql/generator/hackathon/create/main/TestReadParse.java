@@ -16,7 +16,7 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 import sql.generator.hackathon.create.CreateData;
-import sql.generator.hackathon.model.ConditionTest;
+import sql.generator.hackathon.model.Condition;
 import sql.generator.hackathon.model.TableSQL;
 
 public class TestReadParse {
@@ -58,7 +58,7 @@ public class TestReadParse {
 					
 					NodeList conditionList = eElement.getElementsByTagName("condition");
 					
-					List<ConditionTest> listCond = new ArrayList<>();
+					List<Condition> listCond = new ArrayList<>();
 					for (int i = 0; i < conditionList.getLength(); ++i) {
 						Node condNode = conditionList.item(i);
 						if (node.getNodeType() == Node.ELEMENT_NODE) {
@@ -69,7 +69,7 @@ public class TestReadParse {
 							operator = operator.substring(1, operator.length() - 1);
 							String right = innerElement.getElementsByTagName("right").item(0).getTextContent();
 							 
-							ConditionTest condTest = new ConditionTest(left, operator, right);
+							Condition condTest = new Condition(left, operator, right);
 							if (innerElement.getElementsByTagName("listRight").item(0).getTextContent() != null) {
 								String[] sp = innerElement.getElementsByTagName("listRight").item(0).getTextContent().split(",");
 								List<String> listRight = new ArrayList<>();
