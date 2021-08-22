@@ -9,16 +9,16 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 import javax.sql.DataSource;
 
-import org.eclipse.jdt.internal.compiler.ast.Javadoc;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import sql.generator.hackathon.create.CreateData;
 import sql.generator.hackathon.model.ColumnInfo;
-import sql.generator.hackathon.model.InfoColumnConditionValue;
 import sql.generator.hackathon.model.InfoDisplayScreen;
 
 @Service
@@ -30,6 +30,9 @@ public class ExecuteDBSQLServer {
 	
 	@Autowired
 	BeanFactory beanFactory;
+	
+//	@Autowired
+//	CreateData createData;
 	
 	//connect database
 	public void connectDB(String schemaName, String account, String pass) throws Exception {
@@ -45,7 +48,6 @@ public class ExecuteDBSQLServer {
 		PreparedStatement p;
 		for (String tableName : lstTableName) {
 			list_col = new ArrayList<ColumnInfo>();
-			
 			p = connect.prepareStatement("SELECT COLUMN_NAME, COLUMN_KEY, IS_NULLABLE, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH\r\n" + 
 					"FROM    \r\n" + 
 					"    information_schema.columns c\r\n" + 
@@ -129,20 +131,12 @@ public class ExecuteDBSQLServer {
 		return listData;
 	}
 	
-	//get data match condition and is unique
-	public void isUniqueValue(List<InfoColumnConditionValue> infoColumnConditionValueLst) throws SQLException {
-//		Statement stmt = connect.createStatement();
-//		StringBuilder SQL = new StringBuilder();
-//		SQL.append("");
-//		ResultSet resultSet = stmt.executeQuery(SQL.toString());
-	}
-	
 	// check value is unique or not
 	public boolean isUniqueValue(String tableName, ColumnInfo columnInfo, String value) throws SQLException {
 		Statement stmt = connect.createStatement();
 		StringBuilder SQL = new StringBuilder();
 		SQL.append("SELECT Count(*) FROM " + tableName);
-		SQL.append(" WHERE " + columnInfo.getName() + " = " + value);
+		SQL.append(" WHERE " + columnInfo.getName() + " = '" + value +"'");
 		ResultSet resultSet = stmt.executeQuery(SQL.toString());
 		while (resultSet.next()) {
 			if(("0").equals(resultSet.getString(1))) {
@@ -157,7 +151,7 @@ public class ExecuteDBSQLServer {
 		List<String> lstUniqueVal = new ArrayList<String>();
 		switch(columnInfo.getTypeName()) {
 			case "varchar":
-//				lstUniqueVal = genListStringUnique(tableName, columnInfo);
+				lstUniqueVal = genListStringUnique(tableName, columnInfo);
 				break;
 			case "int":
 				lstUniqueVal = genListNumberUnique(tableName, columnInfo, start, end);
@@ -165,20 +159,23 @@ public class ExecuteDBSQLServer {
 			default:
 				break;
 		}
-		if("varchar".equals(columnInfo.getTypeName())) {
-			
-		}
 		
 		return lstUniqueVal;
 	}
 	
 	private List<String> genListStringUnique(String tableName, ColumnInfo columnInfo) throws SQLException {
+		CreateData createData = new CreateData();
 		List<String> lstStringUnique = new ArrayList<String>();
 		Statement stmt = connect.createStatement();
 		StringBuilder SQL = new StringBuilder();
 		SQL.append("SELECT MAX(" + columnInfo.getName() + ") FROM " + tableName);
 		ResultSet resultSet = stmt.executeQuery(SQL.toString());
 		while (resultSet.next()) {
+			String increaseValue = "";
+			for (int i = 0; i < 10000; i++) {
+				increaseValue = createData.genKeyWithTypeChar(true, resultSet.getString(1));
+				lstStringUnique.add(increaseValue);
+			}
 		}
 		resultSet.close();
 		return lstStringUnique;
@@ -192,10 +189,10 @@ public class ExecuteDBSQLServer {
 		int indexEnd = 0;
 		SQL.append("SELECT " + columnInfo.getName() + " FROM " + tableName);
 		SQL.append(" WHERE ");
-		if (!start.isEmpty() && !end.isEmpty()) {
+		if (!(start == null || start.isEmpty()) && !(end == null || end.isEmpty())) {
 			indexStart = Integer.parseInt(start);
 			indexEnd = Integer.parseInt(end);
-		} else if(start.isEmpty()) {
+		} else if(start == null || start.isEmpty()) {
 			indexStart = Integer.parseInt(end) - 10000;
 			indexEnd = Integer.parseInt(end);
 		} else {
@@ -206,7 +203,7 @@ public class ExecuteDBSQLServer {
 		ResultSet resultSet = stmt.executeQuery(SQL.toString());
 		
 		for (int i = indexStart; i <= indexEnd; i++) {
-			lstNumberUnique.add(Integer.toString(indexStart));
+			lstNumberUnique.add(Integer.toString(i));
 		}
 		while (resultSet.next()) {
 			lstNumberUnique.remove(resultSet.getString(1));
@@ -215,55 +212,90 @@ public class ExecuteDBSQLServer {
 		return lstNumberUnique;
 	}
 	
+	// gene value for key
 	public Map<String, String> genUniqueCol(String schema, String tableName, ColumnInfo columnInfo, String value) throws SQLException {
 		Map<String, String> mapUnique = new HashMap<String, String>();
-		List<String> listColPri = getColPrimaryKey(schema, tableName);
-		if(listColPri.size() == 1) {
+		List<ColumnInfo> listColPri = getColPrimaryKey(schema, tableName, columnInfo);
+		if(listColPri.size() == 0) {
 			return mapUnique;
 		}
-		listColPri.remove(columnInfo.getName());
-		
-		mapUnique = getValuePrimaryKey(tableName, listColPri, columnInfo);
-		
-		Statement stmt = connect.createStatement();
-		StringBuilder SQL = new StringBuilder();
-		SQL.append("SELECT " + columnInfo.getName() + " FROM " + tableName);
-		ResultSet resultSet = stmt.executeQuery(SQL.toString());
-		while (resultSet.next()) {
+		Map<String, ColumnInfo> mapValueKey = getValuePrimaryKey(tableName, listColPri, columnInfo);
+		String randomValue = "";
+//		ColumnInfo columnInfoTmp;
+		for (Map.Entry<String, ColumnInfo> entry : mapValueKey.entrySet()) {
+//			columnInfoTmp = new ColumnInfo();
+//			columnInfoTmp.setName(entry.getKey());
+			do {
+				randomValue = createValueRandom(entry.getValue());
+			} while (!isUniqueValue(tableName, entry.getValue(), randomValue));
+			mapUnique.put(entry.getKey(), randomValue);
 		}
-		resultSet.close();
 		return mapUnique;
 	}
 	
 	//get column primary key in table
-	private List<String> getColPrimaryKey(String schema, String tableName) throws SQLException {
-		List<String> listColPri = new ArrayList<String>();
+	private List<ColumnInfo> getColPrimaryKey(String schema, String tableName, ColumnInfo columnInfo) throws SQLException {
+		List<ColumnInfo> listColPri = new ArrayList<ColumnInfo>();
+		ColumnInfo columnKeyReturn;
 		Statement stmt = connect.createStatement();
 		StringBuilder SQL = new StringBuilder();
-		SQL.append("SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = " + schema);
-		SQL.append("AND column_key = 'PRI' AND table_name = " + tableName);
+		SQL.append("SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = '" + schema + "'");
+		SQL.append(" AND (column_key = 'PRI' OR column_key = 'UNI') AND table_name = '" + tableName + "' AND COLUMN_NAME <> '" + columnInfo.getName() + "'");
 		ResultSet resultSet = stmt.executeQuery(SQL.toString());
 		while (resultSet.next()) {
-			listColPri.add(resultSet.getString(1));
+			columnKeyReturn = new ColumnInfo();
+			columnKeyReturn.setName(resultSet.getString(1));
+			columnKeyReturn.setTypeName(resultSet.getString(2));
+			listColPri.add(columnKeyReturn);
 		}
 		resultSet.close();
 		return listColPri;
 	}
 	
-	private Map<String, String> getValuePrimaryKey(String tableName, List<String> listColPri, ColumnInfo columnInfo) throws SQLException {
-		Map<String, String> mapValuePrimaryKey = new HashMap<String, String>();
+	// get value of all column primary key
+	private Map<String, ColumnInfo> getValuePrimaryKey(String tableName, List<ColumnInfo> listColKey, ColumnInfo columnInfo) throws SQLException {
+		Map<String, ColumnInfo> mapValuePrimaryKey = new HashMap<String, ColumnInfo>();
 		Statement stmt = connect.createStatement();
 		StringBuilder SQL = new StringBuilder();
 		SQL.append("SELECT ");
-		for (String colPri : listColPri) {
-			SQL.append(colPri + ", ");
+		for (int i = 0; i < listColKey.size(); i++) {
+			if(i > 0) {
+				SQL.append(", ");
+			}
+			SQL.append(listColKey.get(i).getName());
 		}
-		SQL.append(columnInfo.getName() + " FROM " + tableName);
+		SQL.append(" FROM " + tableName + " LIMIT 1");
 		ResultSet resultSet = stmt.executeQuery(SQL.toString());
 		while (resultSet.next()) {
-			listColPri.add(resultSet.getString(1));
+			for (int i = 0; i < resultSet.getMetaData().getColumnCount(); i++) {
+				listColKey.get(i).setValue(resultSet.getString(i + 1));
+				mapValuePrimaryKey.put(listColKey.get(i).getName(), listColKey.get(i));
+			}
 		}
 		resultSet.close();
 		return mapValuePrimaryKey;
+	}
+	
+	//create random String
+	private String createValueRandom(ColumnInfo columnInfo) throws SQLException {
+		int length = 0;
+		if(!columnInfo.getValue().isEmpty()) {
+			length = columnInfo.getValue().length();
+		}else {
+			length = Integer.parseInt(columnInfo.getTypeValue());
+		}
+		char[] ch = new char[length];
+		int random = 0;
+		// random char from 65 -> 122
+		for (int i = 0; i < length; i++) {
+			if(columnInfo.getTypeName().contentEquals("varchar")) {
+				random = new Random().nextInt(57) + 65;
+			} else {
+				random = new Random().nextInt(9) + 48;
+			}
+			ch[i] = (char) (random);
+			System.out.println(random);
+		}
+		return String.valueOf(ch);
 	}
 }

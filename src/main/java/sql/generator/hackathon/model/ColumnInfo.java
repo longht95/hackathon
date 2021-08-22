@@ -2,6 +2,7 @@ package sql.generator.hackathon.model;
 
 public class ColumnInfo {
 	public String name;
+	public String value;
 	public String typeName;
 	public String typeValue;
 	public Boolean isNull;
@@ -50,5 +51,11 @@ public class ColumnInfo {
 	}
 	public void setUnique(Boolean unique) {
 		this.unique = unique;
+	}
+	public String getValue() {
+		return value;
+	}
+	public void setValue(String value) {
+		this.value = value;
 	}
 }
