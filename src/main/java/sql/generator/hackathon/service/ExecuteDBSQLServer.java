@@ -32,9 +32,8 @@ public class ExecuteDBSQLServer {
 	BeanFactory beanFactory;
 	
 	//connect database
-	public void connectDB(String url, String account, String pass) throws Exception {
-		dataSource = (DataSource)beanFactory.getBean("dataSource", "jdbc:mysql://localhost:3306/admindb", "root", "Root123!");
-//		dataSource = (DataSource)beanFactory.getBean("dataSource", url, account, pass);
+	public void connectDB(String schemaName, String account, String pass) throws Exception {
+		dataSource = (DataSource)beanFactory.getBean("dataSource", "jdbc:mysql://localhost:3306/" + schemaName, account, pass);
     	connect = dataSource.getConnection();
 	}
 	
@@ -56,8 +55,6 @@ public class ExecuteDBSQLServer {
 					"order by ORDINAL_POSITION");
 			p.setString(1, tableName);
 			p.setString(2, schemaName);
-//			p.setString(1, "Users");
-//	        p.setString(2, "admindb");
 	        ResultSet resultSet = p.executeQuery();
 	        
 	        while (resultSet.next()) {
@@ -85,19 +82,19 @@ public class ExecuteDBSQLServer {
 	}
 	
 	// get object (column, data) to show screen
-	public InfoDisplayScreen getDataDisplay(String tableName) throws Exception {
+	public InfoDisplayScreen getDataDisplay(String schemaName, String tableName) throws Exception {
 		InfoDisplayScreen infoDisplayScreen = new InfoDisplayScreen();
-		infoDisplayScreen.setListColumnName(this.getListColumn(tableName));
+		infoDisplayScreen.setListColumnName(this.getListColumn(schemaName, tableName));
 		infoDisplayScreen.setListData(this.getListData(tableName));
 		return infoDisplayScreen;
 	}
 
 	//get list column to show screen
-	private List<String> getListColumn(String tableName) throws Exception {
+	private List<String> getListColumn(String schemaName, String tableName) throws Exception {
 		List<String> list_col = new ArrayList<String>();
 		PreparedStatement p = connect.prepareStatement("SELECT COLUMN_NAME FROM information_schema.columns WHERE TABLE_NAME = ? AND TABLE_SCHEMA = ? order by ORDINAL_POSITION");
-		p.setString(1, "Users");
-		p.setString(2, "admindb");
+		p.setString(1, tableName);
+		p.setString(2, schemaName);
 		ResultSet resultSet = p.executeQuery();
 		
 		while (resultSet.next()) {
@@ -105,7 +102,6 @@ public class ExecuteDBSQLServer {
 				list_col.add(resultSet.getString(i + 1));
 			}
 		}
-//		stmt.close();
 		resultSet.close();
 		return list_col;
 	}
@@ -114,10 +110,6 @@ public class ExecuteDBSQLServer {
 	private List<List<String>> getListData(String tableName) throws Exception {
 		List<List<String>> listData = new ArrayList<List<String>>();
 		List<String> rowData;
-//		PreparedStatement p = connect.prepareStatement("SELECT * FROM ? LIMIT 20");
-//		p.setString(1, "Users");
-//		ResultSet resultSet = p.executeQuery();
-		
 		Statement stmt = connect.createStatement();
 		StringBuilder SQL = new StringBuilder();
 		SQL.append("SELECT * FROM ");
@@ -138,15 +130,140 @@ public class ExecuteDBSQLServer {
 	}
 	
 	//get data match condition and is unique
-	public void getDataMatchConditionAndUnique(List<InfoColumnConditionValue> infoColumnConditionValueLst) throws SQLException {
-		Statement stmt = connect.createStatement();
-		StringBuilder SQL = new StringBuilder();
-		SQL.append("");
-		ResultSet resultSet = stmt.executeQuery(SQL.toString());
+	public void isUniqueValue(List<InfoColumnConditionValue> infoColumnConditionValueLst) throws SQLException {
+//		Statement stmt = connect.createStatement();
+//		StringBuilder SQL = new StringBuilder();
+//		SQL.append("");
+//		ResultSet resultSet = stmt.executeQuery(SQL.toString());
 	}
 	
-	// get data match all column and is unique 
-	public void getDataMatchColumnAndUnique(List<InfoColumnConditionValue> infoColumnConditionValueLst) throws SQLException {
+	// check value is unique or not
+	public boolean isUniqueValue(String tableName, ColumnInfo columnInfo, String value) throws SQLException {
+		Statement stmt = connect.createStatement();
+		StringBuilder SQL = new StringBuilder();
+		SQL.append("SELECT Count(*) FROM " + tableName);
+		SQL.append(" WHERE " + columnInfo.getName() + " = " + value);
+		ResultSet resultSet = stmt.executeQuery(SQL.toString());
+		while (resultSet.next()) {
+			if(("0").equals(resultSet.getString(1))) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	// gene list value unique
+	public List<String> genListUniqueVal(String tableName, ColumnInfo columnInfo, String start, String end) throws SQLException {
+		List<String> lstUniqueVal = new ArrayList<String>();
+		switch(columnInfo.getTypeName()) {
+			case "varchar":
+//				lstUniqueVal = genListStringUnique(tableName, columnInfo);
+				break;
+			case "int":
+				lstUniqueVal = genListNumberUnique(tableName, columnInfo, start, end);
+				break;
+			default:
+				break;
+		}
+		if("varchar".equals(columnInfo.getTypeName())) {
+			
+		}
 		
+		return lstUniqueVal;
+	}
+	
+	private List<String> genListStringUnique(String tableName, ColumnInfo columnInfo) throws SQLException {
+		List<String> lstStringUnique = new ArrayList<String>();
+		Statement stmt = connect.createStatement();
+		StringBuilder SQL = new StringBuilder();
+		SQL.append("SELECT MAX(" + columnInfo.getName() + ") FROM " + tableName);
+		ResultSet resultSet = stmt.executeQuery(SQL.toString());
+		while (resultSet.next()) {
+		}
+		resultSet.close();
+		return lstStringUnique;
+	}
+	
+	private List<String> genListNumberUnique(String tableName, ColumnInfo columnInfo, String start, String end) throws SQLException {
+		List<String> lstNumberUnique = new ArrayList<String>();
+		Statement stmt = connect.createStatement();
+		StringBuilder SQL = new StringBuilder();
+		int indexStart = 0;
+		int indexEnd = 0;
+		SQL.append("SELECT " + columnInfo.getName() + " FROM " + tableName);
+		SQL.append(" WHERE ");
+		if (!start.isEmpty() && !end.isEmpty()) {
+			indexStart = Integer.parseInt(start);
+			indexEnd = Integer.parseInt(end);
+		} else if(start.isEmpty()) {
+			indexStart = Integer.parseInt(end) - 10000;
+			indexEnd = Integer.parseInt(end);
+		} else {
+			indexStart = Integer.parseInt(start);
+			indexEnd = Integer.parseInt(start)  + 10000;
+		}
+		SQL.append(columnInfo.getName() + " BETWEEN " + indexStart + " AND " + end);
+		ResultSet resultSet = stmt.executeQuery(SQL.toString());
+		
+		for (int i = indexStart; i <= indexEnd; i++) {
+			lstNumberUnique.add(Integer.toString(indexStart));
+		}
+		while (resultSet.next()) {
+			lstNumberUnique.remove(resultSet.getString(1));
+		}
+		resultSet.close();
+		return lstNumberUnique;
+	}
+	
+	public Map<String, String> genUniqueCol(String schema, String tableName, ColumnInfo columnInfo, String value) throws SQLException {
+		Map<String, String> mapUnique = new HashMap<String, String>();
+		List<String> listColPri = getColPrimaryKey(schema, tableName);
+		if(listColPri.size() == 1) {
+			return mapUnique;
+		}
+		listColPri.remove(columnInfo.getName());
+		
+		mapUnique = getValuePrimaryKey(tableName, listColPri, columnInfo);
+		
+		Statement stmt = connect.createStatement();
+		StringBuilder SQL = new StringBuilder();
+		SQL.append("SELECT " + columnInfo.getName() + " FROM " + tableName);
+		ResultSet resultSet = stmt.executeQuery(SQL.toString());
+		while (resultSet.next()) {
+		}
+		resultSet.close();
+		return mapUnique;
+	}
+	
+	//get column primary key in table
+	private List<String> getColPrimaryKey(String schema, String tableName) throws SQLException {
+		List<String> listColPri = new ArrayList<String>();
+		Statement stmt = connect.createStatement();
+		StringBuilder SQL = new StringBuilder();
+		SQL.append("SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = " + schema);
+		SQL.append("AND column_key = 'PRI' AND table_name = " + tableName);
+		ResultSet resultSet = stmt.executeQuery(SQL.toString());
+		while (resultSet.next()) {
+			listColPri.add(resultSet.getString(1));
+		}
+		resultSet.close();
+		return listColPri;
+	}
+	
+	private Map<String, String> getValuePrimaryKey(String tableName, List<String> listColPri, ColumnInfo columnInfo) throws SQLException {
+		Map<String, String> mapValuePrimaryKey = new HashMap<String, String>();
+		Statement stmt = connect.createStatement();
+		StringBuilder SQL = new StringBuilder();
+		SQL.append("SELECT ");
+		for (String colPri : listColPri) {
+			SQL.append(colPri + ", ");
+		}
+		SQL.append(columnInfo.getName() + " FROM " + tableName);
+		ResultSet resultSet = stmt.executeQuery(SQL.toString());
+		while (resultSet.next()) {
+			listColPri.add(resultSet.getString(1));
+		}
+		resultSet.close();
+		return mapValuePrimaryKey;
 	}
 }
