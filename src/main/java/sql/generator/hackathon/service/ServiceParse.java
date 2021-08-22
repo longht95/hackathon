@@ -30,6 +30,7 @@ import net.sf.jsqlparser.expression.operators.relational.MinorThanEquals;
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
+import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.select.FromItem;
 import net.sf.jsqlparser.statement.select.Join;
 import net.sf.jsqlparser.statement.select.PlainSelect;
@@ -39,6 +40,7 @@ import net.sf.jsqlparser.statement.select.SelectItem;
 import net.sf.jsqlparser.statement.select.SetOperationList;
 import net.sf.jsqlparser.statement.select.SubSelect;
 import net.sf.jsqlparser.statement.select.WithItem;
+import net.sf.jsqlparser.util.TablesNamesFinder;
 import sql.generator.hackathon.model.Condition;
 import sql.generator.hackathon.model.TableSQL;
 
@@ -75,6 +77,13 @@ public class ServiceParse {
 		processSelectBody(select.getSelectBody(), false, null);
 		processPushCondition();
 		return tables.entrySet().stream().map(table -> table.getValue()).collect(Collectors.toList());
+	}
+	
+	public List<String> getListTableByStatement(String query) throws JSQLParserException {
+		Statement statement = CCJSqlParserUtil.parse(query);
+		Select selectStatement = (Select) statement;
+		TablesNamesFinder tablesNamesFinder = new TablesNamesFinder();
+		return tablesNamesFinder.getTableList(selectStatement);
 	}
 
 	private void processPushCondition() {
