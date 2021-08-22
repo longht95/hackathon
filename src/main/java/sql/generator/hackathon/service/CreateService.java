@@ -24,6 +24,8 @@ public class CreateService {
 	private static Resource resource = new ClassPathResource("/example_data.properties");
 	private static HashMap<String, String> dataExamples = new HashMap<>();
 	
+	private static int DEFAULT_LENGTH = 5;
+	
 	private Map<String, List<ColumnInfo>> tableInfo = new HashMap<>();
 	
 	private Connection conn;
@@ -242,7 +244,7 @@ public class CreateService {
 	 * @return length of column
 	 */
 	public int getLengthOfColumn(ColumnInfo columnInfo) {
-		int len = 1;
+		int len = DEFAULT_LENGTH;
 		switch (columnInfo.typeName) {
 		case "char":
 		case "nchar":

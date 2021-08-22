@@ -1,6 +1,5 @@
 package sql.generator.hackathon.create;
 
-import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
@@ -14,14 +13,10 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Queue;
 import java.util.Set;
 import java.util.Stack;
 
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.support.PropertiesLoaderUtils;
 import org.springframework.stereotype.Service;
 
 import sql.generator.hackathon.model.ColumnInfo;
@@ -313,19 +308,6 @@ public class CreateData {
 			}
 			t.add(new String[] { operator, sb.toString(), String.valueOf(priorityOfOperator.get(operator)) });
 		}
-	}
-
-	/**
-	 * Check column has alias Name?
-	 * 
-	 * @param column (table.colName || colName)
-	 * @return true has aliasName, otherwise return false
-	 */
-	private boolean hasAliasName(String column) {
-		if (column.indexOf('.') == -1) {
-			return false;
-		}
-		return true;
 	}
 
 	/**
@@ -652,39 +634,41 @@ public class CreateData {
 			SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 			Date curD = sdf.parse(cur[1]);
 			
-			Queue<Cond> toExploder = new LinkedList<>();
 			
-			for (int i = 0; i < values.size(); ++i) {
-				toExploder.add(values.get(i));
-			}
-			
-			while (!toExploder.isEmpty()) {
-				Cond cond = toExploder.poll();
-				Date ld = sdf.parse(cond.value);
-				
-				// Just remove all element > curD
-				if (operator.equals("<=")) {
-					if (ld.compareTo(curD) > 0) {
-						values.remove(cond);
-					}
-					// Just remove all element > curD
-				} else if (operator.equals(">=")) {
-					if (ld.compareTo(curD) < 0) {
-						values.remove(cond);
-					}
-					// Just remove all element > curD
-				} else if (operator.equals("<")) {
-					if (ld.compareTo(curD) >= 0) {
-						values.remove(cond);
-					}
-				} else if (operator.equals(">")) {
-					if (ld.compareTo(curD) <= 0) {
-						values.remove(cond);
-					}
-				} else {
-					// TODO
-				}
-			}
+			// Comment for execute case multiple between
+//			Queue<Cond> toExploder = new LinkedList<>();
+//			
+//			for (int i = 0; i < values.size(); ++i) {
+//				toExploder.add(values.get(i));
+//			}
+//			
+//			while (!toExploder.isEmpty()) {
+//				Cond cond = toExploder.poll();
+//				Date ld = sdf.parse(cond.value);
+//				
+//				// Just remove all element > curD
+//				if (operator.equals("<=")) {
+//					if (ld.compareTo(curD) > 0) {
+//						values.remove(cond);
+//					}
+//					// Just remove all element > curD
+//				} else if (operator.equals(">=")) {
+//					if (ld.compareTo(curD) < 0) {
+//						values.remove(cond);
+//					}
+//					// Just remove all element > curD
+//				} else if (operator.equals("<")) {
+//					if (ld.compareTo(curD) >= 0) {
+//						values.remove(cond);
+//					}
+//				} else if (operator.equals(">")) {
+//					if (ld.compareTo(curD) <= 0) {
+//						values.remove(cond);
+//					}
+//				} else {
+//					// TODO
+//				}
+//			}
 			
 			// Not operator <= and >=
 			if (!(operator.equals("<=") || operator.equals(">="))) {
@@ -692,9 +676,11 @@ public class CreateData {
 				c.setTime(curD);
 				// current Date + 1
 				if (operator.equals(">")) {
+					operator = ">=";
 					c.add(Calendar.DATE, 1);
 					// current Date - 1
 				} else {
+					operator = "<=";
 					c.add(Calendar.DATE, -1);
 				}
 				curD = c.getTime();
@@ -706,48 +692,51 @@ public class CreateData {
 			// Convert to long
 			long curV = Long.parseLong(cur[1]);
 
-			Queue<Cond> toExploder = new LinkedList<>();
-			
-			for (int i = 0; i < values.size(); ++i) {
-				toExploder.add(values.get(i));
-			}
-
-			while (!toExploder.isEmpty()) {
-				Cond cond = toExploder.poll();
-				long innerV = Long.parseLong(cond.value);
-				
-				// Search in list to remove add value > this value;
-				if (operator.equals("<=")) {
-					if (innerV > curV) {
-						values.remove(cond);
-					}
-					// Search in list to remove add value < this value;
-				} else if (operator.equals(">=")) {
-					if (innerV < curV) {
-						values.remove(cond);
-					}
-				} else if (operator.equals("<")) {
-					if (innerV >= curV) {
-						values.remove(cond);
-					}
-				} else if (operator.equals(">")) {
-					if (innerV <= curV) {
-						values.remove(cond);
-					}
-				} else {
-					// TODO
-					// Other operator
-				}
-			}
+			// Comment for execute case multiple between
+//			Queue<Cond> toExploder = new LinkedList<>();
+//			
+//			for (int i = 0; i < values.size(); ++i) {
+//				toExploder.add(values.get(i));
+//			}
+//
+//			while (!toExploder.isEmpty()) {
+//				Cond cond = toExploder.poll();
+//				long innerV = Long.parseLong(cond.value);
+//				
+//				// Search in list to remove add value > this value;
+//				if (operator.equals("<=")) {
+//					if (innerV > curV) {
+//						values.remove(cond);
+//					}
+//					// Search in list to remove add value < this value;
+//				} else if (operator.equals(">=")) {
+//					if (innerV < curV) {
+//						values.remove(cond);
+//					}
+//				} else if (operator.equals("<")) {
+//					if (innerV >= curV) {
+//						values.remove(cond);
+//					}
+//				} else if (operator.equals(">")) {
+//					if (innerV <= curV) {
+//						values.remove(cond);
+//					}
+//				} else {
+//					// TODO
+//					// Other operator
+//				}
+//			}
 			
 			// Not operator <= and >=
 			if (!(operator.equals("<=") || operator.equals(">="))) {
 				// currentValue - 1
-				if (operator.equals("<")) {
-					strVal = String.valueOf(curV - 1);
+				if (operator.equals(">")) {
+					operator = ">=";
+					strVal = String.valueOf(curV + 1);
 					// currentValue + 1
 				} else {
-					strVal = String.valueOf(curV + 1);
+					operator = "<=";
+					strVal = String.valueOf(curV - 1);
 				}
 			}
 		} else {
@@ -843,7 +832,51 @@ public class CreateData {
 					String valLess = "";
 					String valGreater = "";
 					
-					for (Cond cond : validVal) {
+					int cnt = 0;
+					
+					// Sort value valid
+					Collections.sort(validVal, new Comparator<Cond>() {
+						@Override
+						public int compare(Cond c1, Cond c2) {
+							// Priority equals!
+							if (c1.operator.equals("=") && c2.operator.equals("=")) {
+								return 0;
+							} else if (c1.operator.equals("=")) {
+								return 1;
+							} else if (c2.operator.equals("=")) {
+								return -1;
+							}
+							// Priority value sorted asc
+							// When value equals => will sort desc of prirityOperator >= <=
+							if (dataType.equals("number")) {
+								Integer i1 = parseStringToInt(c1.value);
+								Integer i2 = parseStringToInt(c2.value);
+								if (Integer.compare(i1, i2) == 0) {
+									Integer inner1 = priorityOfOperator.get(c1.operator);
+									Integer inner2 = priorityOfOperator.get(c2.operator);
+									return validVal.size() % 2 == 0 ? inner2 - inner1 : inner1 - inner2;
+								}
+								return Integer.compare(i1, i2);
+							} else if (dataType.equals("date")) {
+								Date cur1 = parseStringToDate(c1.value);
+								Date cur2 = parseStringToDate(c2.value);
+								if (cur1.compareTo(cur2) < 0) {
+									return 1;
+								} else if (cur1.compareTo(cur2) > 0) {
+									return -1;
+								} else {
+									Integer i1 = priorityOfOperator.get(c1.operator);
+									Integer i2 = priorityOfOperator.get(c2.operator);
+									return validVal.size() % 2 == 0 ? i2 - i1 : i1 - i2;
+								}
+							}
+							return 0;
+						}
+					});
+					
+					for (int i = 0; i < validVal.size(); ++i) {
+						Cond cond = validVal.get(i);
+						
 						String operator = cond.operator;
 						String val = cond.value;
 
@@ -862,21 +895,43 @@ public class CreateData {
 							break;
 						}
 						
-						// Add value trong khoang
-						// Use for case NOT With between
-						if (flgLess && flgGreater) {
-							curValidVal.addAll(genAutoKey(valGreater, valLess, dataType, len));
-							flgLess = false;
-							valLess = "";
-							flgGreater = false;
-							valGreater = "";
+						if (!flgEqual && (flgLess || flgGreater) && curValidVal.isEmpty()) {
+							cnt++;
+							// Confirm pair
+							// Gen value for pair
+							if (cnt == 2) {
+								
+								// Execute between
+								if (operator.equals("<=")) {
+									curValidVal.addAll(genAutoKey(valGreater, valLess, dataType, len));
+								} else {
+									if (i < validVal.size() - 1) {
+										Cond next = validVal.get(i + 1);
+										if (next.operator.equals("<=")) {
+											curValidVal.addAll(genAutoKey(valGreater, next.value, dataType, len));
+											curValidVal.addAll(genAutoKey("", valLess, dataType, len));
+										} else {
+											System.out.println("This case can't happen!");
+											assert(false);
+										}
+										i++;
+									}
+								}
+								
+								
+								valGreater = "";
+								valLess = "";
+								flgLess = false;
+								flgGreater = false;
+								cnt = 0;
+							}
 						}
 					}
 					
 					// Gen auto key
 					// May be call method a Trung get primarykey
 					// input(tableName.colName) => List<Primary key>
-					if (!flgEqual && (flgLess || flgGreater)) {
+					if (!flgEqual && (flgLess || flgGreater) && curValidVal.isEmpty()) {
 						curValidVal.addAll(genAutoKey(valGreater, valLess, dataType, len));
 					}
 				}
@@ -1244,7 +1299,7 @@ public class CreateData {
 		}
 		String curVal = isIncrease ? valGreater.isEmpty() ? genKeyWithLen(dataType, len) : valGreater : valLess;
 		
-		int limit = 1000000;
+		int limit = 10000;
 		for (int i = 1; i <= limit; ++i) {
 			res.add(curVal);
 			String newVal = "";
@@ -1261,14 +1316,16 @@ public class CreateData {
 				}
 			} else if (dataType.equals("number")) {
 				newVal = genKeyWithTypeNumber(isIncrease, curVal);
+				
+				Integer t2 = parseStringToInt(newVal);
+				
 				// When greater len stop!
-				if (newVal.length() > len) {
+				if (newVal.length() > len || t2 < 0) {
 					break;
 				}
 				
 				if (hasLess && isIncrease) {
 					Integer t1 = parseStringToInt(valLess);
-					Integer t2 = parseStringToInt(newVal);
 					
 					// New value large than limit value
 					if (t2 > t1) {
@@ -1537,7 +1594,8 @@ public class CreateData {
 			LocalDateTime now = LocalDateTime.now();
 			// TODO
 			// more?
-			return "2000-10-10";  
+			// Get current date
+			return sdformat.format(now);  
 		}
 		
 		StringBuilder res = new StringBuilder();
