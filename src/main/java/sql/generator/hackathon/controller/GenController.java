@@ -1,7 +1,6 @@
 package sql.generator.hackathon.controller;
 
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -25,7 +24,7 @@ public class GenController {
 	@RequestMapping(value = "/")
 	public String index() throws Exception {
 //		serviceDatabase.showTables();
-		executeDBServer.connectDB("", "", "");
+		executeDBServer.connectDB("admindb", "root", "Root123!");
 		
 		List<String> lstTableName = Arrays.asList("users", "class");
 		Map<String, List<ColumnInfo>> inforTable = executeDBServer.getInforTable("admindb", lstTableName);
@@ -44,7 +43,7 @@ public class GenController {
 	        }
 	    }
 		
-		InfoDisplayScreen infoDisplayScreen = executeDBServer.getDataDisplay("users");
+		InfoDisplayScreen infoDisplayScreen = executeDBServer.getDataDisplay("admindb", "users");
 		System.out.println("infoDisplayScreen: " + infoDisplayScreen);
 		
 		return "index";
