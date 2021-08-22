@@ -22,16 +22,10 @@
         	<listRight></listRight>
         </condition>
         <condition>
-        	<left>Test.age</left>
-        	<operator>"IN"</operator>
-        	<right></right>
-        	<listRight>5,54,11</listRight>
-        </condition>
-        <condition>
         	<left>age</left>
         	<operator>"NOT IN"</operator>
         	<right></right>
-        	<listRight>222222,111</listRight>
+        	<listRight>4,5,222222,111</listRight>
         </condition>
     </table>
 </class>  

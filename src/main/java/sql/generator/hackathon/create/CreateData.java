@@ -260,8 +260,6 @@ public class CreateData {
 					return Integer.parseInt(o1[2]) - Integer.parseInt(o2[2]);
 				}
 			});
-			System.out.println("---- Show sorted list ----");
-			System.out.println(t.toString());
 		}
 
 		// Check all condition in mapValOfColumn With key is tableName.columName
@@ -863,13 +861,23 @@ public class CreateData {
 							valGreater = val;
 							break;
 						}
+						
+						// Add value trong khoang
+						// Use for case NOT With between
+						if (flgLess && flgGreater) {
+							curValidVal.addAll(genAutoKey(valGreater, valLess, dataType, len));
+							flgLess = false;
+							valLess = "";
+							flgGreater = false;
+							valGreater = "";
+						}
 					}
 					
 					// Gen auto key
 					// May be call method a Trung get primarykey
 					// input(tableName.colName) => List<Primary key>
 					if (!flgEqual && (flgLess || flgGreater)) {
-						curValidVal = genAutoKey(valGreater, valLess, dataType, len);
+						curValidVal.addAll(genAutoKey(valGreater, valLess, dataType, len));
 					}
 				}
 				

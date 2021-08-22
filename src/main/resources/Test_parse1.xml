@@ -2,23 +2,23 @@
 <class>  
     <table>  
         <name>persons</name>  
-        <alias>test</alias>
+        <alias>Test</alias>  
         <condition>
-        	<left>birthday</left>
+        	<left>age</left>
         	<operator>"&gt;="</operator>
-        	<right>2010-01-01</right>
+        	<right>4</right>
         	<listRight></listRight>
         </condition>
         <condition>
-        	<left>birthday</left>
-        	<operator>"NOT IN"</operator>
-        	<right></right>
-        	<listRight>2010-01-01,2010-01-02</listRight>
+        	<left>Test.age</left>
+        	<operator>"&lt;"</operator>
+        	<right>7</right>
+        	<listRight></listRight>
         </condition>
         <condition>
-        	<left>birthday</left>
-        	<operator>"&lt;="</operator>
-        	<right>2021-01-01</right>
+        	<left>age</left>
+        	<operator>"&gt;"</operator>
+        	<right>9</right>
         	<listRight></listRight>
         </condition>
     </table>

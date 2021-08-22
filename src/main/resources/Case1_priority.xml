@@ -7,7 +7,7 @@
         	<left>TEST.name</left>
         	<operator>"NOT IN"</operator>
         	<right></right>
-        	<listRight>'Zzzz','sSsss','aaa'</listRight>
+        	<listRight>'Zzzz','sSsss','aaa','ssss'</listRight>
         </condition>
         <condition>
         	<left>TEST.name</left>
