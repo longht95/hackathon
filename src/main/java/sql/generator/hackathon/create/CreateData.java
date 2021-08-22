@@ -34,10 +34,6 @@ import sql.generator.hackathon.service.CreateService;
 @Service
 public class CreateData {
 
-	// Load resource data example
-	private static Resource resource = new ClassPathResource("/example_data.properties");
-	private static HashMap<String, String> dataExamples = new HashMap<>();
-
 	// Priority of operator
 	private static Map<String, Integer> priorityOfOperator = new HashMap<>();
 	{
@@ -59,7 +55,7 @@ public class CreateData {
 	private List<TableSQL> tables = new ArrayList<>();
 	private Map<String, List<String>> keys = new HashMap<>();
 
-	// alias.Name => <tableName.colum	nName, operator>
+	// alias.Name => <tableName.columnName, operator>
 	private Map<String, String[]> infoCol = new HashMap<>();
 
 	// Data current values
@@ -85,6 +81,8 @@ public class CreateData {
 	public CreateData(CreateService createService, List<TableSQL> tables, Map<String, List<String>> keys) {
 		// Connection for service
 		this.createService = createService;
+		createService.getDataExample();
+		
 		this.tables = tables;
 		this.keys = keys;
 	}
@@ -93,18 +91,6 @@ public class CreateData {
 	 * Execute create data after parse object
 	 */
 	public void create() {
-		try {
-			// Load data example
-			Properties props = PropertiesLoaderUtils.loadProperties(resource);
-			Set<String> keys = props.stringPropertyNames();
-			for (String key : keys) {
-				dataExamples.put(key, props.getProperty(key));
-			}
-		} catch (IOException e) {
-			e.printStackTrace();
-			return;
-		}
-
 		int sz = tables.size();
 		for (int i = 0; i < sz; ++i) {
 			exeEachTable(tables.get(i));
@@ -416,7 +402,7 @@ public class CreateData {
 				switch (operator) {
 				case "IN":
 					flgCheckCondIN = true;
-					addValueToColWithInOperator(cur, tmpVal);
+					listCondIN = addValueToColWithInOperator(cur, tmpVal);
 					break;
 				case "<=":
 					try {
@@ -849,7 +835,7 @@ public class CreateData {
 				// Get
 				List<String> curValidVal = new ArrayList<>();
 				
-				if (validVal == null) {
+				if (validVal.isEmpty()) {
 					curValidVal = genAutoKey("", "", dataType, len);
 				} else {
 					boolean flgEqual = false;
@@ -960,7 +946,7 @@ public class CreateData {
 		Set<String> visitedMapping = new HashSet<>();
 		
 		// table.colName => condition valid
-		// Map<String, List<Cond>> validValuesForColumn;
+		// Map<String, List<Cond>> columnMap;
 		for (Map.Entry<String, Set<Cond>> e : columnMap.entrySet()) {
 			String col = e.getKey();
 			String tableName = getTableAndColName(col)[0];
@@ -1075,7 +1061,6 @@ public class CreateData {
 					continue;
 				}
 				
-				String tableColName = curNode.tableColumnName;
 				String val = curNode.val;
 				int index = curNode.index;
 				

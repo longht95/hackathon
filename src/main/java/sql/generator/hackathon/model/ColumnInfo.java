@@ -5,10 +5,10 @@ public class ColumnInfo {
 	public String val;
 	public String typeName;
 	public String typeValue;
-	public Boolean isNull;
-	public Boolean isPrimarykey;
-	public Boolean isForeignKey;
-	public Boolean unique;
+	public boolean isNull;
+	public boolean isPrimarykey;
+	public boolean isForeignKey;
+	public boolean unique;
 	
 	public ColumnInfo() {
 		
