@@ -801,7 +801,7 @@ public class CreateData {
 				List<String> invalidVal = valueInValidOfColumn.get(fullTableColName);
 				
 				int len = createService.getLengthOfColumn(colInfo);
-				colInfo.setTypeName(String.valueOf(len));
+				colInfo.setTypeValue(String.valueOf(len));
 				String dataType = createService.getDataTypeOfColumn(colInfo);
 				colInfo.setTypeName(dataType);
 				
@@ -1125,7 +1125,7 @@ public class CreateData {
 					}
 					
 					// Execute for composite key
-					if (createService.isCompositeKey(tableName)) {
+					if (isCompositeKey) {
 						
 						// TODO
 						// XEm set schemaname
@@ -1256,20 +1256,23 @@ public class CreateData {
 		char[] curChar = curVal.toCharArray();
 		
 		// Increase
-		// 'abcde' -> 'abcdf'
+		// 'z' -> 'aa'
 		if (isIncrease) {
 			int remain = 0;
 			for (int i = curChar.length - 1; i >= 0; --i) {
 				char c = curChar[i];
 				if (c == 'z') {
 					remain = 1;
+					if (i == 0) {
+						return repeat('a', curChar.length + 1);
+					}
 				} else {
 					remain = 0;	
 					curChar[i] = (char) (c + 1);
 				}
 				
 				if (remain == 0) {
-					return curChar.toString();
+					return String.valueOf(curChar);
 				}
 			}
 		}
@@ -1281,6 +1284,9 @@ public class CreateData {
 			char c = curChar[i];
 			if (c == 'a') {
 				remain = 1;
+				if (i == 0) {
+					return repeat('z', curChar.length - 1);
+				}
 			} else {
 				remain = 0;	
 				curChar[i] = (char) (c - 1);
@@ -1291,7 +1297,21 @@ public class CreateData {
 			}
 		}
 		
-		return curChar.toString();
+		return String.valueOf(curChar);
+	}
+	
+	/**
+	 * Repeat character
+	 * @param character need repeat
+	 * @param len need repeat
+	 * @return String repeated
+	 */
+	private String repeat(char c, int len) {
+		StringBuilder sb = new StringBuilder();
+		for (int i = 0; i < len; ++i) {
+			sb.append("" + c);
+		}
+		return sb.toString();
 	}
 	
 	/**
@@ -1495,12 +1515,10 @@ public class CreateData {
 		}
 		
 		StringBuilder res = new StringBuilder();
-		for (int i = 0; i < len; ++i) {
-			if (dataType.equals("number")) {
-				res.append("1");
-			} else if (dataType.equals("char")) {
-				res.append("A");
-			}
+		if (dataType.equals("number")) {
+			res.append("1");
+		} else if (dataType.equals("char")) {
+			res.append("a");
 		}
 		return res.toString();
 	}
@@ -1602,9 +1620,9 @@ public class CreateData {
 		
 		if (validVal.isEmpty()) {
 			if (isKey) {
-				curValidVal = dbServer.genListUniqueVal(tableName, colInfo, "", "");
+				curValidVal.addAll(dbServer.genListUniqueVal(tableName, colInfo, "", ""));
 			} else {
-				curValidVal = genAutoKey("", "", dataType, len);
+				curValidVal.addAll(genAutoKey("", "", dataType, len));
 			}
 			return;
 		} 
@@ -1645,9 +1663,9 @@ public class CreateData {
 					Date cur1 = parseStringToDate(c1.value);
 					Date cur2 = parseStringToDate(c2.value);
 					if (cur1.compareTo(cur2) < 0) {
-						return 1;
-					} else if (cur1.compareTo(cur2) > 0) {
 						return -1;
+					} else if (cur1.compareTo(cur2) > 0) {
+						return 1;
 					} else {
 						Integer i1 = priorityOfOperator.get(c1.operator);
 						Integer i2 = priorityOfOperator.get(c2.operator);

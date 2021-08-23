@@ -1,23 +1,23 @@
 <?xml version="1.0"?>  
 <class>  
     <table>  
-        <name>Persons</name>  
+        <name>persons</name>  
         <alias>Test</alias>  
         <condition>
-        	<left>test.first_name</left>
+        	<left>Test.name</left>
         	<operator>"="</operator>
         	<right>KEY1</right>
         	<listRight></listRight>
         </condition>
         <condition>
-        	<left>test.column1</left>
+        	<left>name</left>
         	<operator>"NOT IN"</operator>
         	<right></right>
-        	<listRight>99,100,2,15</listRight>
+        	<listRight>'zzZZ'</listRight>
         </condition>
     </table>
     <table>  
-        <name>Company</name>  
+        <name>company</name>  
         <alias>comp</alias>  
         <condition>
         	<left>comp.name</left>

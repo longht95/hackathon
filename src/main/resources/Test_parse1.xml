@@ -4,27 +4,25 @@
         <name>persons</name>  
         <alias>Test</alias>  
         <condition>
-        	<left>age</left>
-        	<operator>"&gt;="</operator>
-        	<right>4</right>
+        	<left>Test.name</left>
+        	<operator>"!="</operator>
+        	<right>KEY1</right>
         	<listRight></listRight>
         </condition>
         <condition>
-        	<left>Test.age</left>
-        	<operator>"&lt;"</operator>
-        	<right>7</right>
-        	<listRight></listRight>
+        	<left>name</left>
+        	<operator>"NOT IN"</operator>
+        	<right></right>
+        	<listRight>'zzZZ'</listRight>
         </condition>
+    </table>
+    <table>  
+        <name>company</name>  
+        <alias>comp</alias>  
         <condition>
-        	<left>age</left>
-        	<operator>"&gt;"</operator>
-        	<right>9</right>
-        	<listRight></listRight>
-        </condition>
-        <condition>
-        	<left>age</left>
-        	<operator>"&lt;"</operator>
-        	<right>2</right>
+        	<left>comp.name</left>
+        	<operator>"!="</operator>
+        	<right>KEY1</right>
         	<listRight></listRight>
         </condition>
     </table>
