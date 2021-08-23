@@ -5,7 +5,7 @@
         <alias>Test</alias>  
         <condition>
         	<left>Test.name</left>
-        	<operator>"="</operator>
+        	<operator>"!="</operator>
         	<right>KEY1</right>
         	<listRight></listRight>
         </condition>
@@ -21,7 +21,7 @@
         <alias>comp</alias>  
         <condition>
         	<left>comp.name</left>
-        	<operator>"="</operator>
+        	<operator>"!="</operator>
         	<right>KEY1</right>
         	<listRight></listRight>
         </condition>

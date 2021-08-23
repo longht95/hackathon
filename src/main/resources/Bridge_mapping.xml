@@ -1,23 +1,29 @@
 <?xml version="1.0"?>  
 <class>  
     <table>  
-        <name>Persons</name>  
-        <alias>Test</alias>  
+        <name>persons</name>  
+        <alias>test</alias>  
         <condition>
-        	<left>test.first_name</left>
+        	<left>test.name</left>
         	<operator>"="</operator>
         	<right>KEY1</right>
         	<listRight></listRight>
         </condition>
         <condition>
-        	<left>test.column1</left>
+        	<left>age</left>
+        	<operator>"IN"</operator>
+        	<right></right>
+        	<listRight>1,2,100</listRight>
+        </condition>
+        <condition>
+        	<left>age</left>
         	<operator>"NOT IN"</operator>
         	<right></right>
         	<listRight>99,100,2,15</listRight>
         </condition>
     </table>
     <table>  
-        <name>Company</name>  
+        <name>company</name>  
         <alias>comp</alias>  
         <condition>
         	<left>comp.name</left>
@@ -33,10 +39,10 @@
         </condition>
     </table>
     <table>  
-        <name>Company_Person</name>  
+        <name>person_company</name>  
         <alias>cp</alias>  
         <condition>
-        	<left>cp.name_cp</left>
+        	<left>cp.name</left>
         	<operator>"="</operator>
         	<right>KEY2</right>
         	<listRight></listRight>

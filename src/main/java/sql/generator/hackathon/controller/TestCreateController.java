@@ -52,7 +52,7 @@ public class TestCreateController {
 		// BEGIN: CALL AFTER PARSE
 		
 		// Need list table from parse 
-		List<String> lstTableName = Arrays.asList("persons");
+		List<String> lstTableName = Arrays.asList("persons", "company", "person_company");
 		
 		// Connect dB
 		createService.connect(executeDBServer.connect);
