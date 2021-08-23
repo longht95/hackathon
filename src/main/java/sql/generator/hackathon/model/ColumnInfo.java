@@ -90,4 +90,12 @@ public class ColumnInfo {
 	public Boolean isKey() {
 		return isPrimarykey || isForeignKey;
 	}
+
+	public String getVal() {
+		return val;
+	}
+
+	public void setVal(String val) {
+		this.val = val;
+	}
 }

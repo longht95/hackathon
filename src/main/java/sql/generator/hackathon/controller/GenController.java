@@ -46,7 +46,7 @@ public class GenController {
 	@RequestMapping(value = "/zxczxc")
 	public String index123() throws Exception {
 //		serviceDatabase.showTables();
-		executeDBServer.connectDB("admindb", "root", "");
+		executeDBServer.connectDB("com.mysql.cj.jdbc.Driver", "admindb", "root", "Root123!");
 		
 		List<String> lstTableName = Arrays.asList("users", "class");
 		Map<String, List<ColumnInfo>> inforTable = executeDBServer.getInforTable("admindb", lstTableName);
@@ -65,8 +65,28 @@ public class GenController {
 	        }
 	    }
 		
-		InfoDisplayScreen infoDisplayScreen = executeDBServer.getDataDisplay("admindb", "users");
-		System.out.println("infoDisplayScreen: " + infoDisplayScreen);
+//		InfoDisplayScreen infoDisplayScreen = executeDBServer.getDataDisplay("admindb", "users");
+//		System.out.println("infoDisplayScreen: " + infoDisplayScreen);
+		
+		ColumnInfo columnInfo4 = new ColumnInfo();
+		columnInfo4.setName("user_name");
+		columnInfo4.setTypeName("varchar");
+		System.out.println(executeDBServer.isUniqueValue("class", columnInfo4, "test3"));
+		ColumnInfo columnInfo = new ColumnInfo();
+		columnInfo.setName("user_name");
+		columnInfo.setTypeName("varchar");
+		Map<String, String> mapUnique = executeDBServer.genUniqueCol("admindb", "class", columnInfo, "test3");
+		ColumnInfo columnInfo1 = new ColumnInfo();
+		columnInfo1.setName("id");
+		columnInfo1.setTypeName("bigint");
+		Map<String, String> mapUnique1 = executeDBServer.genUniqueCol("admindb", "users", columnInfo1, "test3");
+		ColumnInfo columnInfo2 = new ColumnInfo();
+		columnInfo2.setName("email");
+		columnInfo2.setTypeName("varchar");
+		ColumnInfo columnInfo3 = new ColumnInfo();
+		columnInfo3.setName("age");
+		columnInfo3.setTypeName("int");
+		List<String> aaa = executeDBServer.genListUniqueVal("users", columnInfo3, null, "30");
 		
 		return "index";
 		
