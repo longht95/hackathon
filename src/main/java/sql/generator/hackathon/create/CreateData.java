@@ -954,11 +954,7 @@ public class CreateData {
 
 				// When not validValue for this column => free style this case.
 				// Maybe data type, min-len => push default key for this.
-				if (colInfo.isKey()) {
-					validOfCol.addAll(dbServer.genListUniqueVal(tableName, colInfo, "", ""));
-				} else {
-					validOfCol = genAutoKey("", "", dataType, len);
-				}
+				processGenKey(tableName, validOfCol, validV, colInfo, colInfo.isKey());
 			} else if (validV.size() == 1) {
 				validOfCol.add(validV.get(0).value);
 			} else if (validV.size() > 1) {
@@ -1618,7 +1614,7 @@ public class CreateData {
 		int len = Integer.parseInt(colInfo.getTypeValue());
 		String dataType = colInfo.getTypeName();
 		
-		if (validVal.isEmpty()) {
+		if (validVal == null || validVal.isEmpty()) {
 			if (isKey) {
 				curValidVal.addAll(dbServer.genListUniqueVal(tableName, colInfo, "", ""));
 			} else {

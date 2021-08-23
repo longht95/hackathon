@@ -2,6 +2,10 @@
 <class>  
 	<key>
 		<name>KEY1</name>  
-	    <mapping>Test.name,comp.name</mapping>
+	    <mapping>test.name,comp.name</mapping>
 	</key>
-</class>  
+	<key>
+		<name>KEY2</name>  
+	    <mapping>cp.name,comp.name</mapping>
+	</key>
+</class>
