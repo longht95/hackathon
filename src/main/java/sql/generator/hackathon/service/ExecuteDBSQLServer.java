@@ -25,10 +25,22 @@ import sql.generator.hackathon.model.ObjForeignKeyInfo;
 
 @Service
 public class ExecuteDBSQLServer {
+
+	Map<Integer, String> driverDB;
+	
 	public Connection connect;
 	
 	@Autowired
 	BeanFactory beanFactory;
+	
+	public ExecuteDBSQLServer() {
+		super();
+		driverDB = new HashMap<Integer, String>();
+		driverDB.put(1, "com.mysql.cj.jdbc.Driver");
+		driverDB.put(2, "org.h2.Driver");
+		driverDB.put(3, "oracle.jdbc.OracleDriver");
+		// url h2 jdbc:h2:~/test
+	}
 	
 	//connect database
 	public boolean connectDB(String driver, String schemaName, String user, String pass) throws Exception {
