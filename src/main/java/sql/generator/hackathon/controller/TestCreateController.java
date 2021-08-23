@@ -1,7 +1,10 @@
 package sql.generator.hackathon.controller;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -10,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import sql.generator.hackathon.create.CreateData;
 import sql.generator.hackathon.create.main.TestInsertDB;
 import sql.generator.hackathon.create.main.TestReadParse;
+import sql.generator.hackathon.model.ColumnInfo;
 import sql.generator.hackathon.service.CreateService;
 import sql.generator.hackathon.service.ExecuteDBSQLServer;
 
@@ -52,26 +56,24 @@ public class TestCreateController {
 		// BEGIN: CALL AFTER PARSE
 		
 		// Need list table from parse 
-		List<String> lstTableName = Arrays.asList("persons", "company", "person_company");
+		List<String> lstTableName = Arrays.asList("persons");
 		
 		// Connect dB
 		createService.connect(executeDBServer.connect);
 		createService.setTableInfo(executeDBServer.getInforTable("admindb", lstTableName));
 		
+		Map<String, List<ColumnInfo>> dataClient = new HashMap<>();
+//		List<ColumnInfo> listCol = new ArrayList<ColumnInfo>();
+//		listCol.add(new ColumnInfo("name", "T-Company"));
+//		listCol.add(new ColumnInfo("description", "acc"));
+//		listCol.add(new ColumnInfo("address", "----"));
+//		dataClient.put("company", listCol);
+		
 		// Need List<TableSQL> FROM PARSE
 		// Map<String, List<String> FROM PARSE
-		CreateData createData = new CreateData(createService, TestReadParse.tables, TestReadParse.keys);
-		createData.create();
+		CreateData createData = new CreateData(executeDBServer, createService, TestReadParse.tables, TestReadParse.keys);
+		createData.create(dataClient);
 
-		
-		// BEGIN: CALL WHEN USER CLICK BUTTON GEN DATA!
-		
-		// Need Map<String, List<ColumnInfo>>
-		// Key = tableName, List Cac columnInfo voi colName va value!
-		// TODO
-		// Hiện tại chưa thể change value cho KEY
-		// createData.update(); 
-		
 		return "index";
 	}
 }

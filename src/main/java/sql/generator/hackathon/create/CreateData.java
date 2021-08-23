@@ -5,6 +5,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
@@ -79,10 +80,13 @@ public class CreateData {
 		
 	}
 	
-	public CreateData(CreateService createService, List<TableSQL> tables, Map<String, List<String>> keys) {
+	public CreateData(ExecuteDBSQLServer dbServer, CreateService createService, List<TableSQL> tables, 
+			Map<String, List<String>> keys) {
 		// Connection for service
 		this.createService = createService;
 		createService.getDataExample();
+		
+		this.dbServer = dbServer;
 		
 		this.tables = tables;
 		this.keys = keys;
@@ -92,7 +96,7 @@ public class CreateData {
 	 * Execute create data after parse object
 	 * @throws SQLException 
 	 */
-	public void create() throws SQLException {
+	public Map<String, List<ColumnInfo>> create(Map<String, List<ColumnInfo>> dataClient) throws SQLException {
 		int sz = tables.size();
 		for (int i = 0; i < sz; ++i) {
 			exeEachTable(tables.get(i));
@@ -109,11 +113,15 @@ public class CreateData {
 		// Create last data for column!
 		createLastData();
 		
+		Map<String, List<ColumnInfo>> lst = processInsert(dataClient);
+		
 		// Insert each table
-		for (Map.Entry<String, List<ColumnInfo>> e : tableData.entrySet()) {
+		for (Map.Entry<String, List<ColumnInfo>> e : lst.entrySet()) {
 			// Call JDBC execute insert data to table!
 			createService.insert(e.getKey(), e.getValue());
 		}
+		
+		return lst;
 	}
 	
 	/**
@@ -1788,6 +1796,100 @@ public class CreateData {
 			}
 		}
 	}
+	
+	
+	private Map<String, List<ColumnInfo>> processInsert(Map<String, List<ColumnInfo>> clientData) throws SQLException {
+		Map<String, List<ColumnInfo>> tableInfo = createService.getTableInfo();
+		for (Map.Entry<String, List<ColumnInfo>> e : tableInfo.entrySet()) {
+			String tableName = e.getKey();
+			
+			// Data da mapping can't change
+			// Set again value
+			List<ColumnInfo> data = tableData.get(tableName);
+			
+			ColumnInfo colNoVal = null;
+			if (data != null) {
+				for (ColumnInfo colInfo : e.getValue()) {
+					if (colInfo.val == null) {
+						colInfo.val = "";
+					}
+					for (ColumnInfo d : data) {
+						if (colInfo.getName().equals(d.getName())) {
+							colInfo.val = d.val;
+						}
+					}
+					if (colInfo.isKey() && colInfo.val.isEmpty()) {
+						colNoVal = colInfo;
+					}
+				}
+			} 
+			
+			// confirm KEY no value
+			if (colNoVal != null) {
+				Map<String, ColumnInfo> mapVal = genValueForKeyNoCondition(tableName, colNoVal);
+				for (ColumnInfo colInfo : e.getValue()) {
+					if (colInfo.isKey() && colInfo.val.isEmpty()) {
+						colInfo.val = mapVal.get(colInfo.getName()).val;
+					}
+				}
+			}
+			
+			// Set value from client!
+			List<ColumnInfo> client = clientData.get(tableName);
+			if (client != null) {
+				for (ColumnInfo colInfo : e.getValue()) {
+					for (ColumnInfo c : client) {
+						if (colInfo.getName().equals(c.getName()) && colInfo.val.isEmpty()) {
+							colInfo.val = c.val;
+						}
+					}
+				}
+			} 
+		}
+		return tableInfo;
+	}
+	
+	/**
+	 * Gen value for key no condition
+	 * @param tableName
+	 * @param colInfo
+	 * @return Map<String, ColumnInfo> => colName = Key
+	 * @throws SQLException
+	 */
+	private Map<String, ColumnInfo> genValueForKeyNoCondition(String tableName, ColumnInfo colInfo) throws SQLException {
+		Map<String, ColumnInfo> res = new HashMap<>();
+		
+		// TODO
+		// Error
+//		List<String> listVal = dbServer.genListUniqueVal(tableName, colInfo, "", "");
+		List<String> listVal = new ArrayList<>();
+		if (colInfo.getTypeName().equals("char")) {
+			listVal.add("a");
+		} else if (colInfo.getTypeName().equals("int")) {
+			listVal.add("1");
+		} else {
+			listVal.add("2021-01-01");
+		}
+			
+		
+		// Gen value for key with no condition
+		if (!createService.isCompositeKey(tableName)) {
+			res.put(colInfo.name, new ColumnInfo(colInfo.name, listVal.get(0)));
+		} else {
+			for (String val : listVal) {
+				Map<String, String> m = dbServer.genUniqueCol("admindb", tableName, colInfo, val);
+				if (m.size() > 0) {
+					res.put(colInfo.name, new ColumnInfo(colInfo.name, val));
+					for (Map.Entry<String, String> e : m.entrySet()) {
+						res.put(e.getKey(), new ColumnInfo(e.getKey(), e.getValue()));
+					}
+					break;
+				}
+			}
+		}
+		return res;
+	}
+	
 	// TODO
 	// Thinking? 
 //	/**
