@@ -26,6 +26,4 @@ public class Condition {
 		this.expression = expression;
 		this.right = right;
 	}
-	
-	
 }
