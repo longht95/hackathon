@@ -288,8 +288,6 @@ public class ExecuteDBSQLServer {
 	private String createValueRandom(ColumnInfo columnInfo) throws SQLException {
 		int length = 0;
 		int random = 0;
-		char[] ch = new char[length];
-		
 		if(!columnInfo.getVal().isEmpty()) {
 			length = columnInfo.getVal().length();
 		}else {
@@ -298,7 +296,7 @@ public class ExecuteDBSQLServer {
 		if(columnInfo.getTypeName().equals("date")) {
 			return randomDate();
 		}
-		
+		char[] ch = new char[length];
 		// random char from 65 -> 122
 		for (int i = 0; i < length; i++) {
 			if(columnInfo.getTypeName().contentEquals("varchar")) {

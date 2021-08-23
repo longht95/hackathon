@@ -48,23 +48,23 @@ public class GenController {
 //		serviceDatabase.showTables();
 		executeDBServer.connectDB("com.mysql.cj.jdbc.Driver", "admindb", "root", "Root123!");
 		
-//		List<String> lstTableName = Arrays.asList("users", "class");
-//		Map<String, List<ColumnInfo>> inforTable = executeDBServer.getInforTable("admindb", lstTableName);
-//		for (Map.Entry<String, List<ColumnInfo>> entry : inforTable.entrySet()) {
-//			System.out.println("Key: " + entry.getKey());
-//	        List<ColumnInfo> lstColInfo = entry.getValue();
-//	        for (ColumnInfo columnInfo: lstColInfo) {
-//		        System.out.println("		name: " + columnInfo.getName());
-//		        System.out.println("		typeName: " + columnInfo.getTypeName());
-//		        System.out.println("		typeValue: " + columnInfo.getTypeValue());
-//		        System.out.println("		isNull: " + columnInfo.getIsNull());
-//		        System.out.println("		isPrimarykey: " + columnInfo.getIsPrimarykey());
-//		        System.out.println("		isForeignKey: " + columnInfo.getIsForeignKey());
-//		        System.out.println("		unique: " + columnInfo.getUnique());
-//		        System.out.println("----------------------------------");
-//	        }
-//	    }
-//		
+		List<String> lstTableName = Arrays.asList("users", "class");
+		Map<String, List<ColumnInfo>> inforTable = executeDBServer.getInforTable("admindb", lstTableName);
+		for (Map.Entry<String, List<ColumnInfo>> entry : inforTable.entrySet()) {
+			System.out.println("Key: " + entry.getKey());
+	        List<ColumnInfo> lstColInfo = entry.getValue();
+	        for (ColumnInfo columnInfo: lstColInfo) {
+		        System.out.println("		name: " + columnInfo.getName());
+		        System.out.println("		typeName: " + columnInfo.getTypeName());
+		        System.out.println("		typeValue: " + columnInfo.getTypeValue());
+		        System.out.println("		isNull: " + columnInfo.getIsNull());
+		        System.out.println("		isPrimarykey: " + columnInfo.getIsPrimarykey());
+		        System.out.println("		isForeignKey: " + columnInfo.getIsForeignKey());
+		        System.out.println("		unique: " + columnInfo.getUnique());
+		        System.out.println("----------------------------------");
+	        }
+	    }
+		
 //		InfoDisplayScreen infoDisplayScreen = executeDBServer.getDataDisplay("admindb", "users");
 //		System.out.println("infoDisplayScreen: " + infoDisplayScreen);
 		
@@ -77,8 +77,8 @@ public class GenController {
 		columnInfo.setTypeName("varchar");
 		Map<String, String> mapUnique = executeDBServer.genUniqueCol("admindb", "class", columnInfo, "test3");
 		ColumnInfo columnInfo1 = new ColumnInfo();
-		columnInfo1.setName("email");
-		columnInfo1.setTypeName("varchar");
+		columnInfo1.setName("id");
+		columnInfo1.setTypeName("bigint");
 		Map<String, String> mapUnique1 = executeDBServer.genUniqueCol("admindb", "users", columnInfo1, "test3");
 		ColumnInfo columnInfo2 = new ColumnInfo();
 		columnInfo2.setName("email");
@@ -99,7 +99,7 @@ public class GenController {
 	}
 	
 	@GetMapping(value = "/")
-	public String index() throws Exception {
+	public String index() {
 		return "index";
 	}
 	
