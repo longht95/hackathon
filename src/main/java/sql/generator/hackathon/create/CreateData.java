@@ -5,6 +5,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
@@ -51,6 +52,8 @@ public class CreateData {
 	// Save Key exists
 	private List<TableSQL> tables = new ArrayList<>();
 	private Map<String, List<String>> keys = new HashMap<>();
+	
+	private Map<String, List<String>> keysFormat = new HashMap<>();
 
 	// alias.Name => <tableName.columnName, operator>
 	private Map<String, String[]> infoCol = new HashMap<>();
@@ -77,10 +80,13 @@ public class CreateData {
 		
 	}
 	
-	public CreateData(CreateService createService, List<TableSQL> tables, Map<String, List<String>> keys) {
+	public CreateData(ExecuteDBSQLServer dbServer, CreateService createService, List<TableSQL> tables, 
+			Map<String, List<String>> keys) {
 		// Connection for service
 		this.createService = createService;
 		createService.getDataExample();
+		
+		this.dbServer = dbServer;
 		
 		this.tables = tables;
 		this.keys = keys;
@@ -90,7 +96,7 @@ public class CreateData {
 	 * Execute create data after parse object
 	 * @throws SQLException 
 	 */
-	public void create() throws SQLException {
+	public Map<String, List<ColumnInfo>> create(Map<String, List<ColumnInfo>> dataClient) throws SQLException {
 		int sz = tables.size();
 		for (int i = 0; i < sz; ++i) {
 			exeEachTable(tables.get(i));
@@ -107,11 +113,15 @@ public class CreateData {
 		// Create last data for column!
 		createLastData();
 		
+		Map<String, List<ColumnInfo>> lst = processInsert(dataClient);
+		
 		// Insert each table
-		for (Map.Entry<String, List<ColumnInfo>> e : tableData.entrySet()) {
+		for (Map.Entry<String, List<ColumnInfo>> e : lst.entrySet()) {
 			// Call JDBC execute insert data to table!
 			createService.insert(e.getKey(), e.getValue());
 		}
+		
+		return lst;
 	}
 	
 	/**
@@ -223,7 +233,7 @@ public class CreateData {
 		// Read all condition.
 		int szCond = conditions.size();
 		for (int i = 0; i < szCond; ++i) {
-			if (!conditions.get(i).right.startsWith("KEY")) {
+			if ((conditions.get(i).right == null && !conditions.get(i).listRight.isEmpty()) || !conditions.get(i).right.startsWith("KEY")) {
 				// Normal case
 				readValueForColumn(tableName, conditions.get(i), mapValOfColumn);
 				continue;
@@ -245,8 +255,21 @@ public class CreateData {
 			// Put aliasTable.aliasName => [tableName.columnName]
 			// Save for calculator all mapping
 			String[] sp = getTableAndColName(left);
-			infoCol.put(left, new String[] { tableName + "." + sp[1], operator });
-			lastEndValidValue.put(tableName + "." + sp[1], "");
+			
+			// Format all Key aliasName.colName => tableName.colName
+			List<String> valKey;
+			if (keysFormat.containsKey(right)) {
+				valKey = keysFormat.get(right);
+			} else {
+				valKey = new ArrayList<>();
+				keysFormat.put(right, valKey);
+			}
+			String tableColName = tableName + "." + sp[1];
+			valKey.add(tableColName);
+			
+//			infoCol.put(left, new String[] { tableColName, operator });
+			infoCol.put(tableColName, new String[] { tableColName, operator });
+			lastEndValidValue.put(tableColName, "");
 		}
 
 		// Calculator Priority of condition.
@@ -635,39 +658,43 @@ public class CreateData {
 			
 			
 			// Comment for execute case multiple between
-//			Queue<Cond> toExploder = new LinkedList<>();
-//			
-//			for (int i = 0; i < values.size(); ++i) {
-//				toExploder.add(values.get(i));
-//			}
-//			
-//			while (!toExploder.isEmpty()) {
-//				Cond cond = toExploder.poll();
-//				Date ld = sdf.parse(cond.value);
-//				
-//				// Just remove all element > curD
-//				if (operator.equals("<=")) {
-//					if (ld.compareTo(curD) > 0) {
-//						values.remove(cond);
-//					}
-//					// Just remove all element > curD
-//				} else if (operator.equals(">=")) {
-//					if (ld.compareTo(curD) < 0) {
-//						values.remove(cond);
-//					}
-//					// Just remove all element > curD
-//				} else if (operator.equals("<")) {
-//					if (ld.compareTo(curD) >= 0) {
-//						values.remove(cond);
-//					}
-//				} else if (operator.equals(">")) {
-//					if (ld.compareTo(curD) <= 0) {
-//						values.remove(cond);
-//					}
-//				} else {
-//					// TODO
-//				}
-//			}
+			Queue<Cond> toExploder = new LinkedList<>();
+			
+			for (int i = 0; i < values.size(); ++i) {
+				toExploder.add(values.get(i));
+			}
+			
+			while (!toExploder.isEmpty()) {
+				Cond cond = toExploder.poll();
+				Date ld = sdf.parse(cond.value);
+				
+				if (!cond.operator.equals("=")) {
+					continue;
+				}
+				
+				// Just remove all element > curD
+				if (operator.equals("<=")) {
+					if (ld.compareTo(curD) > 0) {
+						values.remove(cond);
+					}
+					// Just remove all element > curD
+				} else if (operator.equals(">=")) {
+					if (ld.compareTo(curD) < 0) {
+						values.remove(cond);
+					}
+					// Just remove all element > curD
+				} else if (operator.equals("<")) {
+					if (ld.compareTo(curD) >= 0) {
+						values.remove(cond);
+					}
+				} else if (operator.equals(">")) {
+					if (ld.compareTo(curD) <= 0) {
+						values.remove(cond);
+					}
+				} else {
+					// TODO
+				}
+			}
 			
 			// Not operator <= and >=
 			if (!(operator.equals("<=") || operator.equals(">="))) {
@@ -692,39 +719,42 @@ public class CreateData {
 			long curV = Long.parseLong(cur[1]);
 
 			// Comment for execute case multiple between
-//			Queue<Cond> toExploder = new LinkedList<>();
-//			
-//			for (int i = 0; i < values.size(); ++i) {
-//				toExploder.add(values.get(i));
-//			}
-//
-//			while (!toExploder.isEmpty()) {
-//				Cond cond = toExploder.poll();
-//				long innerV = Long.parseLong(cond.value);
-//				
-//				// Search in list to remove add value > this value;
-//				if (operator.equals("<=")) {
-//					if (innerV > curV) {
-//						values.remove(cond);
-//					}
-//					// Search in list to remove add value < this value;
-//				} else if (operator.equals(">=")) {
-//					if (innerV < curV) {
-//						values.remove(cond);
-//					}
-//				} else if (operator.equals("<")) {
-//					if (innerV >= curV) {
-//						values.remove(cond);
-//					}
-//				} else if (operator.equals(">")) {
-//					if (innerV <= curV) {
-//						values.remove(cond);
-//					}
-//				} else {
-//					// TODO
-//					// Other operator
-//				}
-//			}
+			Queue<Cond> toExploder = new LinkedList<>();
+			
+			for (int i = 0; i < values.size(); ++i) {
+				toExploder.add(values.get(i));
+			}
+
+			while (!toExploder.isEmpty()) {
+				Cond cond = toExploder.poll();
+				long innerV = Long.parseLong(cond.value);
+				if (!cond.operator.equals("=")) {
+					continue;
+				}
+				
+				// Search in list to remove add value > this value;
+				if (operator.equals("<=")) {
+					if (innerV > curV) {
+						values.remove(cond);
+					}
+					// Search in list to remove add value < this value;
+				} else if (operator.equals(">=")) {
+					if (innerV < curV) {
+						values.remove(cond);
+					}
+				} else if (operator.equals("<")) {
+					if (innerV >= curV) {
+						values.remove(cond);
+					}
+				} else if (operator.equals(">")) {
+					if (innerV <= curV) {
+						values.remove(cond);
+					}
+				} else {
+					// TODO
+					// Other operator
+				}
+			}
 			
 			// Not operator <= and >=
 			if (!(operator.equals("<=") || operator.equals(">="))) {
@@ -748,6 +778,30 @@ public class CreateData {
 		values.add(new Cond(operator, strVal));
 	}
 
+//	/**
+//	 * Read Mapping in keys With each key add 2 mapping
+//	 * 
+//	 * @return Map<String, String> Key1 - Key2, Key2 - Key1
+//	 */
+//	private Map<String, Set<String>> getMappingColumn() {
+//		Map<String, Set<String>> m = new HashMap<>();
+//		for (Map.Entry<String, List<String>> e : keys.entrySet()) {
+//			List<String> v = e.getValue();
+//			for (int i = 0; i < v.size(); ++i) {
+//				Set<String> t;
+//				if (m.containsKey(v.get(i))) {
+//					t = m.get(v.get(i));
+//				} else {
+//					t = new HashSet<>();
+//					m.put(v.get(i), t);
+//				}
+//				// Add other.
+//				t.add(v.get(i == 0 ? 1 : 0));
+//			}
+//		}
+//		return m;
+//	}
+	
 	/**
 	 * Read Mapping in keys With each key add 2 mapping
 	 * 
@@ -755,7 +809,7 @@ public class CreateData {
 	 */
 	private Map<String, Set<String>> getMappingColumn() {
 		Map<String, Set<String>> m = new HashMap<>();
-		for (Map.Entry<String, List<String>> e : keys.entrySet()) {
+		for (Map.Entry<String, List<String>> e : keysFormat.entrySet()) {
 			List<String> v = e.getValue();
 			for (int i = 0; i < v.size(); ++i) {
 				Set<String> t;
@@ -894,7 +948,10 @@ public class CreateData {
 				Cond cond = new Cond(infoCol.get(c)[1], infoCol.get(c)[0]);
 				s.add(cond);
 			}
-			columnMap.put(infoCol.get(curKey)[0], s);
+			columnMap.put(e.getKey(), s);
+//			for (String c : mappings) {
+//				Cond cond = new Cond()
+//			}
 		}
 	}
 
@@ -1746,6 +1803,91 @@ public class CreateData {
 			}
 		}
 	}
+	
+	
+	private Map<String, List<ColumnInfo>> processInsert(Map<String, List<ColumnInfo>> clientData) throws SQLException {
+		Map<String, List<ColumnInfo>> tableInfo = createService.getTableInfo();
+		for (Map.Entry<String, List<ColumnInfo>> e : tableInfo.entrySet()) {
+			String tableName = e.getKey();
+			
+			// Data da mapping can't change
+			// Set again value
+			List<ColumnInfo> data = tableData.get(tableName);
+			
+			ColumnInfo colNoVal = null;
+			if (data != null) {
+				for (ColumnInfo colInfo : e.getValue()) {
+					if (colInfo.val == null) {
+						colInfo.val = "";
+					}
+					for (ColumnInfo d : data) {
+						if (colInfo.getName().equals(d.getName())) {
+							colInfo.val = d.val;
+						}
+					}
+					if (colInfo.isKey() && colInfo.val.isEmpty()) {
+						colNoVal = colInfo;
+					}
+				}
+			} 
+			
+			// confirm KEY no value
+			if (colNoVal != null) {
+				Map<String, ColumnInfo> mapVal = genValueForKeyNoCondition(tableName, colNoVal);
+				for (ColumnInfo colInfo : e.getValue()) {
+					if (colInfo.isKey() && colInfo.val.isEmpty()) {
+						colInfo.val = mapVal.get(colInfo.getName()).val;
+					}
+				}
+			}
+			
+			// Set value from client!
+			List<ColumnInfo> client = clientData.get(tableName);
+			if (client != null) {
+				for (ColumnInfo colInfo : e.getValue()) {
+					for (ColumnInfo c : client) {
+						if (colInfo.getName().equals(c.getName()) && colInfo.val.isEmpty()) {
+							colInfo.val = c.val;
+						}
+					}
+				}
+			} 
+		}
+		return tableInfo;
+	}
+	
+	/**
+	 * Gen value for key no condition
+	 * @param tableName
+	 * @param colInfo
+	 * @return Map<String, ColumnInfo> => colName = Key
+	 * @throws SQLException
+	 */
+	private Map<String, ColumnInfo> genValueForKeyNoCondition(String tableName, ColumnInfo colInfo) throws SQLException {
+		Map<String, ColumnInfo> res = new HashMap<>();
+		
+		// TODO
+		// Error
+		List<String> listVal = dbServer.genListUniqueVal(tableName, colInfo, "", "");
+		
+		// Gen value for key with no condition
+		if (!createService.isCompositeKey(tableName)) {
+			res.put(colInfo.name, new ColumnInfo(colInfo.name, listVal.get(0)));
+		} else {
+			for (String val : listVal) {
+				Map<String, String> m = dbServer.genUniqueCol("admindb", tableName, colInfo, val);
+				if (m.size() > 0) {
+					res.put(colInfo.name, new ColumnInfo(colInfo.name, val));
+					for (Map.Entry<String, String> e : m.entrySet()) {
+						res.put(e.getKey(), new ColumnInfo(e.getKey(), e.getValue()));
+					}
+					break;
+				}
+			}
+		}
+		return res;
+	}
+	
 	// TODO
 	// Thinking? 
 //	/**

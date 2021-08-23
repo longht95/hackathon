@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +41,10 @@ public class CreateService {
 	
 	public void setTableInfo(Map<String, List<ColumnInfo>> tableInfo) {
 		this.tableInfo = tableInfo;
+	}
+	
+	public Map<String, List<ColumnInfo>> getTableInfo() {
+		return tableInfo;
 	}
 	
 	/**
@@ -117,40 +123,11 @@ public class CreateService {
 			
 			colNames.append(columnInfo.name);
 			
-			values.append(getCorrectValue(columnInfo));
-		}
-		
-		// Get structure of tableName
-		// Add default data when can't not null
-		List<ColumnInfo> structure = tableInfo.get(tableName);
-		for (ColumnInfo columnInfo : structure) {
-			if ((!columnInfo.isNull && !columnInfo.isKey()) && colNames.indexOf(columnInfo.name) == -1) {
-				if (colNames.length() != 0) {
-					colNames.append(",");
-				}
-				
-				if (values.length() != 0) {
-					values.append(",");
-				}
-				
-				colNames.append(columnInfo.name);
-				String type = getDataTypeOfColumn(columnInfo);
-				ColumnInfo innerInfo = new ColumnInfo(columnInfo.name, "");
-				switch(type) {
-				case "char":
-					innerInfo.val = dataExamples.get("name");
-					break;
-				case "number":
-					innerInfo.val = dataExamples.get("number");
-					break;
-				case "date":
-					// TODO
-					// Need check!
-					innerInfo.val = "2021-10-10";
-					break;
-				}
-				innerInfo.typeName = type;
-				values.append(getCorrectValue(innerInfo));
+			// Get default value
+			if (!columnInfo.isNull && columnInfo.val.isEmpty()) {
+				values.append(getDefaultValue(columnInfo.getTypeName()));
+			} else {
+				values.append(getCorrectValue(columnInfo));
 			}
 		}
 		
@@ -278,13 +255,23 @@ public class CreateService {
 		String res = "";
 		switch (type) {
 		case "date":
+			String val = columnInfo.val;
 			if (columnInfo.val.indexOf("'") >= 0) {
 				res = columnInfo.val;
 			} else {
-				res = "'" + columnInfo.val + "'";
+				if (val.isEmpty()) {
+					// Get current date
+					DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd");  
+					LocalDateTime now = LocalDateTime.now();  
+					val = dtf.format(now);
+				}
+				res = "'" + val + "'";
 			}
 			break;
+		case "varchar":
+		case "nvarchar":
 		case "char":
+		case "nchar":
 			// Has ''
 			if (columnInfo.val.indexOf("'") >= 0) {
 				res = columnInfo.val;
@@ -293,7 +280,13 @@ public class CreateService {
 			}
 			break;
 		case "number":
-			res = columnInfo.val;
+		case "int":
+		case "bigint":
+			if (columnInfo.val.isEmpty()) {
+				res = "0";
+			} else {
+				res = columnInfo.val;
+			}
 			break;
 		default:
 			System.out.println("Other?");
@@ -332,5 +325,29 @@ public class CreateService {
 			}
 		}
 		return cnt > 1;
+	}
+	
+	private String getDefaultValue(String type) {
+		String res = "";
+		switch(type) {
+		case "varchar":
+		case "nvarchar":
+		case "char":
+		case "nchar":
+			res = dataExamples.get("name");
+			break;
+		case "number":
+		case "int":
+		case "bigint":
+			res = dataExamples.get("number");
+			break;
+		case "date":
+			// Get current date
+			DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd");  
+			LocalDateTime now = LocalDateTime.now();  
+			res = dtf.format(now);
+			break;
+		}
+		return res;
 	}
 }
