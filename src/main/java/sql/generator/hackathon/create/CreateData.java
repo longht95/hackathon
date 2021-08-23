@@ -51,6 +51,8 @@ public class CreateData {
 	// Save Key exists
 	private List<TableSQL> tables = new ArrayList<>();
 	private Map<String, List<String>> keys = new HashMap<>();
+	
+	private Map<String, List<String>> keysFormat = new HashMap<>();
 
 	// alias.Name => <tableName.columnName, operator>
 	private Map<String, String[]> infoCol = new HashMap<>();
@@ -245,8 +247,21 @@ public class CreateData {
 			// Put aliasTable.aliasName => [tableName.columnName]
 			// Save for calculator all mapping
 			String[] sp = getTableAndColName(left);
-			infoCol.put(left, new String[] { tableName + "." + sp[1], operator });
-			lastEndValidValue.put(tableName + "." + sp[1], "");
+			
+			// Format all Key aliasName.colName => tableName.colName
+			List<String> valKey;
+			if (keysFormat.containsKey(right)) {
+				valKey = keysFormat.get(right);
+			} else {
+				valKey = new ArrayList<>();
+				keysFormat.put(right, valKey);
+			}
+			String tableColName = tableName + "." + sp[1];
+			valKey.add(tableColName);
+			
+//			infoCol.put(left, new String[] { tableColName, operator });
+			infoCol.put(tableColName, new String[] { tableColName, operator });
+			lastEndValidValue.put(tableColName, "");
 		}
 
 		// Calculator Priority of condition.
@@ -748,6 +763,30 @@ public class CreateData {
 		values.add(new Cond(operator, strVal));
 	}
 
+//	/**
+//	 * Read Mapping in keys With each key add 2 mapping
+//	 * 
+//	 * @return Map<String, String> Key1 - Key2, Key2 - Key1
+//	 */
+//	private Map<String, Set<String>> getMappingColumn() {
+//		Map<String, Set<String>> m = new HashMap<>();
+//		for (Map.Entry<String, List<String>> e : keys.entrySet()) {
+//			List<String> v = e.getValue();
+//			for (int i = 0; i < v.size(); ++i) {
+//				Set<String> t;
+//				if (m.containsKey(v.get(i))) {
+//					t = m.get(v.get(i));
+//				} else {
+//					t = new HashSet<>();
+//					m.put(v.get(i), t);
+//				}
+//				// Add other.
+//				t.add(v.get(i == 0 ? 1 : 0));
+//			}
+//		}
+//		return m;
+//	}
+	
 	/**
 	 * Read Mapping in keys With each key add 2 mapping
 	 * 
@@ -755,7 +794,7 @@ public class CreateData {
 	 */
 	private Map<String, Set<String>> getMappingColumn() {
 		Map<String, Set<String>> m = new HashMap<>();
-		for (Map.Entry<String, List<String>> e : keys.entrySet()) {
+		for (Map.Entry<String, List<String>> e : keysFormat.entrySet()) {
 			List<String> v = e.getValue();
 			for (int i = 0; i < v.size(); ++i) {
 				Set<String> t;
@@ -894,7 +933,10 @@ public class CreateData {
 				Cond cond = new Cond(infoCol.get(c)[1], infoCol.get(c)[0]);
 				s.add(cond);
 			}
-			columnMap.put(infoCol.get(curKey)[0], s);
+			columnMap.put(e.getKey(), s);
+//			for (String c : mappings) {
+//				Cond cond = new Cond()
+//			}
 		}
 	}
 
