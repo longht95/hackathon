@@ -318,4 +318,19 @@ public class CreateService {
 			return;
 		}
 	}
+	
+	/**
+	 * Check table composite key
+	 * @return true when isCompositeKey
+	 */
+	public boolean isCompositeKey(String tableName) {
+		List<ColumnInfo> table = tableInfo.get(tableName);
+		int cnt = 0;
+		for (ColumnInfo colInfo : table) {
+			if (colInfo.isKey()) {
+				cnt++;
+			}
+		}
+		return cnt > 1;
+	}
 }

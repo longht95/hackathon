@@ -2,29 +2,49 @@
 <class>  
     <table>  
         <name>persons</name>  
-        <alias>Test</alias>  
+        <alias>test</alias>  
         <condition>
-        	<left>age</left>
-        	<operator>"&gt;="</operator>
-        	<right>4</right>
-        	<listRight></listRight>
-        </condition>
-        <condition>
-        	<left>Test.age</left>
-        	<operator>"&lt;"</operator>
-        	<right>7</right>
+        	<left>test.name</left>
+        	<operator>"="</operator>
+        	<right>KEY1</right>
         	<listRight></listRight>
         </condition>
         <condition>
         	<left>age</left>
-        	<operator>"&gt;"</operator>
-        	<right>9</right>
-        	<listRight></listRight>
+        	<operator>"IN"</operator>
+        	<right></right>
+        	<listRight>1,2,100</listRight>
         </condition>
         <condition>
         	<left>age</left>
-        	<operator>"&lt;"</operator>
-        	<right>2</right>
+        	<operator>"NOT IN"</operator>
+        	<right></right>
+        	<listRight>99,100,2,15</listRight>
+        </condition>
+    </table>
+    <table>  
+        <name>company</name>  
+        <alias>comp</alias>  
+        <condition>
+        	<left>comp.name</left>
+        	<operator>"="</operator>
+        	<right>KEY1</right>
+        	<listRight></listRight>
+        </condition>
+        <condition>
+        	<left>comp.name</left>
+        	<operator>"!="</operator>
+        	<right>KEY2</right>
+        	<listRight></listRight>
+        </condition>
+    </table>
+    <table>  
+        <name>person_company</name>  
+        <alias>cp</alias>  
+        <condition>
+        	<left>cp.name</left>
+        	<operator>"!="</operator>
+        	<right>KEY2</right>
         	<listRight></listRight>
         </condition>
     </table>

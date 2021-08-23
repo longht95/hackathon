@@ -1,5 +1,6 @@
 package sql.generator.hackathon.create;
 
+import java.sql.SQLException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
@@ -25,6 +26,7 @@ import sql.generator.hackathon.model.Condition;
 import sql.generator.hackathon.model.NodeColumn;
 import sql.generator.hackathon.model.TableSQL;
 import sql.generator.hackathon.service.CreateService;
+import sql.generator.hackathon.service.ExecuteDBSQLServer;
 
 @Service
 public class CreateData {
@@ -69,6 +71,8 @@ public class CreateData {
 	
 	private CreateService createService;
 	
+	private ExecuteDBSQLServer dbServer;
+	
 	public CreateData() {
 		
 	}
@@ -84,8 +88,9 @@ public class CreateData {
 
 	/**
 	 * Execute create data after parse object
+	 * @throws SQLException 
 	 */
-	public void create() {
+	public void create() throws SQLException {
 		int sz = tables.size();
 		for (int i = 0; i < sz; ++i) {
 			exeEachTable(tables.get(i));
@@ -274,12 +279,6 @@ public class CreateData {
 		String col = condition.left;
 		String operator = condition.expression;
 		String val = condition.right;
-
-		// Check has alias => save, if normal case no save.
-		// Save to execute with bridging case (Bắc cầu)
-//		if (!hasAliasName(col)) { //hasAliasName(val)
-//			return;
-//		}
 
 		// TableName.columnName
 		String fullColName = tableName + "." + getTableAndColName(col)[1];
@@ -775,8 +774,9 @@ public class CreateData {
 	
 	/**
 	 * Create last data for table with remain condition in there!
+	 * @throws SQLException 
 	 */
-	private void createLastData() {
+	private void createLastData() throws SQLException {
 		for (Map.Entry<String, String> e : lastEndValidValue.entrySet()) {
 			String lastVal = e.getValue();
 			String fullTableColName = e.getKey();
@@ -797,156 +797,57 @@ public class CreateData {
 				
 				l.add(columnInfo);
 			} else {
-				// When calculator not in mapping 
-				// This case will read last condition remain -> gendata
-//				private Map<String, List<Cond>> validValuesForColumn = new HashMap<>();
-				
-				// Key = tableName.colName => List data use operator (NOT IN, !=, <>)
-//				private Map<String, List<String>> valueInValidOfColumn
-				
 				List<Cond> validVal = validValuesForColumn.get(fullTableColName);
 				List<String> invalidVal = valueInValidOfColumn.get(fullTableColName);
 				
-				// TODO
-				// Get len of column;
-				// Call tu a Trung
 				int len = createService.getLengthOfColumn(colInfo);
-				
-			
-				// TODO
-				// Get dataType
-				// Call tu a trung
-				// String dataType
+				colInfo.setTypeValue(String.valueOf(len));
 				String dataType = createService.getDataTypeOfColumn(colInfo);
+				colInfo.setTypeName(dataType);
 				
-				// Get
 				List<String> curValidVal = new ArrayList<>();
-				
-				if (validVal.isEmpty()) {
-					curValidVal = genAutoKey("", "", dataType, len);
-				} else {
-					boolean flgEqual = false;
-					boolean flgGreater = false;
-					boolean flgLess = false;
-					
-					String valLess = "";
-					String valGreater = "";
-					
-					int cnt = 0;
-					
-					// Sort value valid
-					Collections.sort(validVal, new Comparator<Cond>() {
-						@Override
-						public int compare(Cond c1, Cond c2) {
-							// Priority equals!
-							if (c1.operator.equals("=") && c2.operator.equals("=")) {
-								return 0;
-							} else if (c1.operator.equals("=")) {
-								return 1;
-							} else if (c2.operator.equals("=")) {
-								return -1;
-							}
-							// Priority value sorted asc
-							// When value equals => will sort desc of prirityOperator >= <=
-							if (dataType.equals("number")) {
-								Integer i1 = parseStringToInt(c1.value);
-								Integer i2 = parseStringToInt(c2.value);
-								if (Integer.compare(i1, i2) == 0) {
-									Integer inner1 = priorityOfOperator.get(c1.operator);
-									Integer inner2 = priorityOfOperator.get(c2.operator);
-									return validVal.size() % 2 == 0 ? inner2 - inner1 : inner1 - inner2;
-								}
-								return Integer.compare(i1, i2);
-							} else if (dataType.equals("date")) {
-								Date cur1 = parseStringToDate(c1.value);
-								Date cur2 = parseStringToDate(c2.value);
-								if (cur1.compareTo(cur2) < 0) {
-									return 1;
-								} else if (cur1.compareTo(cur2) > 0) {
-									return -1;
-								} else {
-									Integer i1 = priorityOfOperator.get(c1.operator);
-									Integer i2 = priorityOfOperator.get(c2.operator);
-									return validVal.size() % 2 == 0 ? i2 - i1 : i1 - i2;
-								}
-							}
-							return 0;
-						}
-					});
-					
-					for (int i = 0; i < validVal.size(); ++i) {
-						Cond cond = validVal.get(i);
-						
-						String operator = cond.operator;
-						String val = cond.value;
 
-						switch (operator) {
-						case "=":
-							flgEqual = true;
-							curValidVal.add(val);
-							break;
-						case "<=":
-							flgLess = true;
-							valLess = val;
-							break;
-						case ">=":
-							flgGreater = true;
-							valGreater = val;
-							break;
-						}
-						
-						if (!flgEqual && (flgLess || flgGreater) && curValidVal.isEmpty()) {
-							cnt++;
-							// Confirm pair
-							// Gen value for pair
-							if (cnt == 2) {
-								
-								// Execute between
-								if (operator.equals("<=")) {
-									curValidVal.addAll(genAutoKey(valGreater, valLess, dataType, len));
-								} else {
-									if (i < validVal.size() - 1) {
-										Cond next = validVal.get(i + 1);
-										if (next.operator.equals("<=")) {
-											curValidVal.addAll(genAutoKey(valGreater, next.value, dataType, len));
-											curValidVal.addAll(genAutoKey("", valLess, dataType, len));
-										} else {
-											System.out.println("This case can't happen!");
-											assert(false);
-										}
-										i++;
-									}
-								}
-								
-								
-								valGreater = "";
-								valLess = "";
-								flgLess = false;
-								flgGreater = false;
-								cnt = 0;
-							}
-						}
-					}
-					
-					// Gen auto key
-					// May be call method a Trung get primarykey
-					// input(tableName.colName) => List<Primary key>
-					if (!flgEqual && (flgLess || flgGreater) && curValidVal.isEmpty()) {
-						curValidVal.addAll(genAutoKey(valGreater, valLess, dataType, len));
-					}
-				}
+				// Manual gen value
+				processGenKey(tableName, curValidVal, validVal, colInfo, colInfo.isKey());
 				
 				// Remove
 				for (int i = 0; i < curValidVal.size(); ++i) {
 					if (invalidVal == null || (!invalidVal.contains(curValidVal.get(i)))) {
-						ColumnInfo columnInfo = new ColumnInfo(colName, curValidVal.get(i));
+						boolean flgAdd = false;
+						// Key will gen value from DB
+						if (createService.isCompositeKey(tableName)) {
+							
+							// TODO
+							// xem xet schemaName
+							Map<String, String> m = dbServer.genUniqueCol("admindb", tableName, colInfo, curValidVal.get(i));
+							if (m.size() == 0) {
+								continue;
+							}
+							flgAdd = true;
+							
+							// Get composite key
+							for (Map.Entry<String, String> entry : m.entrySet()) {
+								ColumnInfo columnInfo = new ColumnInfo(entry.getKey(), entry.getValue());
+								ColumnInfo colInner = createService.getColumInfo(tableName, entry.getKey());
+								
+								createService.getDataTypeOfColumn(columnInfo);
+								columnInfo.setTypeName(colInner.getTypeName());
+								columnInfo.setTypeValue(colInner.getTypeValue());
+							}
+						} else {
+							flgAdd = true;
+						}
 						
-						// Set type for excute case add ' or not!
-						columnInfo.setTypeName(colInfo.typeName);
-						columnInfo.setTypeValue(colInfo.typeValue);
-						
-						l.add(columnInfo);
-						break;
+						if(flgAdd) {
+							ColumnInfo columnInfo = new ColumnInfo(colName, curValidVal.get(i));
+							
+							// Set type for excute case add ' or not!
+							columnInfo.setTypeName(colInfo.typeName);
+							columnInfo.setTypeValue(colInfo.typeValue);
+							
+							l.add(columnInfo);
+							break;
+						}
 					}
 				}
 			}
@@ -1001,8 +902,9 @@ public class CreateData {
 	 * columnMap variable (mapping of column)
 	 * validValuesForColumn valid values current of column
 	 * @return push value to dataTable
+	 * @throws SQLException 
 	 */
-	private void exeCalcForMappingKey() {
+	private void exeCalcForMappingKey() throws SQLException {
 		// table.colName => all column mapping of current table.colName
 		// Map<String, Set<Cond>> columnMap;
 		
@@ -1039,48 +941,26 @@ public class CreateData {
 
 					
 			String dataType = createService.getDataTypeOfColumn(colInfo);
+			colInfo.setTypeName(dataType);
 			int len = createService.getLengthOfColumn(colInfo);
+			colInfo.setTypeValue(String.valueOf(len));
 			
 			List<String> validOfCol = new ArrayList<>();
 			
+			boolean isCompositeKey = createService.isCompositeKey(tableName);
+			
 			// When size = 1 => use equals(=)
 			if (validV == null) {
+
 				// When not validValue for this column => free style this case.
 				// Maybe data type, min-len => push default key for this.
-				// Get len from a Trung
-				validOfCol = genAutoKey("", "", dataType, len);
+				processGenKey(tableName, validOfCol, validV, colInfo, colInfo.isKey());
 			} else if (validV.size() == 1) {
 				validOfCol.add(validV.get(0).value);
 			} else if (validV.size() > 1) {
-				boolean flgUseEquals = false;
-				boolean flgLess = false;
-				boolean flgGreater = false;
-				String valLess = "";
-				String valGreater = "";
-				
-				// Get all valid value of current value
-				for (int i = 0; i < validV.size(); ++i) {
-					if (validV.get(i).operator.equals("=")) {
-						flgUseEquals = true;
-						validOfCol.add(validV.get(i).value);
-					} else if (validV.get(i).operator.equals("<=")) {
-						if(!flgUseEquals) {
-							valLess = validV.get(i).value;
-						}
-						flgLess = true;
-					} else if (validV.get(i).operator.equals(">=")){
-						if(!flgUseEquals) {
-							valGreater = validV.get(i).value;
-						}
-						flgGreater = true;
-					}
-				}
-				
-				if (!flgUseEquals && (flgLess || flgGreater)) {
-					// gen with limit!
-					validOfCol = genAutoKey(valLess, valGreater, dataType, len);
-				}
+				processGenKey(tableName, validOfCol, validV, colInfo, colInfo.isKey());
 			}
+		
 			
 			// Save in there!
 			// Use DFS confirm this case!
@@ -1240,6 +1120,18 @@ public class CreateData {
 						assert(false);
 					}
 					
+					// Execute for composite key
+					if (isCompositeKey) {
+						
+						// TODO
+						// XEm set schemaname
+						if (dbServer.genUniqueCol("admindb", tableName, colInfo, validOfCol.get(i)).size() != 0) {
+							flgAdd = true;
+						} else {
+							flgAdd = false;
+						}
+					}
+					
 					if (flgAdd) {
 						// Table columnName, value, index
 						NodeColumn innerNode = new NodeColumn(nextCond.value, validOfCol.get(i), index + 1);
@@ -1360,20 +1252,23 @@ public class CreateData {
 		char[] curChar = curVal.toCharArray();
 		
 		// Increase
-		// 'abcde' -> 'abcdf'
+		// 'z' -> 'aa'
 		if (isIncrease) {
 			int remain = 0;
 			for (int i = curChar.length - 1; i >= 0; --i) {
 				char c = curChar[i];
 				if (c == 'z') {
 					remain = 1;
+					if (i == 0) {
+						return repeat('a', curChar.length + 1);
+					}
 				} else {
 					remain = 0;	
 					curChar[i] = (char) (c + 1);
 				}
 				
 				if (remain == 0) {
-					return curChar.toString();
+					return String.valueOf(curChar);
 				}
 			}
 		}
@@ -1385,6 +1280,9 @@ public class CreateData {
 			char c = curChar[i];
 			if (c == 'a') {
 				remain = 1;
+				if (i == 0) {
+					return repeat('z', curChar.length - 1);
+				}
 			} else {
 				remain = 0;	
 				curChar[i] = (char) (c - 1);
@@ -1395,7 +1293,21 @@ public class CreateData {
 			}
 		}
 		
-		return curChar.toString();
+		return String.valueOf(curChar);
+	}
+	
+	/**
+	 * Repeat character
+	 * @param character need repeat
+	 * @param len need repeat
+	 * @return String repeated
+	 */
+	private String repeat(char c, int len) {
+		StringBuilder sb = new StringBuilder();
+		for (int i = 0; i < len; ++i) {
+			sb.append("" + c);
+		}
+		return sb.toString();
 	}
 	
 	/**
@@ -1599,12 +1511,10 @@ public class CreateData {
 		}
 		
 		StringBuilder res = new StringBuilder();
-		for (int i = 0; i < len; ++i) {
-			if (dataType.equals("number")) {
-				res.append("1");
-			} else if (dataType.equals("char")) {
-				res.append("A");
-			}
+		if (dataType.equals("number")) {
+			res.append("1");
+		} else if (dataType.equals("char")) {
+			res.append("a");
 		}
 		return res.toString();
 	}
@@ -1684,6 +1594,158 @@ public class CreateData {
 		return flgCheck;
 	}
 	
+	
+	/**
+	 * Process gen key for (primary key || foreign key) or not
+	 * @param tableName
+	 * @param curValidVal
+	 * @param validVal
+	 * @param colInfo
+	 * @param isKey
+	 * @throws SQLException
+	 */
+	private void processGenKey(String tableName, List<String> curValidVal, List<Cond> validVal, ColumnInfo colInfo, boolean isKey) throws SQLException {
+		// When calculator not in mapping 
+		// This case will read last condition remain -> gendata
+//		private Map<String, List<Cond>> validValuesForColumn = new HashMap<>();
+		
+		// Key = tableName.colName => List data use operator (NOT IN, !=, <>)
+//		private Map<String, List<String>> valueInValidOfColumn
+		int len = Integer.parseInt(colInfo.getTypeValue());
+		String dataType = colInfo.getTypeName();
+		
+		if (validVal == null || validVal.isEmpty()) {
+			if (isKey) {
+				curValidVal.addAll(dbServer.genListUniqueVal(tableName, colInfo, "", ""));
+			} else {
+				curValidVal.addAll(genAutoKey("", "", dataType, len));
+			}
+			return;
+		} 
+
+		boolean flgEqual = false;
+		boolean flgGreater = false;
+		boolean flgLess = false;
+		
+		String valLess = "";
+		String valGreater = "";
+		
+		int cnt = 0;
+		
+		// Sort value valid
+		Collections.sort(validVal, new Comparator<Cond>() {
+			@Override
+			public int compare(Cond c1, Cond c2) {
+				// Priority equals!
+				if (c1.operator.equals("=") && c2.operator.equals("=")) {
+					return 0;
+				} else if (c1.operator.equals("=")) {
+					return 1;
+				} else if (c2.operator.equals("=")) {
+					return -1;
+				}
+				// Priority value sorted asc
+				// When value equals => will sort desc of prirityOperator >= <=
+				if (dataType.equals("number")) {
+					Integer i1 = parseStringToInt(c1.value);
+					Integer i2 = parseStringToInt(c2.value);
+					if (Integer.compare(i1, i2) == 0) {
+						Integer inner1 = priorityOfOperator.get(c1.operator);
+						Integer inner2 = priorityOfOperator.get(c2.operator);
+						return validVal.size() % 2 == 0 ? inner2 - inner1 : inner1 - inner2;
+					}
+					return Integer.compare(i1, i2);
+				} else if (dataType.equals("date")) {
+					Date cur1 = parseStringToDate(c1.value);
+					Date cur2 = parseStringToDate(c2.value);
+					if (cur1.compareTo(cur2) < 0) {
+						return -1;
+					} else if (cur1.compareTo(cur2) > 0) {
+						return 1;
+					} else {
+						Integer i1 = priorityOfOperator.get(c1.operator);
+						Integer i2 = priorityOfOperator.get(c2.operator);
+						return validVal.size() % 2 == 0 ? i2 - i1 : i1 - i2;
+					}
+				}
+				return 0;
+			}
+		});
+		
+		for (int i = 0; i < validVal.size(); ++i) {
+			Cond cond = validVal.get(i);
+			
+			String operator = cond.operator;
+			String val = cond.value;
+
+			switch (operator) {
+			case "=":
+				flgEqual = true;
+				curValidVal.add(val);
+				break;
+			case "<=":
+				flgLess = true;
+				valLess = val;
+				break;
+			case ">=":
+				flgGreater = true;
+				valGreater = val;
+				break;
+			}
+			
+			if (!flgEqual && (flgLess || flgGreater) && curValidVal.isEmpty()) {
+				cnt++;
+				// Confirm pair
+				// Gen value for pair
+				if (cnt == 2) {
+					
+					// Execute between
+					if (operator.equals("<=")) {
+						if (isKey) {
+							curValidVal.addAll(dbServer.genListUniqueVal(tableName, colInfo, valGreater, valLess));
+						} else {
+							curValidVal.addAll(genAutoKey(valGreater, valLess, dataType, len));
+						}
+					} else {
+						if (i < validVal.size() - 1) {
+							Cond next = validVal.get(i + 1);
+							if (next.operator.equals("<=")) {
+								if (isKey) {
+									curValidVal.addAll(dbServer.genListUniqueVal(tableName, colInfo, valGreater, ""));
+									curValidVal.addAll(dbServer.genListUniqueVal(tableName, colInfo, "", valLess));
+								} else {
+									curValidVal.addAll(genAutoKey(valGreater, next.value, dataType, len));
+									curValidVal.addAll(genAutoKey("", valLess, dataType, len));
+								}
+							} else {
+								System.out.println("This case can't happen!");
+								assert(false);
+							}
+							i++;
+						}
+					}
+					
+					
+					valGreater = "";
+					valLess = "";
+					flgLess = false;
+					flgGreater = false;
+					cnt = 0;
+				}
+			}
+		}
+		
+		// Gen auto key
+		// May be call method a Trung get primarykey
+		// input(tableName.colName) => List<Primary key>
+		if (!flgEqual && (flgLess || flgGreater) && curValidVal.isEmpty()) {
+			if (isKey) {
+				curValidVal.addAll(dbServer.genListUniqueVal(tableName, colInfo, valGreater, valLess));
+			} else {
+				curValidVal.addAll(genAutoKey(valGreater, valLess, dataType, len));
+			}
+		}
+	}
 	// TODO
 	// Thinking? 
 //	/**
