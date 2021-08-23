@@ -42,12 +42,14 @@ import net.sf.jsqlparser.statement.select.SubSelect;
 import net.sf.jsqlparser.statement.select.WithItem;
 import net.sf.jsqlparser.util.TablesNamesFinder;
 import sql.generator.hackathon.model.Condition;
+import sql.generator.hackathon.model.ParseObject;
 import sql.generator.hackathon.model.TableSQL;
 
 @Service
 public class ServiceParse {
 	private Map<String, TableSQL> tables;
 	private Map<String, List<String>> parentAlias;
+	private Map<String, List<String>> mappingKey;
 	private static Map<String, String> reverseExpression = new HashMap<>();
 	private List<Condition> listCondition;
 	public static final String NOT_IN = "NOT IN";
@@ -68,15 +70,19 @@ public class ServiceParse {
 		reverseExpression.put("<=", ">");
 	}
 
-	public List<TableSQL> parseSelectStatement(String query) throws JSQLParserException {
+	public ParseObject parseSelectStatement(String query) throws JSQLParserException {
 		tables = new HashMap<>();
 		parentAlias = new HashMap<>();
 		listCondition = new ArrayList<>();
+		mappingKey = new HashMap<>();
 		state = 1;
 		Select select = (Select) CCJSqlParserUtil.parse(query);
 		processSelectBody(select.getSelectBody(), false, null);
 		processPushCondition();
-		return tables.entrySet().stream().map(table -> table.getValue()).collect(Collectors.toList());
+		ParseObject parseObject = new ParseObject();
+		parseObject.listTableSQL = tables.entrySet().stream().map(table -> table.getValue()).collect(Collectors.toList());
+		parseObject.mappingKey = mappingKey;
+		return parseObject;
 	}
 	
 	public List<String> getListTableByStatement(String query) throws JSQLParserException {
@@ -233,6 +239,8 @@ public class ServiceParse {
 				listCondition.add(conditionLeft);
 				Condition conditionRight = Condition.builder().left(rightColumn.toString()).expression(expresionRight)
 						.right("KEY" + state).build();
+				
+				mappingKey.put("KEY"+state, new ArrayList<>(Arrays.asList(leftColumn.toString(), rightColumn.toString())));
 				state++;
 				listCondition.add(conditionRight);
 			} else if (binary.getRightExpression() instanceof Column) {
@@ -292,6 +300,8 @@ public class ServiceParse {
 						Condition conditionRight = Condition.builder().left(listItems.get(0)).right("KEY" + state)
 								.expression(inExpression.isNot() ? EQUAL_NOT : EQUAL).build();
 						listCondition.add(conditionRight);
+						
+						mappingKey.put("KEY"+state, new ArrayList<>(Arrays.asList(leftColumn.toString(), listItems.get(0))));
 						state++;
 					} else {
 						// operation subquery ... UNION
@@ -365,10 +375,11 @@ public class ServiceParse {
 				String aliasRight = ((PlainSelect) subSelect.getSelectBody()).getFromItem().getAlias() != null
 						? ((PlainSelect) subSelect.getSelectBody()).getFromItem().getAlias().getName()
 						: ((PlainSelect) subSelect.getSelectBody()).getFromItem().toString();
-
+				
 				Condition conditionRight = Condition.builder().left(aliasRight + DOT + listItems.get(0))
 						.expression(isNot ? reverseExpression.get(LESS_OR_EQUAL) : LESS_OR_EQUAL).right("KEY" + state)
 						.build();
+				mappingKey.put("KEY"+state, new ArrayList<>(Arrays.asList(expressionLeft.toString(), aliasRight + DOT + listItems.get(0))));
 				listCondition.add(conditionRight);
 				listCondition.add(condition);
 				state++;
@@ -406,6 +417,8 @@ public class ServiceParse {
 				Condition conditionRight = Condition.builder().left(aliasRight + DOT + listItems.get(0))
 						.expression(isNot ? reverseExpression.get(GREATHER_OR_EQUAL) : GREATHER_OR_EQUAL)
 						.right("KEY" + state).build();
+				
+				mappingKey.put("KEY"+state, new ArrayList<>(Arrays.asList(expressionLeft.toString(), aliasRight + DOT + listItems.get(0))));
 				listCondition.add(conditionRight);
 				state++;
 			} else {
