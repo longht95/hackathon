@@ -133,7 +133,6 @@ public class ExecuteDBSQLServer {
 			}
 			listData.add(rowData);
 		}
-		stmt.close();
 		resultSet.close();
 		return listData;
 	}
@@ -151,6 +150,7 @@ public class ExecuteDBSQLServer {
 				return true;
 			}
 		}
+		resultSet.close();
 		return false;
 	}
 	
@@ -202,6 +202,9 @@ public class ExecuteDBSQLServer {
 		if (!(start == null || start.isEmpty()) && !(end == null || end.isEmpty())) {
 			indexStart = Integer.parseInt(start);
 			indexEnd = Integer.parseInt(end);
+		} else if ((start == null || start.isEmpty()) && (end == null || end.isEmpty())){
+			indexStart = getNumberMax(tableName, columnInfo);
+			indexEnd = indexStart + 10000;
 		} else if(start == null || start.isEmpty()) {
 			indexStart = Integer.parseInt(end) - 10000;
 			indexEnd = Integer.parseInt(end);
@@ -220,6 +223,22 @@ public class ExecuteDBSQLServer {
 		}
 		resultSet.close();
 		return lstNumberUnique;
+	}
+	
+
+	
+	// get number max in data
+	private int getNumberMax(String tableName, ColumnInfo columnInfo) throws SQLException {
+		int max = 0;
+		Statement stmt = connect.createStatement();
+		StringBuilder SQL = new StringBuilder();
+		SQL.append("SELECT MAX(" + columnInfo.getName() + ") FROM " + tableName);
+		ResultSet resultSet = stmt.executeQuery(SQL.toString());
+		while (resultSet.next()) {
+			max = resultSet.getInt(1);
+		}
+		resultSet.close();
+		return max;
 	}
 	
 	//------------------------------------------------------------------------------
@@ -310,6 +329,7 @@ public class ExecuteDBSQLServer {
 		return String.valueOf(ch);
 	}
 	
+	// get Date random
 	private String randomDate() {
 		Random random = new Random();
 		int minDay = (int) LocalDate.of(1900, 1, 1).toEpochDay();
@@ -321,4 +341,16 @@ public class ExecuteDBSQLServer {
 	}
 	
 	//------------------------------------------------------------------------------
+//	private void getColForeignKey() {
+//		p = connect.prepareStatement("SELECT COLUMN_NAME, COLUMN_KEY, IS_NULLABLE, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH\r\n" + 
+//				"FROM    \r\n" + 
+//				"    information_schema.columns c\r\n" + 
+//				"WHERE\r\n" + 
+//				"	TABLE_NAME = ? AND TABLE_SCHEMA = ?\r\n"
+//				+ "\n" +
+//				"order by ORDINAL_POSITION");
+//		p.setString(1, tableName);
+//		p.setString(2, schemaName);
+//        ResultSet resultSet = p.executeQuery();
+//	}
 }
