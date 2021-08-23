@@ -26,11 +26,14 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
+import net.sf.jsqlparser.JSQLParserException;
 import sql.generator.hackathon.model.TableSQL;
 import sql.generator.hackathon.model.ColumnInfo;
 import sql.generator.hackathon.model.InfoDisplayScreen;
 import sql.generator.hackathon.service.ExecuteDBSQLServer;
 import sql.generator.hackathon.service.ServiceDatabase;
+import sql.generator.hackathon.service.ServiceParse;
+import sun.tools.serialver.resources.serialver;
 
 @Controller
 public class GenController {
@@ -41,6 +44,9 @@ public class GenController {
 	
 	@Autowired
 	ExecuteDBSQLServer executeDBServer;
+	
+	@Autowired
+	ServiceParse serviceParse;
 	
 	@RequestMapping(value = "/")
 	public String index() throws Exception {
@@ -77,58 +83,44 @@ public class GenController {
 		return "input";
 	}
 	
-	@PostMapping("/upload")
-	public ModelAndView singleFileUpload(@RequestParam("file") MultipartFile file, @RequestParam("inputFile") String input) throws IOException {
-		ModelAndView model = new ModelAndView("input");
-		String result = new BufferedReader(new InputStreamReader(file.getInputStream())).lines().collect(Collectors.joining("\n"));
-		System.out.println(result);
-		if (result.isEmpty()) {
-			model.addObject("query", input);
-		} else {
-			model.addObject("query", result);
-		}
-		
-		
-		
-		return model;
+	@PostMapping("/uploadFile")
+	public @ResponseBody String singleFileUpload(@RequestParam("file") MultipartFile file) throws IOException, JSQLParserException {
+		String query = new BufferedReader(new InputStreamReader(file.getInputStream())).lines().collect(Collectors.joining("\n"));
+		List<String> listTable = serviceParse.getListTableByStatement(query);
+		System.out.println(listTable.toString());
+		// ko nghe gi a
+		//k nge, cho nay call tra ve list table ok roi, gio e tao 1 object de dua' 2 thong tin
+		// list table, cau query de view len textarea. hieu ko
+		ObjectMapper mapper = new ObjectMapper();
+		// cho nay e tra ve json
+		String json = mapper.writeValueAsString(listTable);
+		return mapper.writeValueAsString(json);
 	}
 	
-	@GetMapping(value = "/selectTable")
+	@GetMapping(value = "/updateQuery")      
+	public @ResponseBody String updateQuery(@RequestParam String query) throws JSQLParserException, JsonProcessingException {
+		List<String> listTable = serviceParse.getListTableByStatement(query);
+		ObjectMapper mapper = new ObjectMapper();
+		String json = mapper.writeValueAsString(listTable);
+		return mapper.writeValueAsString(json);
+	}
+	
+	@GetMapping(value = "/selectTable")      
 	public @ResponseBody String selectTable(@RequestParam String tableName) throws Exception {
 		System.out.println("Select Table");
 		System.out.println(tableName);
 		ObjectMapper mapper = new ObjectMapper();
 		TableSQL tableSQL = new TableSQL();
-		tableSQL.tableName = "okk";
-		tableSQL.alias = "xzcxz";
-      		ModelAndView model = new ModelAndView("input");
-		List<List<String>> tien = new ArrayList<>();
-		List<String> longa = new ArrayList<String>();
-		longa.add("1234");
-		longa.add("12345");
-		longa.add("123456");
-		longa.add("12341");
-		List<String> longab = new ArrayList<String>();
-		longab.add("a");
-		longab.add("b");
-		longab.add("c");
-		longab.add("d");
-		tien.add(longab);
-		tien.add(longa);
 		
+        
+        InfoDisplayScreen infoDisplayScreen = executeDBServer.getDataDisplay("admindb", tableName);
+       
+        mapper.enable(SerializationFeature.INDENT_OUTPUT);
+        String json = mapper.writeValueAsString(infoDisplayScreen);
+
 		
-//        List<List<String>> listData = executeDBServer.getListData(tableName);
-//        List<String> listColumn = executeDBServer.getListColumn("admindb", tableName);
-//        listData.add(0,listColumn);
-//        
-//        mapper.enable(SerializationFeature.INDENT_OUTPUT);
-//        String json = mapper.writeValueAsString(listData);
-//        String json1 = mapper.writeValueAsString(listColumn);
-//        System.out.println(json);
-//        System.out.println(json1);
+		return mapper.writeValueAsString(json);
 		
-//		return mapper.writeValueAsString(json);
-		return "";
 	}
 	
 	
