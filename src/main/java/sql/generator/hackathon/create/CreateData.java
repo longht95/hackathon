@@ -1868,16 +1868,7 @@ public class CreateData {
 		
 		// TODO
 		// Error
-//		List<String> listVal = dbServer.genListUniqueVal(tableName, colInfo, "", "");
-		List<String> listVal = new ArrayList<>();
-		if (colInfo.getTypeName().equals("char")) {
-			listVal.add("a");
-		} else if (colInfo.getTypeName().equals("int")) {
-			listVal.add("1");
-		} else {
-			listVal.add("2021-01-01");
-		}
-			
+		List<String> listVal = dbServer.genListUniqueVal(tableName, colInfo, "", "");
 		
 		// Gen value for key with no condition
 		if (!createService.isCompositeKey(tableName)) {

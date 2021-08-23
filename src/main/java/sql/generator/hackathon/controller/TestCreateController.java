@@ -49,7 +49,7 @@ public class TestCreateController {
 	
 	@RequestMapping(value = "/testConnectT")
 	public String testConnect() throws Exception {
-		executeDBServer.connectDB("admindb", "root", "");
+		executeDBServer.connectDB("com.mysql.cj.jdbc.Driver", "admindb", "root", "");
 
 		// Test read
 		int n = 1;
@@ -79,7 +79,9 @@ public class TestCreateController {
 		// Map<String, List<String> FROM PARSE
 //		CreateData createData = new CreateData(executeDBServer, createService, TestReadParse.tables, TestReadParse.keys);
 		CreateData createData = new CreateData(executeDBServer, createService, parseObject.getListTableSQL(), parseObject.getMappingKey());
-		createData.create(dataClient);
+		
+		// Response
+		Map<String, List<ColumnInfo>> responseCLient = createData.create(dataClient);
 
 		return "index";
 	}
