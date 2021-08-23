@@ -19,7 +19,6 @@ public class Condition {
 	public String expression;
 	public List<String> listRight;
 	public String function;
-
 	
 	public Condition(String left, String expression, String right) {
 		this.left = left;
