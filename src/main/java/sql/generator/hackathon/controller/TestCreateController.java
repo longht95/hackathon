@@ -1,6 +1,5 @@
 package sql.generator.hackathon.controller;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -14,8 +13,10 @@ import sql.generator.hackathon.create.CreateData;
 import sql.generator.hackathon.create.main.TestInsertDB;
 import sql.generator.hackathon.create.main.TestReadParse;
 import sql.generator.hackathon.model.ColumnInfo;
+import sql.generator.hackathon.model.ParseObject;
 import sql.generator.hackathon.service.CreateService;
 import sql.generator.hackathon.service.ExecuteDBSQLServer;
+import sql.generator.hackathon.service.ServiceParse;
 
 @Controller
 public class TestCreateController {
@@ -25,6 +26,9 @@ public class TestCreateController {
 	
 	@Autowired
 	private CreateService createService;
+	
+	@Autowired
+	private ServiceParse serviceParse;
 	
 	@RequestMapping(value = "/testCreate")
 	public String testCreate() {
@@ -69,9 +73,12 @@ public class TestCreateController {
 //		listCol.add(new ColumnInfo("address", "----"));
 //		dataClient.put("company", listCol);
 		
+		String query = "select * from persons where age >= 10 and age IN (1,13,16)";
+		ParseObject parseObject = serviceParse.parseSelectStatement(query);
 		// Need List<TableSQL> FROM PARSE
 		// Map<String, List<String> FROM PARSE
-		CreateData createData = new CreateData(executeDBServer, createService, TestReadParse.tables, TestReadParse.keys);
+//		CreateData createData = new CreateData(executeDBServer, createService, TestReadParse.tables, TestReadParse.keys);
+		CreateData createData = new CreateData(executeDBServer, createService, parseObject.getListTableSQL(), parseObject.getMappingKey());
 		createData.create(dataClient);
 
 		return "index";

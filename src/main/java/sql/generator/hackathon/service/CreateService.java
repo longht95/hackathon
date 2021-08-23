@@ -282,7 +282,11 @@ public class CreateService {
 		case "number":
 		case "int":
 		case "bigint":
-			res = columnInfo.val;
+			if (columnInfo.val.isEmpty()) {
+				res = "0";
+			} else {
+				res = columnInfo.val;
+			}
 			break;
 		default:
 			System.out.println("Other?");

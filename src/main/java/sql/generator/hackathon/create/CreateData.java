@@ -233,7 +233,7 @@ public class CreateData {
 		// Read all condition.
 		int szCond = conditions.size();
 		for (int i = 0; i < szCond; ++i) {
-			if (!conditions.get(i).right.startsWith("KEY")) {
+			if ((conditions.get(i).right == null && !conditions.get(i).listRight.isEmpty()) || !conditions.get(i).right.startsWith("KEY")) {
 				// Normal case
 				readValueForColumn(tableName, conditions.get(i), mapValOfColumn);
 				continue;
@@ -658,39 +658,43 @@ public class CreateData {
 			
 			
 			// Comment for execute case multiple between
-//			Queue<Cond> toExploder = new LinkedList<>();
-//			
-//			for (int i = 0; i < values.size(); ++i) {
-//				toExploder.add(values.get(i));
-//			}
-//			
-//			while (!toExploder.isEmpty()) {
-//				Cond cond = toExploder.poll();
-//				Date ld = sdf.parse(cond.value);
-//				
-//				// Just remove all element > curD
-//				if (operator.equals("<=")) {
-//					if (ld.compareTo(curD) > 0) {
-//						values.remove(cond);
-//					}
-//					// Just remove all element > curD
-//				} else if (operator.equals(">=")) {
-//					if (ld.compareTo(curD) < 0) {
-//						values.remove(cond);
-//					}
-//					// Just remove all element > curD
-//				} else if (operator.equals("<")) {
-//					if (ld.compareTo(curD) >= 0) {
-//						values.remove(cond);
-//					}
-//				} else if (operator.equals(">")) {
-//					if (ld.compareTo(curD) <= 0) {
-//						values.remove(cond);
-//					}
-//				} else {
-//					// TODO
-//				}
-//			}
+			Queue<Cond> toExploder = new LinkedList<>();
+			
+			for (int i = 0; i < values.size(); ++i) {
+				toExploder.add(values.get(i));
+			}
+			
+			while (!toExploder.isEmpty()) {
+				Cond cond = toExploder.poll();
+				Date ld = sdf.parse(cond.value);
+				
+				if (!cond.operator.equals("=")) {
+					continue;
+				}
+				
+				// Just remove all element > curD
+				if (operator.equals("<=")) {
+					if (ld.compareTo(curD) > 0) {
+						values.remove(cond);
+					}
+					// Just remove all element > curD
+				} else if (operator.equals(">=")) {
+					if (ld.compareTo(curD) < 0) {
+						values.remove(cond);
+					}
+					// Just remove all element > curD
+				} else if (operator.equals("<")) {
+					if (ld.compareTo(curD) >= 0) {
+						values.remove(cond);
+					}
+				} else if (operator.equals(">")) {
+					if (ld.compareTo(curD) <= 0) {
+						values.remove(cond);
+					}
+				} else {
+					// TODO
+				}
+			}
 			
 			// Not operator <= and >=
 			if (!(operator.equals("<=") || operator.equals(">="))) {
@@ -715,39 +719,42 @@ public class CreateData {
 			long curV = Long.parseLong(cur[1]);
 
 			// Comment for execute case multiple between
-//			Queue<Cond> toExploder = new LinkedList<>();
-//			
-//			for (int i = 0; i < values.size(); ++i) {
-//				toExploder.add(values.get(i));
-//			}
-//
-//			while (!toExploder.isEmpty()) {
-//				Cond cond = toExploder.poll();
-//				long innerV = Long.parseLong(cond.value);
-//				
-//				// Search in list to remove add value > this value;
-//				if (operator.equals("<=")) {
-//					if (innerV > curV) {
-//						values.remove(cond);
-//					}
-//					// Search in list to remove add value < this value;
-//				} else if (operator.equals(">=")) {
-//					if (innerV < curV) {
-//						values.remove(cond);
-//					}
-//				} else if (operator.equals("<")) {
-//					if (innerV >= curV) {
-//						values.remove(cond);
-//					}
-//				} else if (operator.equals(">")) {
-//					if (innerV <= curV) {
-//						values.remove(cond);
-//					}
-//				} else {
-//					// TODO
-//					// Other operator
-//				}
-//			}
+			Queue<Cond> toExploder = new LinkedList<>();
+			
+			for (int i = 0; i < values.size(); ++i) {
+				toExploder.add(values.get(i));
+			}
+
+			while (!toExploder.isEmpty()) {
+				Cond cond = toExploder.poll();
+				long innerV = Long.parseLong(cond.value);
+				if (!cond.operator.equals("=")) {
+					continue;
+				}
+				
+				// Search in list to remove add value > this value;
+				if (operator.equals("<=")) {
+					if (innerV > curV) {
+						values.remove(cond);
+					}
+					// Search in list to remove add value < this value;
+				} else if (operator.equals(">=")) {
+					if (innerV < curV) {
+						values.remove(cond);
+					}
+				} else if (operator.equals("<")) {
+					if (innerV >= curV) {
+						values.remove(cond);
+					}
+				} else if (operator.equals(">")) {
+					if (innerV <= curV) {
+						values.remove(cond);
+					}
+				} else {
+					// TODO
+					// Other operator
+				}
+			}
 			
 			// Not operator <= and >=
 			if (!(operator.equals("<=") || operator.equals(">="))) {
