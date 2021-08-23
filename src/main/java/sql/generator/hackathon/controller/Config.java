@@ -18,8 +18,9 @@ import org.springframework.context.annotation.Scope;
 public class Config {
 	@Bean
 	@Scope("prototype")
-	public DataSource dataSource(String url, String name, String pass) {
+	public DataSource dataSource(String driver, String url, String name, String pass) {
 		DataSourceBuilder dataSourceBuilder = DataSourceBuilder.create();
+		dataSourceBuilder.driverClassName(driver);
 		dataSourceBuilder.url(url);
 		dataSourceBuilder.username(name);
 		dataSourceBuilder.password(pass);
