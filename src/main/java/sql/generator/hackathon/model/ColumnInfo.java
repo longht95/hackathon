@@ -19,6 +19,31 @@ public class ColumnInfo {
 		this.val = val;
 	}
 	
+	public ColumnInfo(String name, String val, String typeName) {
+		this.name = name;
+		this.val = val;
+		this.typeName = typeName;
+	}
+
+	public ColumnInfo(String name, String val, String typeName, String typeValue) {
+		this.name = name;
+		this.val = val;
+		this.typeName = typeName;
+		this.typeValue = typeValue;
+	}
+	
+	public ColumnInfo(String name, String val, String typeName, String typeValue, boolean isNull, boolean isPrimarykey,
+			boolean isForeignKey, boolean unique) {
+		this.name = name;
+		this.val = val;
+		this.typeName = typeName;
+		this.typeValue = typeValue;
+		this.isNull = isNull;
+		this.isPrimarykey = isPrimarykey;
+		this.isForeignKey = isForeignKey;
+		this.unique = unique;
+	}
+	
 	public String getName() {
 		return name;
 	}
@@ -64,5 +89,13 @@ public class ColumnInfo {
 	
 	public Boolean isKey() {
 		return isPrimarykey || isForeignKey;
+	}
+
+	public String getVal() {
+		return val;
+	}
+
+	public void setVal(String val) {
+		this.val = val;
 	}
 }
