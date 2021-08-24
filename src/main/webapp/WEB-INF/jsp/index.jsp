@@ -178,7 +178,7 @@ table td.appDetails:nth-last-child(2) {
 					<option value="Excel">Excel</option>
 					<option value="SQL">SQL</option>
 				</select>
-				<input type="submit" value="Generate" id="Generate">
+				<input type="submit" value="Generate" id="Generate" onclick="genate()">
 			</div>
 		</div>
 	</main>
@@ -423,6 +423,40 @@ table td.appDetails:nth-last-child(2) {
 			});
 		}
 		
+		function genate() {
+			let typeGen = $('#selectType :selected').text();
+			let queryInput = $('#inputQuerySQL').val();
+			let url = $('#url').val();
+			let schema = $('#schema').val();
+			let user = $('#user').val();
+			let pass = $('#pass').val();
+			const infoDatabase = {
+					url : url,
+					schema : schema,
+					user : user,
+					pass :pass, 
+			}
+			const inputGenerate = {
+					dataPicker : dataPicker,
+					queryInput : queryInput,
+					typeGen : typeGen,
+			}
+			$.ajax({
+			       url : '/generate',
+			       type : 'POST',
+			       data :  JSON.stringify({
+						"queryInput" : queryInput,
+						"typeGen" : typeGen,
+						"dataPicker" : dataPicker,
+						"infoDatabase" : infoDatabase,
+			       }),
+					contentType : "application/json",
+					dataType : 'json',
+			       success : function(data) {
+			           
+			       }
+			});
+		}
 		
 	</script>
 </body>
