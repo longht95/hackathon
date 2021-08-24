@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.ModelAndView;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -92,17 +93,29 @@ public class GenController {
 	}
 	
 	@GetMapping(value = "/updateQuery")      
-	public @ResponseBody String updateQuery(@RequestParam String query) throws JSQLParserException, JsonProcessingException {
-		ViewQuery viewQuery = ViewQuery.builder().listTable(serviceParse.getListTableByStatement(query)).query(query).build();
+	public @ResponseBody String updateQuery(@RequestParam String query) throws JsonProcessingException {
+		ViewQuery viewQuery = new ViewQuery();
+		ModelAndView model = new ModelAndView();
+		try {
+			viewQuery = ViewQuery.builder().listTable(serviceParse.getListTableByStatement(query)).query(query).build();
+			
+		} catch (JSQLParserException e) {
+			
+			viewQuery.setMess("Statement is not valid");
+		}
 		ObjectMapper mapper = new ObjectMapper();
 		return mapper.writeValueAsString(viewQuery);
 	}
 	
 	@GetMapping(value = "/selectTable")      
 	public @ResponseBody String selectTable(@RequestParam String tableName) throws Exception {
+		executeDBServer.connectDB("admindb", "root", "");
 		ObjectMapper mapper = new ObjectMapper();
         InfoDisplayScreen infoDisplayScreen = executeDBServer.getDataDisplay("admindb", tableName);
+        
         mapper.enable(SerializationFeature.INDENT_OUTPUT);
+        String json = mapper.writeValueAsString(infoDisplayScreen);
+        System.out.println(json);
 		return mapper.writeValueAsString(infoDisplayScreen);
 		
 	}
