@@ -61,7 +61,18 @@ public class TestCreateController {
 		// BEGIN: CALL AFTER PARSE
 		
 		// Need list table from parse 
-		List<String> lstTableName = Arrays.asList("persons");
+//		String query = "select * from company";
+//		String query = "select * from persons where age >= 10 and age IN (1,13,16)";
+//		String query = "select * from persons";
+//		String query = "select * from persons p inner join person_company pc on p.id = pc.id";
+//		String query = "select * from persons p inner join person_company pc on p.id = pc.id "
+//				+ "inner join company c on c.id = pc.id";
+		String query = "select * from persons p inner join person_company pc on p.id != pc.id "
+				+ "inner join company c on c.id = pc.id";
+//		String query = "select * from persons p inner join person_company pc on p.id != pc.id "
+//				+ "inner join company c on c.id > pc.id"; // loi parse
+		
+		List<String> lstTableName = serviceParse.getListTableByStatement(query);
 		
 		// Connect dB
 		createService.connect(executeDBServer.connect);
@@ -74,34 +85,17 @@ public class TestCreateController {
 //		listCol.add(new ColumnInfo("address", "----"));
 //		dataClient.put("company", listCol);
 		
-//		String query = "select * from persons where age >= 10 and age IN (1,13,16)";
-		String query = "select * from persons";
+
+		
 		ParseObject parseObject = serviceParse.parseSelectStatement(query);
 		// Need List<TableSQL> FROM PARSE
 		// Map<String, List<String> FROM PARSE
 //		CreateData createData = new CreateData(executeDBServer, createService, TestReadParse.tables, TestReadParse.keys);
 		CreateData createData = new CreateData(executeDBServer, createService, parseObject.getListTableSQL(), parseObject.getMappingKey());
-		int row = 3;
+		int row = 1;
 		
-		Map<String, List<List<ColumnInfo>>> response = new HashMap<>();
-
-		// Insert multiple row
-		for (int i = 0; i < row; ++i) {
-			Map<String, List<ColumnInfo>> dataOneRow = createData.create(dataClient);
-			for (Map.Entry<String, List<ColumnInfo>> m : dataOneRow.entrySet()) {
-				String tableName = m.getKey();
-				List<List<ColumnInfo>> t;
-				if (response.containsKey(tableName)) {
-					t = response.get(tableName);
-				} else {
-					t = new ArrayList<>();
-					response.put(tableName, t);
-				}
-				t.add(m.getValue());
-			}
-		}
-		
-
+		Map<String, List<List<ColumnInfo>>> response = createData.multipleCreate(dataClient, row);
+		System.out.println(response);
 		return "index";
 	}
 }
