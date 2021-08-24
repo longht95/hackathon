@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -44,10 +45,16 @@ public class GenController {
 	@Autowired
 	private ServiceParse serviceParse;
 	
+	public String url;
+	public String schema;
+	public String user;
+	public String pass;
+	public String tableSelected;
+	
 	@RequestMapping(value = "/zxczxc")
 	public String index123() throws Exception {
 //		serviceDatabase.showTables();
-		executeDBServer.connectDB("com.mysql.cj.jdbc.Driver", "admindb", "root", "Root123!");
+//		executeDBServer.connectDB(null, "test", "root", "");
 		
 		List<String> lstTableName = Arrays.asList("users", "class");
 		Map<String, List<ColumnInfo>> inforTable = executeDBServer.getInforTable("admindb", lstTableName);
@@ -89,6 +96,8 @@ public class GenController {
 		columnInfo3.setTypeName("int");
 		List<String> aaa = executeDBServer.genListUniqueVal("users", columnInfo3, null, "30");
 		
+		executeDBServer.disconnectDB();
+		
 		return "index";
 		
 	}
@@ -127,18 +136,30 @@ public class GenController {
 	}
 	
 	@GetMapping(value = "/selectTable")      
-	public @ResponseBody String selectTable(@RequestParam String tableName) throws Exception {
-		executeDBServer.connectDB(null, "test", "root", "");
+	public @ResponseBody String selectTable(@RequestParam String tableName,@RequestParam String url, @RequestParam String schema, @RequestParam String user, @RequestParam String pass, @RequestParam String tableSelected) throws Exception {
+		boolean isConnect = executeDBServer.connectDB(tableSelected, url ,schema, user, pass);
 		ObjectMapper mapper = new ObjectMapper();
-        InfoDisplayScreen infoDisplayScreen = executeDBServer.getDataDisplay("test", tableName);
-        
-        mapper.enable(SerializationFeature.INDENT_OUTPUT);
-        String json = mapper.writeValueAsString(infoDisplayScreen);
-        System.out.println(json);
-		return mapper.writeValueAsString(infoDisplayScreen);
+		if (isConnect) {
+			
+	        InfoDisplayScreen infoDisplayScreen = executeDBServer.getDataDisplay("admindb", tableName);
+	        mapper.enable(SerializationFeature.INDENT_OUTPUT);
+	        executeDBServer.disconnectDB();
+			return mapper.writeValueAsString(infoDisplayScreen);
+		}
+		return mapper.writeValueAsString("Connect error");
 		
 	}
 	
-	
+	@GetMapping(value = "/testConnection")
+	public @ResponseBody String testConnection(@RequestParam String url, @RequestParam String schema, @RequestParam String user, @RequestParam String pass, @RequestParam String tableSelected) throws Exception {
+		boolean isConnect = executeDBServer.connectDB(tableSelected, url ,schema, user, pass);
+		ObjectMapper mapper = new ObjectMapper();
+		if (isConnect) {
+			System.out.println(isConnect);
+			executeDBServer.disconnectDB();
+			return mapper.writeValueAsString("Connect success");
+		}
+		return mapper.writeValueAsString("Connect error");
+	}
 
 }
