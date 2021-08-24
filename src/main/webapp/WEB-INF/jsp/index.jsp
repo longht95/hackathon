@@ -141,54 +141,37 @@ table td {
 				</div>
 			</div>
 			<div class="text-statement">
-				<textarea id="inputQuerySQL" rows="10" cols="40"></textarea>
+				<textarea id="inputQuerySQL" rows="10" cols="40">${errMess}</textarea>
 			</div>
 		</div>
 		<div class="right-layout">
 			<h4 style="margin-top:0px;">DATA SET</h4>
-			<select id="selectBox"
+			<!-- <select id="selectBox"
 				class="select-database" onchange="selectTable(this)">
+			</select> -->
+			<select class="select-database"
+				onchange="selectTable(this)">
+				<option value=""></option>
+				<option value="users">User</option>
+				<option value="TABLE2">User1</option>
+				<option value="TABLE3">TABLE3</option>
+				<option value="TABLE4">TABLE4</option>
 			</select>
-			<table>
+			<table class="table">
 				<thead>
-					<tr>
-						<th>Column1</th>
-						<th>Column2</th>
-						<th>Column3</th>
-						<th>Column4</th>
-						<th>Column5</th>
-					</tr>
+					
 				</thead>
 				<tbody>
-					<tr>
-						<td>Data1</td>
-						<td>Data2</td>
-						<td>Data3</td>
-						<td>Data4</td>
-						<td>Data5</td>
-					</tr>
+					
 				</tbody>
-
 			</table>
 			<h4>DATA PICK</h4>
-			<table>
+			<table class="table">
 				<thead>
-					<tr>
-						<th>Column1</th>
-						<th>Column2</th>
-						<th>Column3</th>
-						<th>Column4</th>
-						<th>Column5</th>
-					</tr>
+					
 				</thead>
 				<tbody>
-					<tr>
-						<td>Data1</td>
-						<td>Data2</td>
-						<td>Data3</td>
-						<td>Data4</td>
-						<td>Data5</td>
-					</tr>
+					
 				</tbody>
 
 			</table>
@@ -218,10 +201,9 @@ table td {
 						success : function(data) {
 							console.log("SUCCESS: ", data);
 							let tbl = $(".table > tbody");
-							let ob = JSON.parse(data);
-							let arrData = ob.listData;
-							let arrColumn = ob.listColumnName;
-							console.log(ob);
+							let arrData = data.listData;
+							let arrColumn = data.listColumnName;
+							console.log(data);
 							let tien = "";
 							tien += "<th>Chọn</th>";
 							let tbl1 = $(".table > thead");
@@ -234,30 +216,42 @@ table td {
 							for (let i = 1; i < arrData.length; i++) {
 								let abc = "<tr>";
 								let tmp = 1;
-								abc += '<td><input type="checkbox" id="vehicle1" name="vehicle1" value="Bike"></td>';
+								abc += '<td><input type="checkbox" class="checkbox" id="vehicle1" name="vehicle1" ></td>';
 								for (let k = 0; k < arrData[i].length; k++) {
 									abc += "<td id ='row"+ tmp +"-col"+ tmp +"-p' class='appDetails'>";
 									abc += arrData[i][k];
 									abc += "</td>";
-									abc += '<td id="row1-col1-input" class="appDetails" style="display: none;"><input  type="text" placeholder="Nhập..."></td>'
+									abc += '<td id="row'+ tmp +'-col'+ tmp +'-p-input" class="appDetails" style="display: none;"><input  type="text" placeholder="Nhập..."></td>'
 									tmp++;
 								}
 								abc += "</tr>";
 								tbl.append(abc);
 							}
-							console.log(ob);
+							console.log(data);
 						},
 						error : function(e) {
 							console.log("ERROR: ", e);
 						}
 					});
 		}
+		
+		
+		
+		$(document).on("click", ".checkbox", function() {
+			if($(this).prop("checked") == true){
+            	console.log($(this).parent());
+            }
+            else if($(this).prop("checked") == false){
+                console.log("Checkbox is unchecked.");
+            }
+		});
 
 		$(document).on("click", ".appDetails", function() {
 			var clickedBtnID = $(this).attr('id'); // or var clickedBtnID = this.id
+			var inputT = $(this).attr('id')+'-input';
 			alert('you clicked on button #' + clickedBtnID);
 			$("#" + clickedBtnID).hide();
-			$("#row1-col1-input").show();
+			$("#" + inputT).show();
 		});
 		
 		//import file
@@ -277,11 +271,19 @@ table td {
 					contentType : "application/json",
 					dataType : 'json',
 			       success : function(data) {
-			           $('textarea#inputQuerySQL').val(data.query);
-			           $("#selectBox").empty();
-			           for (const tbl in data.listTable) {
-			        	   $("#selectBox").append(new Option(data.listTable[tbl], data.listTable[tbl]));
-			           }
+			    	   if (data.mess == null) {
+			    		   $('textarea#inputQuerySQL').val(data.query);
+				           $("#selectBox").empty();
+				           for (const tbl in data.listTable) {
+				        	   $("#selectBox").append(new Option(data.listTable[tbl], data.listTable[tbl]));
+				           }
+				           console.log(data.mess);
+			    	   } else {
+			    		   console.log(data.mess);
+			    		   $("#selectBox").append(data.mess);
+			    		   alert(data.mess);
+			    	   }
+			           
 			       }
 			});
 		});
@@ -311,6 +313,8 @@ table td {
 			       }
 			});
 		});
+		
+		
 	</script>
 </body>
 </html>
