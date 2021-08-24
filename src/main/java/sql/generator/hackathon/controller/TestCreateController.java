@@ -50,7 +50,7 @@ public class TestCreateController {
 	
 	@RequestMapping(value = "/testConnectT")
 	public String testConnect() throws Exception {
-		executeDBServer.connectDB("com.mysql.cj.jdbc.Driver", "admindb", "root", "");
+//		executeDBServer.connectDB("com.mysql.cj.jdbc.Driver", "admindb", "root", "");
 
 		// Test read
 		int n = 1;
