@@ -1,5 +1,6 @@
 package sql.generator.hackathon.controller;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -73,15 +74,33 @@ public class TestCreateController {
 //		listCol.add(new ColumnInfo("address", "----"));
 //		dataClient.put("company", listCol);
 		
-		String query = "select * from persons where age >= 10 and age IN (1,13,16)";
+//		String query = "select * from persons where age >= 10 and age IN (1,13,16)";
+		String query = "select * from persons";
 		ParseObject parseObject = serviceParse.parseSelectStatement(query);
 		// Need List<TableSQL> FROM PARSE
 		// Map<String, List<String> FROM PARSE
 //		CreateData createData = new CreateData(executeDBServer, createService, TestReadParse.tables, TestReadParse.keys);
 		CreateData createData = new CreateData(executeDBServer, createService, parseObject.getListTableSQL(), parseObject.getMappingKey());
+		int row = 3;
 		
-		// Response
-		Map<String, List<ColumnInfo>> responseCLient = createData.create(dataClient);
+		Map<String, List<List<ColumnInfo>>> response = new HashMap<>();
+
+		// Insert multiple row
+		for (int i = 0; i < row; ++i) {
+			Map<String, List<ColumnInfo>> dataOneRow = createData.create(dataClient);
+			for (Map.Entry<String, List<ColumnInfo>> m : dataOneRow.entrySet()) {
+				String tableName = m.getKey();
+				List<List<ColumnInfo>> t;
+				if (response.containsKey(tableName)) {
+					t = response.get(tableName);
+				} else {
+					t = new ArrayList<>();
+					response.put(tableName, t);
+				}
+				t.add(m.getValue());
+			}
+		}
+		
 
 		return "index";
 	}
