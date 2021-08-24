@@ -17,7 +17,9 @@ import net.sf.jsqlparser.expression.Function;
 import net.sf.jsqlparser.expression.NotExpression;
 import net.sf.jsqlparser.expression.Parenthesis;
 import net.sf.jsqlparser.expression.RowConstructor;
+import net.sf.jsqlparser.expression.StringValue;
 import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
+import net.sf.jsqlparser.expression.operators.conditional.OrExpression;
 import net.sf.jsqlparser.expression.operators.relational.Between;
 import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
 import net.sf.jsqlparser.expression.operators.relational.ExistsExpression;
@@ -31,6 +33,7 @@ import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.Statement;
+import net.sf.jsqlparser.statement.insert.Insert;
 import net.sf.jsqlparser.statement.select.FromItem;
 import net.sf.jsqlparser.statement.select.Join;
 import net.sf.jsqlparser.statement.select.PlainSelect;
@@ -41,6 +44,7 @@ import net.sf.jsqlparser.statement.select.SetOperationList;
 import net.sf.jsqlparser.statement.select.SubSelect;
 import net.sf.jsqlparser.statement.select.WithItem;
 import net.sf.jsqlparser.util.TablesNamesFinder;
+import sql.generator.hackathon.model.ColumnInfo;
 import sql.generator.hackathon.model.Condition;
 import sql.generator.hackathon.model.ParseObject;
 import sql.generator.hackathon.model.TableSQL;
@@ -70,6 +74,25 @@ public class ServiceParse {
 		reverseExpression.put("<=", ">");
 	}
 
+	public List<String> dataToSqlInsert(Map<String, List<ColumnInfo>> listData) {
+		List<String> listSQL = new ArrayList<>();
+		for (java.util.Map.Entry<String, List<ColumnInfo>> s : listData.entrySet()) {
+			Insert insert = new Insert();
+			Table table = new Table(s.getKey().toString());
+			List<Column> columnList = new ArrayList<>();
+			ExpressionList values = new ExpressionList();
+			for (ColumnInfo columnInfo : s.getValue()) {
+				columnList.add(new Column(columnInfo.name));
+				values.addExpressions(new StringValue(columnInfo.val));
+			}
+			insert.setTable(table);
+			insert.setItemsList(values);
+			insert.setColumns(columnList);
+			listSQL.add(insert.toString());
+		}
+		return listSQL;
+	}
+
 	public ParseObject parseSelectStatement(String query) throws JSQLParserException {
 		tables = new HashMap<>();
 		parentAlias = new HashMap<>();
@@ -80,11 +103,12 @@ public class ServiceParse {
 		processSelectBody(select.getSelectBody(), false, null);
 		processPushCondition();
 		ParseObject parseObject = new ParseObject();
-		parseObject.listTableSQL = tables.entrySet().stream().map(table -> table.getValue()).collect(Collectors.toList());
+		parseObject.listTableSQL = tables.entrySet().stream().map(table -> table.getValue())
+				.collect(Collectors.toList());
 		parseObject.mappingKey = mappingKey;
 		return parseObject;
 	}
-	
+
 	public List<String> getListTableByStatement(String query) throws JSQLParserException {
 		Statement statement = CCJSqlParserUtil.parse(query);
 		Select selectStatement = (Select) statement;
@@ -239,8 +263,9 @@ public class ServiceParse {
 				listCondition.add(conditionLeft);
 				Condition conditionRight = Condition.builder().left(rightColumn.toString()).expression(expresionRight)
 						.right("KEY" + state).build();
-				
-				mappingKey.put("KEY"+state, new ArrayList<>(Arrays.asList(leftColumn.toString(), rightColumn.toString())));
+
+				mappingKey.put("KEY" + state,
+						new ArrayList<>(Arrays.asList(leftColumn.toString(), rightColumn.toString())));
 				state++;
 				listCondition.add(conditionRight);
 			} else if (binary.getRightExpression() instanceof Column) {
@@ -260,6 +285,9 @@ public class ServiceParse {
 			AndExpression andExpression = (AndExpression) expression;
 			processExpression(andExpression.getLeftExpression(), isNot, alias);
 			processExpression(andExpression.getRightExpression(), isNot, alias);
+		} else if (expression instanceof OrExpression) {
+			OrExpression orExpression = (OrExpression) expression;
+			processExpression(orExpression.getLeftExpression(), isNot, alias);
 		} else if (expression instanceof NotExpression) {
 			NotExpression notExpression = (NotExpression) expression;
 			processExpression(notExpression.getExpression(), true, alias);
@@ -300,8 +328,9 @@ public class ServiceParse {
 						Condition conditionRight = Condition.builder().left(listItems.get(0)).right("KEY" + state)
 								.expression(inExpression.isNot() ? EQUAL_NOT : EQUAL).build();
 						listCondition.add(conditionRight);
-						
-						mappingKey.put("KEY"+state, new ArrayList<>(Arrays.asList(leftColumn.toString(), listItems.get(0))));
+
+						mappingKey.put("KEY" + state,
+								new ArrayList<>(Arrays.asList(leftColumn.toString(), listItems.get(0))));
 						state++;
 					} else {
 						// operation subquery ... UNION
@@ -375,11 +404,12 @@ public class ServiceParse {
 				String aliasRight = ((PlainSelect) subSelect.getSelectBody()).getFromItem().getAlias() != null
 						? ((PlainSelect) subSelect.getSelectBody()).getFromItem().getAlias().getName()
 						: ((PlainSelect) subSelect.getSelectBody()).getFromItem().toString();
-				
+
 				Condition conditionRight = Condition.builder().left(aliasRight + DOT + listItems.get(0))
 						.expression(isNot ? reverseExpression.get(LESS_OR_EQUAL) : LESS_OR_EQUAL).right("KEY" + state)
 						.build();
-				mappingKey.put("KEY"+state, new ArrayList<>(Arrays.asList(expressionLeft.toString(), aliasRight + DOT + listItems.get(0))));
+				mappingKey.put("KEY" + state,
+						new ArrayList<>(Arrays.asList(expressionLeft.toString(), aliasRight + DOT + listItems.get(0))));
 				listCondition.add(conditionRight);
 				listCondition.add(condition);
 				state++;
@@ -417,8 +447,9 @@ public class ServiceParse {
 				Condition conditionRight = Condition.builder().left(aliasRight + DOT + listItems.get(0))
 						.expression(isNot ? reverseExpression.get(GREATHER_OR_EQUAL) : GREATHER_OR_EQUAL)
 						.right("KEY" + state).build();
-				
-				mappingKey.put("KEY"+state, new ArrayList<>(Arrays.asList(expressionLeft.toString(), aliasRight + DOT + listItems.get(0))));
+
+				mappingKey.put("KEY" + state,
+						new ArrayList<>(Arrays.asList(expressionLeft.toString(), aliasRight + DOT + listItems.get(0))));
 				listCondition.add(conditionRight);
 				state++;
 			} else {

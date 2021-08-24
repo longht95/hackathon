@@ -21,13 +21,26 @@ import org.springframework.stereotype.Service;
 import sql.generator.hackathon.create.CreateData;
 import sql.generator.hackathon.model.ColumnInfo;
 import sql.generator.hackathon.model.InfoDisplayScreen;
+import sql.generator.hackathon.model.ObjForeignKeyInfo;
 
 @Service
 public class ExecuteDBSQLServer {
+
+	Map<Integer, String> driverDB;
+	
 	public Connection connect;
 	
 	@Autowired
 	BeanFactory beanFactory;
+	
+	public ExecuteDBSQLServer() {
+		super();
+		driverDB = new HashMap<Integer, String>();
+		driverDB.put(1, "com.mysql.cj.jdbc.Driver");
+		driverDB.put(2, "org.h2.Driver");
+		driverDB.put(3, "oracle.jdbc.OracleDriver");
+		// url h2 jdbc:h2:~/test
+	}
 	
 	//connect database
 	public boolean connectDB(String driver, String schemaName, String user, String pass) throws Exception {
@@ -80,13 +93,37 @@ public class ExecuteDBSQLServer {
 				} else if (resultSet.getString("COLUMN_KEY").equals("UNI")) {
 					columnInfo.setUnique(true);
 				}
-				columnInfo.setName(resultSet.getString("COLUMN_NAME"));
+				if(isColForeignKey(schemaName, tableName, resultSet.getString("COLUMN_NAME"))) {
+					columnInfo.setIsForeignKey(true);
+				}
 				list_col.add(columnInfo);
 			}
 	        inforTable.put(tableName, list_col);
 	        resultSet.close();
 		}
         return inforTable;
+	}
+	
+	private boolean isColForeignKey(String schemaName, String tableName, String colName) throws SQLException {
+		PreparedStatement ps = connect.prepareStatement("SELECT\r\n" + 
+				"    COUNT(*)\r\n" +
+				"FROM\r\n" + 
+				"    INFORMATION_SCHEMA.KEY_COLUMN_USAGE\r\n" + 
+				"WHERE\r\n" + 
+				"	REFERENCED_TABLE_SCHEMA = ?\r\n" + 
+				"    AND TABLE_NAME = ?\r\n" + 
+				"    AND COLUMN_NAME = ?");
+		ps.setString(1, schemaName);
+		ps.setString(2, tableName);
+		ps.setString(3, colName);
+		ResultSet rs = ps.executeQuery();
+		while (rs.next()) {
+			if(rs.getInt(1) > 0) {
+				return true;
+			}
+		}
+		rs.close();
+		return false;
 	}
 	
 	//------------------------------------------------------------------------------
@@ -212,7 +249,7 @@ public class ExecuteDBSQLServer {
 			indexStart = Integer.parseInt(start);
 			indexEnd = Integer.parseInt(start)  + 10000;
 		}
-		SQL.append(columnInfo.getName() + " BETWEEN " + indexStart + " AND " + end);
+		SQL.append(columnInfo.getName() + " BETWEEN " + indexStart + " AND " + indexEnd);
 		ResultSet resultSet = stmt.executeQuery(SQL.toString());
 		
 		for (int i = indexStart; i <= indexEnd; i++) {
@@ -246,9 +283,12 @@ public class ExecuteDBSQLServer {
 	public Map<String, String> genUniqueCol(String schema, String tableName, ColumnInfo columnInfo, String value) throws SQLException {
 		Map<String, String> mapUnique = new HashMap<String, String>();
 		List<ColumnInfo> listColPri = getColPrimaryKey(schema, tableName, columnInfo);
+		// no PRI or UNI
 		if(listColPri.size() == 0) {
 			return mapUnique;
 		}
+		
+		// Exist PRI or UNI
 		Map<String, ColumnInfo> mapValueKey = getValuePrimaryKey(tableName, listColPri, columnInfo);
 		String randomValue = "";
 		for (Map.Entry<String, ColumnInfo> entry : mapValueKey.entrySet()) {
@@ -257,6 +297,17 @@ public class ExecuteDBSQLServer {
 			} while (!isUniqueValue(tableName, entry.getValue(), randomValue));
 			mapUnique.put(entry.getKey(), randomValue);
 		}
+		
+		// get FOREIGN KEY
+		List<ObjForeignKeyInfo> lstObjForeignKeyInfo = getColForeignKey(schema, tableName);
+		
+		String valForeignKey;
+		// get value FOREIGN KEY
+		for (ObjForeignKeyInfo objForeignKeyInfo : lstObjForeignKeyInfo) {
+			valForeignKey = getValueForeignKey(tableName, objForeignKeyInfo);
+			mapUnique.put(objForeignKeyInfo.getColumnName(), valForeignKey);
+		}
+		
 		return mapUnique;
 	}
 	
@@ -289,7 +340,7 @@ public class ExecuteDBSQLServer {
 			if(i > 0) {
 				SQL.append(", ");
 			}
-			SQL.append(listColKey.get(i).getName());
+			SQL.append("MAX(" + listColKey.get(i).getName() + ")");
 		}
 		SQL.append(" FROM " + tableName + " LIMIT 1");
 		ResultSet resultSet = stmt.executeQuery(SQL.toString());
@@ -303,30 +354,81 @@ public class ExecuteDBSQLServer {
 		return mapValuePrimaryKey;
 	}
 	
+	// get column foreign key
+	private List<ObjForeignKeyInfo> getColForeignKey(String schema, String tableName) throws SQLException {
+		List<ObjForeignKeyInfo> lstObjForeignKeyInfo = new ArrayList<ObjForeignKeyInfo>();
+		ObjForeignKeyInfo objForeignKeyInfo;
+		PreparedStatement p = connect.prepareStatement("SELECT\r\n" + 
+				"   TABLE_NAME,\r\n" + 
+				"	COLUMN_NAME,\r\n" + 
+				"	REFERENCED_TABLE_NAME,\r\n" + 
+				"	REFERENCED_COLUMN_NAME\r\n" + 
+				"FROM\r\n" + 
+				"    INFORMATION_SCHEMA.KEY_COLUMN_USAGE\r\n" + 
+				"WHERE\r\n" + 
+				"	 REFERENCED_TABLE_SCHEMA = ?\r\n" + 
+				"    AND TABLE_NAME = ?");
+		p.setString(1, schema);
+		p.setString(2, tableName);
+		ResultSet resultSet = p.executeQuery();
+		while (resultSet.next()) {
+			objForeignKeyInfo = new ObjForeignKeyInfo();
+			objForeignKeyInfo.setTableName(resultSet.getString(1));
+			objForeignKeyInfo.setColumnName(resultSet.getString(2));
+			objForeignKeyInfo.setReferencedTableName(resultSet.getString(3));
+			objForeignKeyInfo.setReferencedColumnName(resultSet.getString(4));
+			lstObjForeignKeyInfo.add(objForeignKeyInfo);
+		}
+		resultSet.close();
+		return lstObjForeignKeyInfo;
+	}
+	
+	// get value foreign key
+	private String getValueForeignKey(String tableName, ObjForeignKeyInfo lstObjForeignKeyInfo) throws SQLException {
+		String valForeignKey = "";
+		Statement stmt = connect.createStatement();
+		StringBuilder SQL = new StringBuilder();
+		SQL.append("SELECT " + lstObjForeignKeyInfo.getReferencedColumnName());
+		SQL.append(" FROM " + lstObjForeignKeyInfo.getReferencedTableName() + " LIMIT 1");
+		ResultSet resultSet = stmt.executeQuery(SQL.toString());
+		while (resultSet.next()) {
+			valForeignKey = resultSet.getString(1);
+		}
+		resultSet.close();
+		return valForeignKey;
+	}
+	
 	//create random String
 	private String createValueRandom(ColumnInfo columnInfo) throws SQLException {
 		int length = 0;
 		int random = 0;
-		if(!columnInfo.getVal().isEmpty()) {
+		String result = "";
+		if(!(columnInfo.getVal() == null || columnInfo.getVal().isEmpty())) {
 			length = columnInfo.getVal().length();
 		}else {
 			length = Integer.parseInt(columnInfo.getTypeValue());
 		}
-		if(columnInfo.getTypeName().equals("date")) {
-			return randomDate();
+		switch (columnInfo.getTypeName()) {
+			case "varchar":
+				char[] ch = new char[length];
+				// random char from 65 -> 122
+				for (int i = 0; i < length; i++) {
+					random = new Random().nextInt(57) + 65;
+				// random = new Random().nextInt(9) + 48;
+					ch[i] = (char) (random);
+				}
+				result = String.valueOf(ch);
+				break;
+			case "date":
+				result = String.valueOf(randomDate());
+				break;
+			case "int":
+			case "bigint":
+				result = String.valueOf(Integer.parseInt(columnInfo.getVal()) + 1);
+				break;
+			default:
 		}
-		char[] ch = new char[length];
-		// random char from 65 -> 122
-		for (int i = 0; i < length; i++) {
-			if(columnInfo.getTypeName().contentEquals("varchar")) {
-				random = new Random().nextInt(57) + 65;
-			} else {
-				random = new Random().nextInt(9) + 48;
-			}
-			ch[i] = (char) (random);
-			System.out.println(random);
-		}
-		return String.valueOf(ch);
+		return result;
 	}
 	
 	// get Date random
@@ -341,16 +443,4 @@ public class ExecuteDBSQLServer {
 	}
 	
 	//------------------------------------------------------------------------------
-//	private void getColForeignKey() {
-//		p = connect.prepareStatement("SELECT COLUMN_NAME, COLUMN_KEY, IS_NULLABLE, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH\r\n" + 
-//				"FROM    \r\n" + 
-//				"    information_schema.columns c\r\n" + 
-//				"WHERE\r\n" + 
-//				"	TABLE_NAME = ? AND TABLE_SCHEMA = ?\r\n"
-//				+ "\n" +
-//				"order by ORDINAL_POSITION");
-//		p.setString(1, tableName);
-//		p.setString(2, schemaName);
-//        ResultSet resultSet = p.executeQuery();
-//	}
 }
