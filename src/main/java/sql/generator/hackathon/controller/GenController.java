@@ -3,7 +3,9 @@ package sql.generator.hackathon.controller;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -12,11 +14,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.servlet.ModelAndView;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -25,7 +27,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import net.sf.jsqlparser.JSQLParserException;
 import sql.generator.hackathon.model.ColumnInfo;
 import sql.generator.hackathon.model.InfoDisplayScreen;
-import sql.generator.hackathon.model.TableSQL;
+import sql.generator.hackathon.model.ParseObject;
 import sql.generator.hackathon.model.ViewQuery;
 import sql.generator.hackathon.service.ExecuteDBSQLServer;
 import sql.generator.hackathon.service.ServiceDatabase;
@@ -44,10 +46,16 @@ public class GenController {
 	@Autowired
 	private ServiceParse serviceParse;
 	
+	public String url;
+	public String schema;
+	public String user;
+	public String pass;
+	public String tableSelected;
+	
 	@RequestMapping(value = "/zxczxc")
 	public String index123() throws Exception {
 //		serviceDatabase.showTables();
-		executeDBServer.connectDB("com.mysql.cj.jdbc.Driver", "admindb", "root", "Root123!");
+//		executeDBServer.connectDB(null, "test", "root", "");
 		
 		List<String> lstTableName = Arrays.asList("users", "class");
 		Map<String, List<ColumnInfo>> inforTable = executeDBServer.getInforTable("admindb", lstTableName);
@@ -89,6 +97,8 @@ public class GenController {
 		columnInfo3.setTypeName("int");
 		List<String> aaa = executeDBServer.genListUniqueVal("users", columnInfo3, null, "30");
 		
+		executeDBServer.disconnectDB();
+		
 		return "index";
 		
 	}
@@ -127,18 +137,29 @@ public class GenController {
 	}
 	
 	@GetMapping(value = "/selectTable")      
-	public @ResponseBody String selectTable(@RequestParam String tableName) throws Exception {
-		executeDBServer.connectDB(null, "test", "root", "");
+	public @ResponseBody String selectTable(@RequestParam String tableName,@RequestParam String url, @RequestParam String schema, @RequestParam String user, @RequestParam String pass, @RequestParam String tableSelected) throws Exception {
+		boolean isConnect = executeDBServer.connectDB(tableSelected, url ,schema, user, pass);
 		ObjectMapper mapper = new ObjectMapper();
-        InfoDisplayScreen infoDisplayScreen = executeDBServer.getDataDisplay("test", tableName);
-        
-        mapper.enable(SerializationFeature.INDENT_OUTPUT);
-        String json = mapper.writeValueAsString(infoDisplayScreen);
-        System.out.println(json);
-		return mapper.writeValueAsString(infoDisplayScreen);
+		if (isConnect) {
+			
+	        InfoDisplayScreen infoDisplayScreen = executeDBServer.getDataDisplay("admindb", tableName);
+	        mapper.enable(SerializationFeature.INDENT_OUTPUT);
+	        executeDBServer.disconnectDB();
+			return mapper.writeValueAsString(infoDisplayScreen);
+		}
+		return mapper.writeValueAsString("Connect error");
 		
 	}
 	
-	
-
+	@GetMapping(value = "/testConnection")
+	public @ResponseBody String testConnection(@RequestParam String url, @RequestParam String schema, @RequestParam String user, @RequestParam String pass, @RequestParam String tableSelected) throws Exception {
+		boolean isConnect = executeDBServer.connectDB(tableSelected, url ,schema, user, pass);
+		ObjectMapper mapper = new ObjectMapper();
+		if (isConnect) {
+			System.out.println(isConnect);
+			executeDBServer.disconnectDB();
+			return mapper.writeValueAsString("Connect success");
+		}
+		return mapper.writeValueAsString("Connect error");
+	}
 }

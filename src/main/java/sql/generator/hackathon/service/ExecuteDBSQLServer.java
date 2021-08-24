@@ -26,7 +26,8 @@ import sql.generator.hackathon.model.ObjForeignKeyInfo;
 @Service
 public class ExecuteDBSQLServer {
 
-	Map<Integer, String> driverDB;
+	Map<String, String> driverDB;
+	Map<String, String> jdbcDB;
 	
 	public Connection connect;
 	
@@ -35,16 +36,21 @@ public class ExecuteDBSQLServer {
 	
 	public ExecuteDBSQLServer() {
 		super();
-		driverDB = new HashMap<Integer, String>();
-		driverDB.put(1, "com.mysql.cj.jdbc.Driver");
-		driverDB.put(2, "org.h2.Driver");
-		driverDB.put(3, "oracle.jdbc.OracleDriver");
+		driverDB = new HashMap<String, String>();
+		driverDB.put("Mysql", "com.mysql.cj.jdbc.Driver");
+		driverDB.put("H2", "org.h2.Driver");
+		driverDB.put("Oracle", "oracle.jdbc.OracleDriver");
 		// url h2 jdbc:h2:~/test
+		jdbcDB = new HashMap<String, String>();
+		jdbcDB.put("Mysql", "jdbc:mysql://");
+		jdbcDB.put("H2", "jdbc:h2:mem:testdb");
+		jdbcDB.put("Oracle", "jdbc:oracle:thin:@");
 	}
 	
 	//connect database
-	public boolean connectDB(String driver, String schemaName, String user, String pass) throws Exception {
-		DataSource dataSource = (DataSource)beanFactory.getBean("dataSource", driver, "jdbc:mysql://localhost:3306/" + schemaName, user, pass);
+	public boolean connectDB(String tableSelected, String url, String schemaName, String user, String pass) throws Exception {
+		
+		DataSource dataSource = (DataSource)beanFactory.getBean("dataSource", driverDB.get(tableSelected), jdbcDB.get(tableSelected) + url + "/" + schemaName, user, pass);
 		try {
 			connect = dataSource.getConnection();
 		} catch (Exception e) {

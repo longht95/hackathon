@@ -131,20 +131,21 @@ table td.appDetails:nth-last-child(2) {
 		<div class="left-layout">
 			<div class="box-button">
 				<div class="box-control">
-					<select class="select-database" style="margin-right:2.5px;">
+					<select class="select-database" id="select-database" style="margin-right:2.5px;">
 						<option value="Oracle">Oracle</option>
 						<option value="Mysql">Mysql</option>
+						<option value="H2">H2</option>
 					</select>
 					<input type="submit" value="Import SQL" id="importFile" style="margin-left:2.5px;">
 					<input type="file" name="inputFile" id="inputFile" style="display: none;">
 				</div>
 				<div class="box-input">
-					<input type="text" placeholder="URL"> <input type="text"
-						placeholder="Schema"> <input type="text"
-						placeholder="User"> <input type="text"
-						placeholder="Password">
+					<input type="text" placeholder="URL" id="url">
+					<input type="text" placeholder="Schema" id="schema">
+					<input type="text" placeholder="User" id="user">
+					<input type="text" placeholder="Password" id="pass">
 					<div class="box-connect">
-						<input type="submit" value="Test Connection" style="margin-right:2.5px;">
+						<input type="submit" value="Test Connection" onclick="testConnection()" style="margin-right:2.5px;">
 						<input type="submit" value="Update query" id="updateQuery" style="margin-left:2.5px;">
 					</div>
 				</div>
@@ -258,13 +259,23 @@ table td.appDetails:nth-last-child(2) {
 			}
 		}
 		function selectTable(select) {
+			let url = $('#url').val();
+			let schema = $('#schema').val();
+			let user = $('#user').val();
+			let pass = $('#pass').val();
+			let tableSelected = $('#select-database :selected').val();
 			let tableName = select.value;
 					$.ajax({
 						type : "GET",
 						contentType : "application/json",
 						url : "/selectTable",
 						data : {
-							"tableName" : tableName
+							"tableName" : tableName,
+							"url" : url,
+							"schema" : schema,
+							"user" : user,
+							"pass" :pass,
+							"tableSelected" : tableSelected
 						},
 						dataType : 'json',
 						timeout : 100000,
@@ -301,7 +312,7 @@ table td.appDetails:nth-last-child(2) {
 							console.log(data);
 						},
 						error : function(e) {
-							console.log("ERROR: ", e);
+							alert("Connect Error");
 						}
 					});
 		}
@@ -342,13 +353,14 @@ table td.appDetails:nth-last-child(2) {
 					dataType : 'json',
 			       success : function(data) {
 			    	   if (data.mess == null) {
+			    		   alert("Update success");
 			    		   $('textarea#inputQuerySQL').val(data.query);
 				           $("#selectBox").empty();
 				           $("#selectBox").append('<option value="None" disabled="disabled" selected="selected">Select table</option>');
 				           for (const tbl in data.listTable) {
 				        	   $("#selectBox").append(new Option(data.listTable[tbl], data.listTable[tbl]));
 				           }
-				           console.log(data.mess);
+				           
 			    	   } else {
 			    		   console.log(data.mess);
 			    		   $("#selectBox").append(data.mess);
@@ -385,6 +397,31 @@ table td.appDetails:nth-last-child(2) {
 			       }
 			});
 		});
+		
+		function testConnection() {
+			let url = $('#url').val();
+			let schema = $('#schema').val();
+			let user = $('#user').val();
+			let pass = $('#pass').val();
+			let tableSelected = $('#select-database :selected').val();
+			$.ajax({
+			       url : '/testConnection',
+			       type : 'GET',
+			       data : {
+						"url" : url,
+						"schema" : schema,
+						"user" : user,
+						"pass" :pass,
+						"tableSelected" : tableSelected
+					},
+					contentType : "application/json",
+					dataType : 'json',
+			       success : function(data) {
+			           alert(data);
+			       }
+					
+			});
+		}
 		
 		
 	</script>
