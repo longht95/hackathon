@@ -119,6 +119,28 @@ public class CreateData {
 		lastEndValidValue = new HashMap<>();
 	}
 	
+	public Map<String, List<List<ColumnInfo>>> multipleCreate(Map<String, List<ColumnInfo>> dataClient, 
+			int row) throws SQLException {
+		Map<String, List<List<ColumnInfo>>> response = new HashMap<>();
+		
+		// Insert multiple row
+		for (int i = 0; i < row; ++i) {
+			Map<String, List<ColumnInfo>> dataOneRow = create(dataClient);
+			for (Map.Entry<String, List<ColumnInfo>> m : dataOneRow.entrySet()) {
+				String tableName = m.getKey();
+				List<List<ColumnInfo>> t;
+				if (response.containsKey(tableName)) {
+					t = response.get(tableName);
+				} else {
+					t = new ArrayList<>();
+					response.put(tableName, t);
+				}
+				t.add(m.getValue());
+			}
+		}
+		return response;
+	}
+	
 	/**
 	 * Execute create data after parse object
 	 * @throws SQLException 
@@ -885,14 +907,12 @@ public class CreateData {
 				List<String> invalidVal = valueInValidOfColumn.get(fullTableColName);
 				
 				int len = createService.getLengthOfColumn(colInfo);
-				colInfo.setTypeValue(String.valueOf(len));
 				String dataType = createService.getDataTypeOfColumn(colInfo);
-				colInfo.setTypeName(dataType);
 				
 				List<String> curValidVal = new ArrayList<>();
 
 				// Manual gen value
-				processGenKey(tableName, curValidVal, validVal, colInfo, colInfo.isKey());
+				processGenKey(tableName, curValidVal, validVal, colInfo, dataType, len, colInfo.isKey());
 				
 				// Remove
 				for (int i = 0; i < curValidVal.size(); ++i) {
@@ -1024,13 +1044,13 @@ public class CreateData {
 			// Number
 			// Date
 			// char
-			ColumnInfo colInfo = createService.getColumInfo(tableName, colName);
+			ColumnInfo t = createService.getColumInfo(tableName, colName);
+			ColumnInfo colInfo = new ColumnInfo(t.getName(), "", t.getTypeName(), t.getTypeValue(),
+						t.getIsNull(), t.getIsPrimarykey(), t.getIsForeignKey(), t.getUnique());
 
 					
 			String dataType = createService.getDataTypeOfColumn(colInfo);
-			colInfo.setTypeName(dataType);
 			int len = createService.getLengthOfColumn(colInfo);
-			colInfo.setTypeValue(String.valueOf(len));
 			
 			List<String> validOfCol = new ArrayList<>();
 			
@@ -1041,11 +1061,11 @@ public class CreateData {
 
 				// When not validValue for this column => free style this case.
 				// Maybe data type, min-len => push default key for this.
-				processGenKey(tableName, validOfCol, validV, colInfo, colInfo.isKey());
+				processGenKey(tableName, validOfCol, validV, colInfo, dataType, len, colInfo.isKey());
 			} else if (validV.size() == 1) {
 				validOfCol.add(validV.get(0).value);
 			} else if (validV.size() > 1) {
-				processGenKey(tableName, validOfCol, validV, colInfo, colInfo.isKey());
+				processGenKey(tableName, validOfCol, validV, colInfo, dataType, len, colInfo.isKey());
 			}
 		
 			
@@ -1186,13 +1206,13 @@ public class CreateData {
 							// date
 							Date tmp1 = parseStringToDate(val);
 							Date tmp2 = parseStringToDate(validOfCol.get(i));
-							if (tmp2.compareTo(tmp1) < 0) {
+							if (tmp2.compareTo(tmp1) > 0) {
 								flgAdd = true;
 							}
 						} else if (dataType.equals("number")) {
 							Integer int1 = parseStringToInt(val);
 							Integer int2 = parseStringToInt(validOfCol.get(i));
-							if (int2 < int1) {
+							if (int2 > int1) {
 								flgAdd = true;
 							}
 						}
@@ -1206,17 +1226,29 @@ public class CreateData {
 						System.out.println("Not have other condition!");
 						assert(false);
 					}
-					
+					String[] innerTableColName = getTableAndColName(nextCond.value);
+					ColumnInfo t2 = createService.getColumInfo(innerTableColName[0], innerTableColName[1]);
+					ColumnInfo colInnerInfo = new ColumnInfo(t2.getName(), "", t2.getTypeName(), t2.getTypeValue(),
+							t2.getIsNull(), t2.getIsPrimarykey(), t2.getIsForeignKey(), t2.getUnique());
+
 					// Execute for composite key
 					if (isCompositeKey) {
 						
 						// TODO
 						// XEm set schemaname
-						if (dbServer.genUniqueCol(SCHEMA_NAME, tableName, colInfo, validOfCol.get(i)).size() != 0) {
+						if (dbServer.genUniqueCol(SCHEMA_NAME, innerTableColName[0], colInnerInfo, 
+								validOfCol.get(i)).size() != 0) {
 							flgAdd = true;
 						} else {
 							flgAdd = false;
 						}
+					}
+					
+					// Check value unique
+					if (!dbServer.isUniqueValue(innerTableColName[0], colInnerInfo, validOfCol.get(i))) {
+						flgAdd = false;
+					} else {
+						flgAdd = true;
 					}
 					
 					if (flgAdd) {
@@ -1334,6 +1366,10 @@ public class CreateData {
 		char[] chr = new char[26];
 		for (int i = 0; i < 26; ++i) {
 			chr[i] = (char) ('a' + i); 
+		}
+		
+		if (curVal == null || curVal.isEmpty()) {
+			curVal = "a";
 		}
 		
 		char[] curChar = curVal.toCharArray();
@@ -1691,15 +1727,16 @@ public class CreateData {
 	 * @param isKey
 	 * @throws SQLException
 	 */
-	private void processGenKey(String tableName, List<String> curValidVal, List<Cond> validVal, ColumnInfo colInfo, boolean isKey) throws SQLException {
+	private void processGenKey(String tableName, List<String> curValidVal, List<Cond> validVal, ColumnInfo colInfo, 
+			String dataType, int len, boolean isKey) throws SQLException {
 		// When calculator not in mapping 
 		// This case will read last condition remain -> gendata
 //		private Map<String, List<Cond>> validValuesForColumn = new HashMap<>();
 		
 		// Key = tableName.colName => List data use operator (NOT IN, !=, <>)
 //		private Map<String, List<String>> valueInValidOfColumn
-		int len = Integer.parseInt(colInfo.getTypeValue());
-		String dataType = colInfo.getTypeName();
+//		int len = Integer.parseInt(colInfo.getTypeValue());
+//		String dataType = colInfo.getTypeName();
 		
 		if (validVal == null || validVal.isEmpty()) {
 			if (isKey) {

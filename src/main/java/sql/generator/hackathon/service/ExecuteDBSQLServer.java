@@ -219,7 +219,7 @@ public class ExecuteDBSQLServer {
 		ResultSet resultSet = stmt.executeQuery(SQL.toString());
 		while (resultSet.next()) {
 			String increaseValue = "";
-			for (int i = 0; i < 10000; i++) {
+			for (int i = 0; i < 10; i++) {
 				increaseValue = createData.genKeyWithTypeChar(true, resultSet.getString(1));
 				lstStringUnique.add(increaseValue);
 			}
