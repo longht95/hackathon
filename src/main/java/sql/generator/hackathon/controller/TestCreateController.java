@@ -94,8 +94,8 @@ public class TestCreateController {
 		CreateData createData = new CreateData(executeDBServer, createService, parseObject.getListTableSQL(), parseObject.getMappingKey());
 		int row = 1;
 		
-		Map<String, List<List<ColumnInfo>>> response = createData.multipleCreate(dataClient, row);
-		System.out.println(response);
+//		Map<String, List<List<ColumnInfo>>> response = createData.multipleCreate(dataClient, row);
+//		System.out.println(response);
 		return "index";
 	}
 }

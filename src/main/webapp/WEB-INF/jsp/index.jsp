@@ -430,11 +430,13 @@ table td.appDetails:nth-last-child(2) {
 			let schema = $('#schema').val();
 			let user = $('#user').val();
 			let pass = $('#pass').val();
+			let tableSelected = $('#select-database :selected').val();
 			const infoDatabase = {
+					type : tableSelected,
 					url : url,
 					schema : schema,
 					user : user,
-					pass :pass, 
+					pass :pass,
 			}
 			const inputGenerate = {
 					dataPicker : dataPicker,
