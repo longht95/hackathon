@@ -426,15 +426,21 @@ table td.appDetails:nth-last-child(2) {
 		function genate() {
 			let typeGen = $('#selectType :selected').text();
 			let queryInput = $('#inputQuerySQL').val();
+			let url = $('#url').val();
+			let schema = $('#schema').val();
+			let user = $('#user').val();
+			let pass = $('#pass').val();
+			const infoDatabase = {
+					url : url,
+					schema : schema,
+					user : user,
+					pass :pass, 
+			}
 			const inputGenerate = {
 					dataPicker : dataPicker,
 					queryInput : queryInput,
 					typeGen : typeGen,
 			}
-			console.log(dataPicker);
-			console.log('typeGen', typeGen);
-			console.log('query', queryInput);
-			console.log(inputGenerate);
 			$.ajax({
 			       url : '/generate',
 			       type : 'POST',
@@ -442,6 +448,7 @@ table td.appDetails:nth-last-child(2) {
 						"queryInput" : queryInput,
 						"typeGen" : typeGen,
 						"dataPicker" : dataPicker,
+						"infoDatabase" : infoDatabase,
 			       }),
 					contentType : "application/json",
 					dataType : 'json',
