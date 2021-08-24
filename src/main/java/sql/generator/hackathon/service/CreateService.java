@@ -334,7 +334,7 @@ public class CreateService {
 		case "nvarchar":
 		case "char":
 		case "nchar":
-			res = dataExamples.get("name");
+				res = dataExamples.get("name");
 			break;
 		case "number":
 		case "int":

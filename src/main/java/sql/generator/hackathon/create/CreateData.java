@@ -5,7 +5,6 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
@@ -46,31 +45,33 @@ public class CreateData {
 		priorityOfOperator.put("<>", 9);
 	}
 
+	private static String SCHEMA_NAME = "admindb";
+	
 	// Save mapping table.column mapping with other table.column
-	private Map<String, Set<Cond>> columnMap = new HashMap<>();
+	private Map<String, Set<Cond>> columnMap;
 
 	// Save Key exists
 	private List<TableSQL> tables = new ArrayList<>();
 	private Map<String, List<String>> keys = new HashMap<>();
 	
-	private Map<String, List<String>> keysFormat = new HashMap<>();
+	private Map<String, List<String>> keysFormat;
 
 	// alias.Name => <tableName.columnName, operator>
-	private Map<String, String[]> infoCol = new HashMap<>();
+	private Map<String, String[]> infoCol;
 
 	// Data current values
 	// TableName => List ColumnInfo
-	private Map<String, List<ColumnInfo>> tableData = new HashMap<>();
+	private Map<String, List<ColumnInfo>> tableData;
 
 	// Calculator valid values in Where.
 	// Key = tableName.colName => Value = List<Cond> => Cond
-	private Map<String, List<Cond>> validValuesForColumn = new HashMap<>();
+	private Map<String, List<Cond>> validValuesForColumn;
 	
 	// Key = tableName.colName => List data use operator (NOT IN, !=, <>)
-	private Map<String, List<String>> valueInValidOfColumn = new HashMap<>();
+	private Map<String, List<String>> valueInValidOfColumn;
 	
 	// Key tableName.colName
-	private Map<String, String> lastEndValidValue = new HashMap<>();
+	private Map<String, String> lastEndValidValue;
 	
 	private CreateService createService;
 	
@@ -81,7 +82,7 @@ public class CreateData {
 	}
 	
 	public CreateData(ExecuteDBSQLServer dbServer, CreateService createService, List<TableSQL> tables, 
-			Map<String, List<String>> keys) {
+			Map<String, List<String>> keys) throws SQLException {
 		// Connection for service
 		this.createService = createService;
 		createService.getDataExample();
@@ -91,12 +92,41 @@ public class CreateData {
 		this.tables = tables;
 		this.keys = keys;
 	}
+	
+	public void init(){
+		// Save mapping table.column mapping with other table.column
+		columnMap = new HashMap<>();
 
+		keysFormat = new HashMap<>();
+
+		// alias.Name => <tableName.columnName, operator>
+		infoCol = new HashMap<>();
+
+		// Data current values
+		// TableName => List ColumnInfo
+		tableData = new HashMap<>();
+
+		// Calculator valid values in Where.
+		// Key = tableName.colName => Value = List<Cond> => Cond
+		validValuesForColumn = new HashMap<>();
+		
+		// Key = tableName.colName => List data use operator (NOT IN, !=, <>)
+		valueInValidOfColumn = new HashMap<>();
+		
+		// Key tableName.colName
+		lastEndValidValue = new HashMap<>();
+		// Key tableName.colName
+		lastEndValidValue = new HashMap<>();
+	}
+	
 	/**
 	 * Execute create data after parse object
 	 * @throws SQLException 
 	 */
 	public Map<String, List<ColumnInfo>> create(Map<String, List<ColumnInfo>> dataClient) throws SQLException {
+		
+		init();
+		
 		int sz = tables.size();
 		for (int i = 0; i < sz; ++i) {
 			exeEachTable(tables.get(i));
@@ -873,7 +903,7 @@ public class CreateData {
 							
 							// TODO
 							// xem xet schemaName
-							Map<String, String> m = dbServer.genUniqueCol("admindb", tableName, colInfo, curValidVal.get(i));
+							Map<String, String> m = dbServer.genUniqueCol(SCHEMA_NAME, tableName, colInfo, curValidVal.get(i));
 							if (m.size() == 0) {
 								continue;
 							}
@@ -1182,7 +1212,7 @@ public class CreateData {
 						
 						// TODO
 						// XEm set schemaname
-						if (dbServer.genUniqueCol("admindb", tableName, colInfo, validOfCol.get(i)).size() != 0) {
+						if (dbServer.genUniqueCol(SCHEMA_NAME, tableName, colInfo, validOfCol.get(i)).size() != 0) {
 							flgAdd = true;
 						} else {
 							flgAdd = false;
@@ -1806,54 +1836,74 @@ public class CreateData {
 	
 	
 	private Map<String, List<ColumnInfo>> processInsert(Map<String, List<ColumnInfo>> clientData) throws SQLException {
+		Map<String, List<ColumnInfo>> res = new HashMap<>();
 		Map<String, List<ColumnInfo>> tableInfo = createService.getTableInfo();
 		for (Map.Entry<String, List<ColumnInfo>> e : tableInfo.entrySet()) {
 			String tableName = e.getKey();
+			List<ColumnInfo> l = new ArrayList<>();
+			// Init
+			for (ColumnInfo colInfo : e.getValue()) {
+				l.add(new ColumnInfo(colInfo.getName(), "", colInfo.getTypeName(),
+						colInfo.getTypeValue(), colInfo.getIsNull(), colInfo.getIsPrimarykey(),
+						colInfo.getIsForeignKey(), colInfo.getUnique()));
+			}
+			
 			
 			// Data da mapping can't change
 			// Set again value
 			List<ColumnInfo> data = tableData.get(tableName);
 			
-			ColumnInfo colNoVal = null;
 			if (data != null) {
-				for (ColumnInfo colInfo : e.getValue()) {
-					if (colInfo.val == null) {
-						colInfo.val = "";
-					}
+				for (ColumnInfo colInfo : l) {
 					for (ColumnInfo d : data) {
 						if (colInfo.getName().equals(d.getName())) {
 							colInfo.val = d.val;
 						}
 					}
-					if (colInfo.isKey() && colInfo.val.isEmpty()) {
-						colNoVal = colInfo;
-					}
 				}
 			} 
 			
+			
 			// confirm KEY no value
+			ColumnInfo colNoVal = null;
+			for (ColumnInfo colInfo : l) {
+				if (colInfo.isKey() && colInfo.val.isEmpty()) {
+					colNoVal = colInfo;
+					break;
+				}
+			}
+			
 			if (colNoVal != null) {
 				Map<String, ColumnInfo> mapVal = genValueForKeyNoCondition(tableName, colNoVal);
-				for (ColumnInfo colInfo : e.getValue()) {
+				for (ColumnInfo colInfo : l) {
 					if (colInfo.isKey() && colInfo.val.isEmpty()) {
 						colInfo.val = mapVal.get(colInfo.getName()).val;
 					}
 				}
 			}
 			
+			// get unique val
+			for (ColumnInfo colInfo : l) {
+				if (colInfo.unique && colInfo.getVal().isEmpty()) {
+					colInfo.val = dbServer.genListUniqueVal(tableName, colInfo, "", "").get(0);
+				}
+			}
+			
 			// Set value from client!
 			List<ColumnInfo> client = clientData.get(tableName);
 			if (client != null) {
-				for (ColumnInfo colInfo : e.getValue()) {
+				for (ColumnInfo colInfo : l) {
 					for (ColumnInfo c : client) {
 						if (colInfo.getName().equals(c.getName()) && colInfo.val.isEmpty()) {
 							colInfo.val = c.val;
 						}
 					}
 				}
-			} 
+			}
+			
+			res.put(tableName, l);
 		}
-		return tableInfo;
+		return res;
 	}
 	
 	/**
@@ -1875,7 +1925,7 @@ public class CreateData {
 			res.put(colInfo.name, new ColumnInfo(colInfo.name, listVal.get(0)));
 		} else {
 			for (String val : listVal) {
-				Map<String, String> m = dbServer.genUniqueCol("admindb", tableName, colInfo, val);
+				Map<String, String> m = dbServer.genUniqueCol(SCHEMA_NAME, tableName, colInfo, val);
 				if (m.size() > 0) {
 					res.put(colInfo.name, new ColumnInfo(colInfo.name, val));
 					for (Map.Entry<String, String> e : m.entrySet()) {
