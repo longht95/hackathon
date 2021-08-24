@@ -115,6 +115,16 @@ table td {
 	padding: 5px 10px;
 }
 
+table td:last-child {
+	border-right:none;
+}
+table td.appDetails:nth-last-child(2) {
+	border-right:none;
+}
+
+.delete-picker {
+	width:50px;
+}
 </style>
 <body>
 	<main>
@@ -122,7 +132,6 @@ table td {
 			<div class="box-button">
 				<div class="box-control">
 					<select class="select-database" style="margin-right:2.5px;">
-						<option value="Oracle">Select Table</option>
 						<option value="Oracle">Oracle</option>
 						<option value="Mysql">Mysql</option>
 					</select>
@@ -146,16 +155,9 @@ table td {
 		</div>
 		<div class="right-layout">
 			<h4 style="margin-top:0px;">DATA SET</h4>
-			<!-- <select id="selectBox"
-				class="select-database" onchange="selectTable(this)">
-			</select> -->
-			<select class="select-database"
+			<select id="selectBox" class="select-database"
 				onchange="selectTable(this)">
-				<option value=""></option>
-				<option value="users">User</option>
-				<option value="TABLE2">User1</option>
-				<option value="TABLE3">TABLE3</option>
-				<option value="TABLE4">TABLE4</option>
+				<option value="None" disabled="disabled" selected="selected">Select table</option>
 			</select>
 			<table class="table">
 				<thead>
@@ -166,18 +168,11 @@ table td {
 				</tbody>
 			</table>
 			<h4>DATA PICK</h4>
-			<table class="table">
-				<thead>
-					
-				</thead>
-				<tbody>
-					
-				</tbody>
-
-			</table>
+				<div id="block-data-picker">
+			</div>
 			<h4>EXPORT TYPES</h4>
 			<div class="box-generate">
-				<select id="selectBox"
+				<select id="selectType"
 					class="select-database">
 					<option value="Excel">Excel</option>
 					<option value="SQL">SQL</option>
@@ -187,6 +182,81 @@ table td {
 		</div>
 	</main>
 	<script>
+	var dataPicker = [];
+	
+	function delPicker(inp) {
+		let id = $(inp).attr('id');
+		console.log('id', id);
+		$('#block-data-picker').find('table tbody #'+id).remove();
+		dataPicker = dataPicker.filter(item => item.id != id);
+		if (dataPicker.length == 0) {
+			console.log('xxxxxxx');
+			$('#block-data-picker').find('table').remove();
+		}
+		console.log('xxx',dataPicker);
+	}
+		function checkedBoxChange(check) {
+			console.log('xxxxxxxx');
+			let tableSelected = $('#selectBox :selected').text();
+			let isNotHeader = $('#block-data-picker').find('#'+tableSelected+' thead').length == 0;
+			let isNotTable = $('#block-data-picker').find('#'+tableSelected).length == 0;
+			let id = $(check).attr('id');
+			let data = $(check).parent().parent().find("td");
+			let htmlTable = '<tr id="'+id+'"><td><input id="'+id+'" class="delete-picker" style="width:50px" type="submit" value="Del" onClick="delPicker(this)"></td>';
+			let findColumn = [];
+			
+			let current = dataPicker.find(tb => tb.tableName == tableSelected);
+			let htmlColumn = "<thead><tr><th>#</th>";
+			if (!check.checked) {
+				console.log('false');
+				$('#block-data-picker').find('table tbody #'+id).remove();
+				dataPicker = dataPicker.filter(item => item.id != id);
+				return;
+			}
+			$('.table').find('thead tr th').each(function(index) {
+				if (index != 0) {
+					htmlColumn+= '<th>'+$(this).html()+'</th>'
+					findColumn.push($(this).html());
+				}
+			});
+			htmlColumn+='</tr>';
+			let objectPicker = {
+				tableName : tableSelected,
+				listColumn : findColumn,
+				listData : [],
+				id : id,
+			}
+			let dataP = [];
+			
+			for (let i = 1; i < data.length; i++) {
+				if (!$(data[i].innerHTML).is('input')) {
+					htmlTable+="<td>";
+					htmlTable+=data[i].innerHTML;
+					htmlTable+="</td>";
+					dataP.push(data[i].innerHTML);
+				}
+			}
+			htmlTable+="</tr>"
+			if (current) {
+				current.listData.push(dataP);
+				$('#block-data-picker').find('table tbody').append(htmlTable);
+			} else {
+				//create table
+				let tableHTML = '<table id="'+tableSelected+'"><tbody>' + htmlTable + '</tbody></table>'
+				if (isNotTable) {
+					$('#block-data-picker').append(tableHTML);
+				} else {
+					console.log('id', tableSelected);
+					$('#block-data-picker #'+tableSelected).find('tbody').append(htmlTable);
+				}
+				objectPicker.listData.push(dataP);
+				dataPicker.push(objectPicker);
+				
+			}
+			if (isNotHeader) {
+				$('#block-data-picker').find('#'+tableSelected).append(htmlColumn);
+			}
+		}
 		function selectTable(select) {
 			let tableName = select.value;
 					$.ajax({
@@ -205,23 +275,24 @@ table td {
 							let arrColumn = data.listColumnName;
 							console.log(data);
 							let tien = "";
-							tien += "<th>Chọn</th>";
+							tien += "<tr><th>#</th>";
 							let tbl1 = $(".table > thead");
 							tbl1.empty();
 							for (let j = 0; j < arrColumn.length; j++) {
 								tien += "<th>" + arrColumn[j] + "</th>";
 							}
+							tien+="</tr>";
 							tbl.empty();
 							tbl1.append(tien);
 							for (let i = 1; i < arrData.length; i++) {
 								let abc = "<tr>";
 								let tmp = 1;
-								abc += '<td><input type="checkbox" class="checkbox" id="vehicle1" name="vehicle1" ></td>';
+								abc += '<td><input type="checkbox" class="checkbox" onchange="checkedBoxChange(this)" id="'+tableName+i+'"></td>';
 								for (let k = 0; k < arrData[i].length; k++) {
 									abc += "<td id ='row"+ tmp +"-col"+ tmp +"-p' class='appDetails'>";
 									abc += arrData[i][k];
 									abc += "</td>";
-									abc += '<td id="row'+ tmp +'-col'+ tmp +'-p-input" class="appDetails" style="display: none;"><input  type="text" placeholder="Nhập..."></td>'
+									abc += '<td id="row'+ tmp +'-col'+ tmp +'-p-input" style="display: none;"><input  type="text" placeholder="Nhập..."></td>'
 									tmp++;
 								}
 								abc += "</tr>";
@@ -256,7 +327,6 @@ table td {
 		
 		//import file
 		$('#importFile').on("click", function(){
-			console.log('xxxxxxxxxxxx');
 			$('#inputFile').trigger('click');
 		});
 		
@@ -274,6 +344,7 @@ table td {
 			    	   if (data.mess == null) {
 			    		   $('textarea#inputQuerySQL').val(data.query);
 				           $("#selectBox").empty();
+				           $("#selectBox").append('<option value="None" disabled="disabled" selected="selected">Select table</option>');
 				           for (const tbl in data.listTable) {
 				        	   $("#selectBox").append(new Option(data.listTable[tbl], data.listTable[tbl]));
 				           }
@@ -306,6 +377,7 @@ table td {
 			           console.log('query', dataSQL.query);
 			           $('textarea#inputQuerySQL').val(dataSQL.query);
 			           $("#selectBox").empty();
+			           $("#selectBox").append('<option value="None" disabled="disabled" selected="selected">Select table</option>');
 			           for (const tbl in dataSQL.listTable) {
 			        	   console.log('tbl', tbl);
 			        	   $("#selectBox").append(new Option(dataSQL.listTable[tbl], dataSQL.listTable[tbl]));

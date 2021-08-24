@@ -115,7 +115,6 @@ public class GenController {
 	@GetMapping(value = "/updateQuery")      
 	public @ResponseBody String updateQuery(@RequestParam String query) throws JsonProcessingException {
 		ViewQuery viewQuery = new ViewQuery();
-		ModelAndView model = new ModelAndView();
 		try {
 			viewQuery = ViewQuery.builder().listTable(serviceParse.getListTableByStatement(query)).query(query).build();
 			
@@ -129,9 +128,9 @@ public class GenController {
 	
 	@GetMapping(value = "/selectTable")      
 	public @ResponseBody String selectTable(@RequestParam String tableName) throws Exception {
-		executeDBServer.connectDB("admindb", "root", "");
+		executeDBServer.connectDB(null, "test", "root", "");
 		ObjectMapper mapper = new ObjectMapper();
-        InfoDisplayScreen infoDisplayScreen = executeDBServer.getDataDisplay("admindb", tableName);
+        InfoDisplayScreen infoDisplayScreen = executeDBServer.getDataDisplay("test", tableName);
         
         mapper.enable(SerializationFeature.INDENT_OUTPUT);
         String json = mapper.writeValueAsString(infoDisplayScreen);
