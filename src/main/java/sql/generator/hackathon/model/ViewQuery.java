@@ -14,4 +14,5 @@ import lombok.NoArgsConstructor;
 public class ViewQuery {
 	public List<String> listTable;
 	public String query;
+	public String mess;
 }
