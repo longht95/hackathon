@@ -12,7 +12,6 @@ import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -20,19 +19,20 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.servlet.ModelAndView;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
 import net.sf.jsqlparser.JSQLParserException;
+import sql.generator.hackathon.create.CreateData;
 import sql.generator.hackathon.model.ColumnInfo;
 import sql.generator.hackathon.model.InfoDisplayScreen;
 import sql.generator.hackathon.model.ObjectGenate;
 import sql.generator.hackathon.model.ParseObject;
 import sql.generator.hackathon.model.TableSQL;
 import sql.generator.hackathon.model.ViewQuery;
+import sql.generator.hackathon.service.CreateService;
 import sql.generator.hackathon.service.ExecuteDBSQLServer;
 import sql.generator.hackathon.service.ServiceDatabase;
 import sql.generator.hackathon.service.ServiceParse;
@@ -49,7 +49,10 @@ public class GenController {
 
 	@Autowired
 	private ServiceParse serviceParse;
-
+	
+	@Autowired
+	private CreateService createService;
+	
 	public String url;
 	public String schema;
 	public String user;
@@ -174,28 +177,41 @@ public class GenController {
 	}
 
 	@PostMapping(value = "/generate")
-	public @ResponseBody String generate(@RequestBody ObjectGenate objectGenate) {
-		Map<String, List<List<ColumnInfo>>> dataPick = new HashMap<>();
+	public @ResponseBody String generate(@RequestBody ObjectGenate objectGenate) throws Exception {
+//		Map<String, List<List<ColumnInfo>>> dataPick = new HashMap<>();
+		Map<String, List<ColumnInfo>> dataPick = new HashMap<>();
 		objectGenate.dataPicker.forEach(x -> {
-			List<List<ColumnInfo>> list = new ArrayList<>();
-			for (List<String> data : x.listData) {
+//			List<List<ColumnInfo>> list = new ArrayList<>();
+//			for (List<String> data : x.listData) {
 				List<ColumnInfo> listColumnInfo = new ArrayList<>();
-				for (int i = 0; i < data.size(); i++) {
+				for (int i = 0; i < x.listData.get(0).size(); i++) {
 
 					ColumnInfo columnInfo = new ColumnInfo();
-					columnInfo.val = data.get(i);
+					columnInfo.val = x.listData.get(0).get(i);
 					columnInfo.name = x.getListColumn().get(i);
 					listColumnInfo.add(columnInfo);
 				}
-				list.add(listColumnInfo);
-			}
+//				list.add(listColumnInfo);
+//			}
 			System.out.println();
-			dataPick.put(x.tableName, list);
+			dataPick.put(x.tableName, listColumnInfo);
 		});
 
 		try {
+			int row = 1;
+			boolean type = true;
+			
+			executeDBServer.connectDB(objectGenate.infoDatabase.getType(), objectGenate.infoDatabase.getUrl(), 
+					objectGenate.infoDatabase.getSchema(), objectGenate.infoDatabase.getUser(), 
+					objectGenate.infoDatabase.getPassword());
+			
+			createService.connect(executeDBServer.connect);
+			
 			ParseObject parseObject = serviceParse.parseSelectStatement(objectGenate.queryInput);
-
+			createService.setTableInfo(executeDBServer.getInforTable(objectGenate.infoDatabase.getSchema(), 
+					serviceParse.getListTableByStatement(objectGenate.queryInput)));
+			CreateData createData = new CreateData(executeDBServer, createService, parseObject.getListTableSQL(), parseObject.getMappingKey());
+			Map<String, List<List<ColumnInfo>>> response = createData.multipleCreate(dataPick, row, type);
 		} catch (JSQLParserException e) {
 			// sql is not valid
 			e.printStackTrace();

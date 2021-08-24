@@ -50,7 +50,7 @@ public class TestCreateController {
 	
 	@RequestMapping(value = "/testConnectT")
 	public String testConnect() throws Exception {
-		executeDBServer.connectDB("com.mysql.cj.jdbc.Driver", "admindb", "root", "");
+//		executeDBServer.connectDB("com.mysql.cj.jdbc.Driver", "admindb", "root", "");
 
 		// Test read
 		int n = 1;
@@ -94,8 +94,8 @@ public class TestCreateController {
 		CreateData createData = new CreateData(executeDBServer, createService, parseObject.getListTableSQL(), parseObject.getMappingKey());
 		int row = 1;
 		
-		Map<String, List<List<ColumnInfo>>> response = createData.multipleCreate(dataClient, row);
-		System.out.println(response);
+//		Map<String, List<List<ColumnInfo>>> response = createData.multipleCreate(dataClient, row);
+//		System.out.println(response);
 		return "index";
 	}
 }

@@ -120,12 +120,12 @@ public class CreateData {
 	}
 	
 	public Map<String, List<List<ColumnInfo>>> multipleCreate(Map<String, List<ColumnInfo>> dataClient, 
-			int row) throws SQLException {
+			int row, boolean type) throws SQLException {
 		Map<String, List<List<ColumnInfo>>> response = new HashMap<>();
 		
 		// Insert multiple row
 		for (int i = 0; i < row; ++i) {
-			Map<String, List<ColumnInfo>> dataOneRow = create(dataClient);
+			Map<String, List<ColumnInfo>> dataOneRow = create(dataClient, type);
 			for (Map.Entry<String, List<ColumnInfo>> m : dataOneRow.entrySet()) {
 				String tableName = m.getKey();
 				List<List<ColumnInfo>> t;
@@ -145,7 +145,8 @@ public class CreateData {
 	 * Execute create data after parse object
 	 * @throws SQLException 
 	 */
-	public Map<String, List<ColumnInfo>> create(Map<String, List<ColumnInfo>> dataClient) throws SQLException {
+	public Map<String, List<ColumnInfo>> create(Map<String, List<ColumnInfo>> dataClient,
+			boolean type) throws SQLException {
 		
 		init();
 		
@@ -167,11 +168,15 @@ public class CreateData {
 		
 		Map<String, List<ColumnInfo>> lst = processInsert(dataClient);
 		
-		// Insert each table
-		for (Map.Entry<String, List<ColumnInfo>> e : lst.entrySet()) {
-			// Call JDBC execute insert data to table!
-			createService.insert(e.getKey(), e.getValue());
+		
+		if (type) {
+			// Insert each table
+			for (Map.Entry<String, List<ColumnInfo>> e : lst.entrySet()) {
+				// Call JDBC execute insert data to table!
+				createService.insert(e.getKey(), e.getValue());
+			}
 		}
+		
 		
 		return lst;
 	}
