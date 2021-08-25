@@ -45,7 +45,7 @@ public class CreateData {
 		priorityOfOperator.put("<>", 9);
 	}
 
-	private static String SCHEMA_NAME = "admindb";
+	private String SCHEMA_NAME = "admindb";
 	
 	// Save mapping table.column mapping with other table.column
 	private Map<String, Set<Cond>> columnMap;
@@ -82,7 +82,7 @@ public class CreateData {
 	}
 	
 	public CreateData(ExecuteDBSQLServer dbServer, CreateService createService, List<TableSQL> tables, 
-			Map<String, List<String>> keys) throws SQLException {
+			Map<String, List<String>> keys, String schema) throws SQLException {
 		// Connection for service
 		this.createService = createService;
 		createService.getDataExample();
@@ -91,6 +91,7 @@ public class CreateData {
 		
 		this.tables = tables;
 		this.keys = keys;
+		SCHEMA_NAME = schema;
 	}
 	
 	public void init(){

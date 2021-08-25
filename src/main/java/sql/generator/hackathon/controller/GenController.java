@@ -215,7 +215,8 @@ public class GenController {
 			ParseObject parseObject = serviceParse.parseSelectStatement(objectGenate.queryInput);
 			createService.setTableInfo(executeDBServer.getInforTable(objectGenate.infoDatabase.getSchema(), 
 					serviceParse.getListTableByStatement(objectGenate.queryInput)));
-			CreateData createData = new CreateData(executeDBServer, createService, parseObject.getListTableSQL(), parseObject.getMappingKey());
+			CreateData createData = new CreateData(executeDBServer, createService, parseObject.getListTableSQL(), 
+					parseObject.getMappingKey(), objectGenate.infoDatabase.getSchema());
 			Map<String, List<List<ColumnInfo>>> response = createData.multipleCreate(dataPick, row, false);
 			HSSFWorkbook workbook = excelExporter.createEex(response);
 			workbook.getBytes();

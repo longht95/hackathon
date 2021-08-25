@@ -91,7 +91,7 @@ public class TestCreateController {
 		// Need List<TableSQL> FROM PARSE
 		// Map<String, List<String> FROM PARSE
 //		CreateData createData = new CreateData(executeDBServer, createService, TestReadParse.tables, TestReadParse.keys);
-		CreateData createData = new CreateData(executeDBServer, createService, parseObject.getListTableSQL(), parseObject.getMappingKey());
+//		CreateData createData = new CreateData(executeDBServer, createService, parseObject.getListTableSQL(), parseObject.getMappingKey());
 		int row = 1;
 		
 //		Map<String, List<List<ColumnInfo>>> response = createData.multipleCreate(dataClient, row);
