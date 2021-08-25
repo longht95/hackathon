@@ -36,10 +36,10 @@ public class CreateData {
 	{
 		priorityOfOperator.put("=", 1);
 		priorityOfOperator.put("IN", 2);
-		priorityOfOperator.put("<=", 3);
-		priorityOfOperator.put(">=", 4);
-		priorityOfOperator.put("<", 5);
-		priorityOfOperator.put(">", 6);
+		priorityOfOperator.put(">=", 3);
+		priorityOfOperator.put("<=", 4);
+		priorityOfOperator.put(">", 5);
+		priorityOfOperator.put("<", 6);
 		priorityOfOperator.put("NOT IN", 7);
 		priorityOfOperator.put("!=", 8);
 		priorityOfOperator.put("<>", 9);
@@ -346,7 +346,10 @@ public class CreateData {
 		// Check all condition in mapValOfColumn With key is tableName.columName
 		// Calculator valid value for column
 		// Key = tableName.colName, Value = List<Cond>
-		validValuesForColumn = calValidValueOfColumn(mapValOfColumn);
+		Map<String, List<Cond>> validVal = calValidValueOfColumn(mapValOfColumn);
+		for (Map.Entry<String, List<Cond>> e : validVal.entrySet()) {
+			validValuesForColumn.put(e.getKey(), e.getValue());
+		}
 	}
 
 	/**
@@ -531,23 +534,10 @@ public class CreateData {
 			
 			// When has condition IN => get value of IN
 			if (flgCheckCondIN) {
-				int cnt = 0;
-				for (int i = 0; i < tmpVal.size(); ++i) {
-					// Just check 1 condition IN pass => SQL valid
-					if (cnt > 0) {
-						break;
-					}
-					if (listCondIN.contains(tmpVal.get(i))) {
-						cnt++;
-					}
-				}
-				
-				if (cnt == 0) {
-					System.out.println("SQL condition IN invalid!");
-				}
+				m.put(key, listCondIN);
+			} else {
+				m.put(key, tmpVal);
 			}
-			
-			m.put(key, tmpVal);
 		}
 		return m;
 	}
@@ -709,6 +699,8 @@ public class CreateData {
 			throws ParseException {
 		String operator = cur[0];
 		String strVal = cur[1];
+		boolean flgAdd = true;
+		
 		// Convert to date when type = date
 		if (type.equals("date")) {
 			SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
@@ -726,28 +718,36 @@ public class CreateData {
 				Cond cond = toExploder.poll();
 				Date ld = sdf.parse(cond.value);
 				
-				if (!cond.operator.equals("=")) {
+				if (cond.operator.equals("=")) {
 					continue;
 				}
 				
 				// Just remove all element > curD
 				if (operator.equals("<=")) {
-					if (ld.compareTo(curD) > 0) {
+					if (ld.compareTo(curD) < 0) {
+						flgAdd = false;
 						values.remove(cond);
+						break;
 					}
 					// Just remove all element > curD
 				} else if (operator.equals(">=")) {
-					if (ld.compareTo(curD) < 0) {
+					if (ld.compareTo(curD) > 0) {
+						flgAdd = false;
 						values.remove(cond);
+						break;
 					}
 					// Just remove all element > curD
 				} else if (operator.equals("<")) {
-					if (ld.compareTo(curD) >= 0) {
+					if (ld.compareTo(curD) <= 0) {
+						flgAdd = false;
 						values.remove(cond);
+						break;
 					}
 				} else if (operator.equals(">")) {
-					if (ld.compareTo(curD) <= 0) {
+					if (ld.compareTo(curD) >= 0) {
+						flgAdd = false;
 						values.remove(cond);
+						break;
 					}
 				} else {
 					// TODO
@@ -792,21 +792,29 @@ public class CreateData {
 				
 				// Search in list to remove add value > this value;
 				if (operator.equals("<=")) {
-					if (innerV > curV) {
+					if (innerV < curV) {
 						values.remove(cond);
+						flgAdd = false;
+						break;
 					}
 					// Search in list to remove add value < this value;
 				} else if (operator.equals(">=")) {
-					if (innerV < curV) {
+					if (innerV > curV) {
 						values.remove(cond);
+						flgAdd = false;
+						break;
 					}
 				} else if (operator.equals("<")) {
-					if (innerV >= curV) {
-						values.remove(cond);
-					}
-				} else if (operator.equals(">")) {
 					if (innerV <= curV) {
 						values.remove(cond);
+						flgAdd = false;
+						break;
+					}
+				} else if (operator.equals(">")) {
+					if (innerV >= curV) {
+						values.remove(cond);
+						flgAdd = false;
+						break;
 					}
 				} else {
 					// TODO
@@ -833,7 +841,9 @@ public class CreateData {
 		// Add new element
 		// With character "\' ?
 		// [Operator, current value]
-		values.add(new Cond(operator, strVal));
+		if (flgAdd) {
+			values.add(new Cond(operator, strVal));
+		}
 	}
 
 //	/**
@@ -1237,25 +1247,24 @@ public class CreateData {
 					ColumnInfo colInnerInfo = new ColumnInfo(t2.getName(), "", t2.getTypeName(), t2.getTypeValue(),
 							t2.getIsNull(), t2.getIsPrimarykey(), t2.getIsForeignKey(), t2.getUnique());
 
-					// Execute for composite key
-					if (isCompositeKey) {
-						
-						// TODO
-						// XEm set schemaname
-						if (dbServer.genUniqueCol(SCHEMA_NAME, innerTableColName[0], colInnerInfo, 
-								validOfCol.get(i)).size() != 0) {
-							flgAdd = true;
-						} else {
+					if (flgAdd) {
+						// Execute for composite key
+						if (isCompositeKey) {
+							if (dbServer.genUniqueCol(SCHEMA_NAME, innerTableColName[0], colInnerInfo, 
+									validOfCol.get(i)).size() != 0) {
+								flgAdd = true;
+							} else {
+								flgAdd = false;
+							}
+						}
+						// Check value unique
+						if (!dbServer.isUniqueValue(innerTableColName[0], colInnerInfo, validOfCol.get(i))) {
 							flgAdd = false;
+						} else {
+							flgAdd = true;
 						}
 					}
-					
-					// Check value unique
-					if (!dbServer.isUniqueValue(innerTableColName[0], colInnerInfo, validOfCol.get(i))) {
-						flgAdd = false;
-					} else {
-						flgAdd = true;
-					}
+
 					
 					if (flgAdd) {
 						// Table columnName, value, index
@@ -1934,14 +1943,16 @@ public class CreateData {
 			}
 			
 			// Set value from client!
-			List<ColumnInfo> client;
-			if (idxRow >= clientData.get(tableName).size()) {
-				client = clientData.get(tableName).get(clientData.get(tableName).size() - 1);
-			} else {
-				client = clientData.get(tableName).get(idxRow);
+			List<ColumnInfo> client = new ArrayList<>();
+			if (clientData.size() > 0) {
+				if (idxRow >= clientData.get(tableName).size()) {
+					client = clientData.get(tableName).get(clientData.get(tableName).size() - 1);
+				} else {
+					client = clientData.get(tableName).get(idxRow);
+				}
 			}
 			 
-			if (client != null) {
+			if (client.size() > 0) {
 				for (ColumnInfo colInfo : l) {
 					for (ColumnInfo c : client) {
 						if (colInfo.getName().equals(c.getName()) && colInfo.val.isEmpty()) {

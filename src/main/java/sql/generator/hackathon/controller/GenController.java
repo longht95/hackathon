@@ -212,7 +212,6 @@ public class GenController {
 		});
 
 		try {
-
 			executeDBServer.connectDB(objectGenate.infoDatabase.getType(), objectGenate.infoDatabase.getUrl(), 
 					objectGenate.infoDatabase.getSchema(), objectGenate.infoDatabase.getUser(), 
 					objectGenate.infoDatabase.getPassword());
