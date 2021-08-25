@@ -14,12 +14,14 @@ import org.apache.poi.hssf.usermodel.HSSFFont;
 import org.apache.poi.hssf.usermodel.HSSFSheet;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.Sheet;
+import org.springframework.stereotype.Service;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.Row;
 
 import sql.generator.hackathon.model.ColumnInfo;
 
+@Service
 public class ExcelExporter {
 	private  Map<String, List<List<ColumnInfo>>> dataList ;
 
