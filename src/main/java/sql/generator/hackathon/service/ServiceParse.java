@@ -27,8 +27,10 @@ import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 import net.sf.jsqlparser.expression.operators.relational.GreaterThan;
 import net.sf.jsqlparser.expression.operators.relational.GreaterThanEquals;
 import net.sf.jsqlparser.expression.operators.relational.InExpression;
+import net.sf.jsqlparser.expression.operators.relational.LikeExpression;
 import net.sf.jsqlparser.expression.operators.relational.MinorThan;
 import net.sf.jsqlparser.expression.operators.relational.MinorThanEquals;
+import net.sf.jsqlparser.expression.operators.relational.NotEqualsTo;
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
@@ -60,9 +62,12 @@ public class ServiceParse {
 	public static final String IN = "IN";
 	public static final String GREATHER_OR_EQUAL = ">=";
 	public static final String LESS_OR_EQUAL = "<=";
+	public static final String GREATHER = ">";
+	public static final String LESS = "<";
 	public static final String EQUAL = "=";
 	public static final String EQUAL_NOT = "!=";
 	public static final String DOT = ".";
+	public static final String LIKE = "LIKE";
 	private int state = 1;
 
 	static {
@@ -167,6 +172,7 @@ public class ServiceParse {
 		if (joins != null && !joins.isEmpty()) {
 			joins.forEach(join -> {
 				try {
+					System.out.println("JOINNNNNN" + join);
 					processJoin(join);
 				} catch (JSQLParserException e) {
 					e.printStackTrace();
@@ -226,6 +232,8 @@ public class ServiceParse {
 	}
 
 	private void processExpression(Expression expression, boolean isNot, FromItem alias) throws JSQLParserException {
+		System.out.println("Expresionssssss" + expression);
+		System.out.println(expression.getClass());
 		String currentAlias;
 		if (alias instanceof Table) {
 			currentAlias = alias.getAlias() != null ? alias.getAlias().getName() : alias.toString();
@@ -234,21 +242,28 @@ public class ServiceParse {
 		}
 		if (expression instanceof EqualsTo || expression instanceof GreaterThan
 				|| expression instanceof GreaterThanEquals || expression instanceof MinorThan
-				|| expression instanceof MinorThanEquals) {
+				|| expression instanceof MinorThanEquals || expression instanceof NotEqualsTo) {
 			BinaryExpression binary = (BinaryExpression) expression;
 			if (binary.getLeftExpression() instanceof Column && binary.getRightExpression() instanceof Column) {
+				System.out.println("COLUMN AND COLUMN");
 				String expresionLeft;
 				String expresionRight;
-				if (!binary.getStringExpression().equals(EQUAL)) {
+				if (binary.getStringExpression().equals(GREATHER_OR_EQUAL)
+						|| binary.getStringExpression().equals(LESS_OR_EQUAL)
+						|| binary.getStringExpression().equals(GREATHER) || binary.getStringExpression().equals(LESS)) {
 					expresionLeft = isNot ? reverseExpression.get(binary.getStringExpression())
 							: binary.getStringExpression();
 					expresionRight = isNot ? binary.getStringExpression()
 							: reverseExpression.get(binary.getStringExpression());
+					System.out.println("RIGHTTTT" + expresionRight);
+					System.out.println("IS NOT" + isNot);
+					System.out.println("NEEEE" + binary.getStringExpression());
 				} else {
 					expresionRight = isNot ? reverseExpression.get(binary.getStringExpression())
 							: binary.getStringExpression();
 					expresionLeft = isNot ? reverseExpression.get(binary.getStringExpression())
 							: binary.getStringExpression();
+
 				}
 				Column leftColumn = (Column) binary.getLeftExpression();
 				Column rightColumn = (Column) binary.getRightExpression();
@@ -272,6 +287,29 @@ public class ServiceParse {
 				Condition condition = Condition.builder().left(binary.getRightExpression().toString())
 						.expression(binary.getStringExpression()).right(binary.getLeftExpression().toString()).build();
 				listCondition.add(condition);
+			} else if (binary.getLeftExpression() instanceof Column
+					&& binary.getRightExpression() instanceof SubSelect) {
+				Column leftColumn = (Column) binary.getLeftExpression();
+				if (leftColumn.getTable() == null) {
+					leftColumn.setTable(new Table(currentAlias));
+				}
+				SelectBody selectBody = ((SubSelect) binary.getRightExpression()).getSelectBody();
+				PlainSelect plainSelect = (PlainSelect) selectBody;
+				List<String> listItems = new ArrayList<>();
+				Table table = (Table) plainSelect.getFromItem();
+				List<SelectItem> selectItems = plainSelect.getSelectItems();
+				listItems.addAll(selectItems.stream().map(item -> {
+					if (item.toString().contains(DOT)) {
+						return item.toString();
+					} else {
+						return table.getAlias() != null ? table.getAlias().getName() + "." + item.toString()
+								: table.getName() + "." + item.toString();
+					}
+				}).collect(Collectors.toList()));
+				Condition condition = Condition.builder().left(leftColumn.toString())
+						.expression(binary.getStringExpression()).right(selectItems.get(0).toString()).build();
+				listCondition.add(condition);
+				processSelectBody(selectBody, isNot, null);
 			} else {
 				Column leftColumn = (Column) binary.getLeftExpression();
 				if (leftColumn.getTable() == null) {
@@ -371,6 +409,18 @@ public class ServiceParse {
 		} else if (expression instanceof Parenthesis) {
 			Parenthesis parenthesis = (Parenthesis) expression;
 			processExpression(parenthesis.getExpression(), isNot, alias);
+		} else if (expression instanceof LikeExpression) {
+			LikeExpression likeExpression = (LikeExpression) expression;
+			if (likeExpression.getLeftExpression() instanceof Column
+					&& likeExpression.getRightExpression() instanceof StringValue) {
+				Column leftColumn = (Column) likeExpression.getLeftExpression();
+				if (leftColumn.getTable() == null) {
+					leftColumn.setTable(new Table(currentAlias));
+				}
+				Condition condition = Condition.builder().left(leftColumn.toString())
+						.expression(likeExpression.isNot() ? "NOT LIKE" : "LIKE").right(likeExpression.getRightExpression().toString()).build();
+				listCondition.add(condition);
+			}
 		} else if (expression instanceof Between) {
 			Between between = (Between) expression;
 			Expression expressionStart = between.getBetweenExpressionStart();
