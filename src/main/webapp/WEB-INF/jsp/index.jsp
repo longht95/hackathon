@@ -178,7 +178,7 @@ table td.appDetails:nth-last-child(2) {
 					<option value="Excel">Excel</option>
 					<option value="SQL">SQL</option>
 				</select>
-				<input type="text" value="" id="" >
+				<input type="text" value="1" id="rowGen" >
 				<input type="submit" value="Generate" id="Generate" onclick="genate()">
 			</div>
 		</div>
@@ -407,6 +407,7 @@ table td.appDetails:nth-last-child(2) {
 		});
 		
 		function testConnection() {
+			console.log('xxx');
 			let url = $('#url').val();
 			let schema = $('#schema').val();
 			let user = $('#user').val();
@@ -438,6 +439,7 @@ table td.appDetails:nth-last-child(2) {
 			let schema = $('#schema').val();
 			let user = $('#user').val();
 			let pass = $('#pass').val();
+			let row =  $('#rowGen').val();
 			let tableSelected = $('#select-database :selected').val();
 			const infoDatabase = {
 					type : tableSelected,
@@ -476,6 +478,7 @@ table td.appDetails:nth-last-child(2) {
 					typeGen : typeGen,
 					dataPicker : dataPicker,
 					infoDatabase : infoDatabase,
+					row :row,
 			}
 			xhr.send(JSON.stringify(jsonData));
 			
