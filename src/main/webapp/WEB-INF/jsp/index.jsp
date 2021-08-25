@@ -443,21 +443,34 @@ table td.appDetails:nth-last-child(2) {
 					queryInput : queryInput,
 					typeGen : typeGen,
 			}
-			$.ajax({
-			       url : '/generate',
-			       type : 'POST',
-			       data :  JSON.stringify({
-						"queryInput" : queryInput,
-						"typeGen" : typeGen,
-						"dataPicker" : dataPicker,
-						"infoDatabase" : infoDatabase,
-			       }),
-					contentType : "application/json",
-					dataType : 'json',
-			       success : function(data) {
-			           
-			       }
-			});
+			
+			
+			var xhr = new XMLHttpRequest();
+			xhr.open('POST', '/generate', true);
+			xhr.responseType = 'blob';
+			xhr.setRequestHeader('Content-type', 'application/json; charset=utf-8');
+			xhr.onload = function(e) {
+			    if (this.status == 200) {
+			    	console.log('byte', this.response);
+			    	var blob = new Blob([xhr.response], {type: 'application/vnd.ms-excel'});
+			        var downloadUrl = URL.createObjectURL(blob);
+			        var a = document.createElement("a");
+			        a.href = downloadUrl;
+			        a.download = "data.xls";
+			        document.body.appendChild(a);
+			        a.click();
+			    } else {
+			        alert('Unable to download excel.')
+			    }
+			};
+			const jsonData = {
+					queryInput : queryInput,
+					typeGen : typeGen,
+					dataPicker : dataPicker,
+					infoDatabase : infoDatabase,
+			}
+			xhr.send(JSON.stringify(jsonData));
+			
 		}
 		
 	</script>
