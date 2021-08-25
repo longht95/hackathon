@@ -3,12 +3,8 @@ package sql.generator.hackathon.controller;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.sql.SQLException;
 import java.sql.SQLSyntaxErrorException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -17,11 +13,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import javax.annotation.Resource;
-
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -45,7 +38,6 @@ import sql.generator.hackathon.model.ColumnInfo;
 import sql.generator.hackathon.model.InfoDisplayScreen;
 import sql.generator.hackathon.model.ObjectGenate;
 import sql.generator.hackathon.model.ParseObject;
-import sql.generator.hackathon.model.TableSQL;
 import sql.generator.hackathon.model.ViewQuery;
 import sql.generator.hackathon.service.CreateService;
 import sql.generator.hackathon.service.ExcelExporter;
@@ -220,9 +212,6 @@ public class GenController {
 		});
 
 		try {
-
-			int row = 1;
-			
 			executeDBServer.connectDB(objectGenate.infoDatabase.getType(), objectGenate.infoDatabase.getUrl(), 
 					objectGenate.infoDatabase.getSchema(), objectGenate.infoDatabase.getUser(), 
 					objectGenate.infoDatabase.getPassword());
@@ -232,7 +221,7 @@ public class GenController {
 					serviceParse.getListTableByStatement(objectGenate.queryInput)));
 			CreateData createData = new CreateData(executeDBServer, createService, parseObject.getListTableSQL(), 
 					parseObject.getMappingKey(), objectGenate.infoDatabase.getSchema());
-			Map<String, List<List<ColumnInfo>>> response = createData.multipleCreate(dataPick, row, false);
+			Map<String, List<List<ColumnInfo>>> response = createData.multipleCreate(dataPick, objectGenate.row, false);
 			HSSFWorkbook workbook = excelExporter.createEex(response);
 			HttpHeaders header = new HttpHeaders();
 	        header.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=data.xls");

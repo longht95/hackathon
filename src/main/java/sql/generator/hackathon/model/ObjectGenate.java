@@ -16,4 +16,5 @@ public class ObjectGenate {
 	public String queryInput;
 	public List<ObjectDataPicker> dataPicker;
 	public String typeGen;
+	public int row;
 }
