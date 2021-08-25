@@ -194,7 +194,7 @@ public class GenController {
 	}
 
 	@PostMapping(value = "/generate")
-	public @ResponseBody String generate(@RequestBody ObjectGenate objectGenate) throws Exception {
+	public ResponseEntity<InputStreamResource> generate(@RequestBody ObjectGenate objectGenate) throws Exception {
 		Map<String, List<List<ColumnInfo>>> dataPick = new HashMap<>();
 		objectGenate.dataPicker.forEach(x -> {
 			List<List<ColumnInfo>> list = new ArrayList<>();
@@ -215,7 +215,7 @@ public class GenController {
 
 		try {
 
-			int row = 1;
+			int row = 2;
 			
 			executeDBServer.connectDB(objectGenate.infoDatabase.getType(), objectGenate.infoDatabase.getUrl(), 
 					objectGenate.infoDatabase.getSchema(), objectGenate.infoDatabase.getUser(), 
