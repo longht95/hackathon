@@ -51,6 +51,7 @@ public class ExecuteDBSQLServer {
 	public boolean connectDB(String tableSelected, String url, String schemaName, String user, String pass) throws Exception {
 		
 		DataSource dataSource = (DataSource)beanFactory.getBean("dataSource", driverDB.get(tableSelected), jdbcDB.get(tableSelected) + url + "/" + schemaName, user, pass);
+		dataSource.setLoginTimeout(4000);
 		try {
 			connect = dataSource.getConnection();
 		} catch (Exception e) {
