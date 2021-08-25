@@ -243,7 +243,7 @@ table td.appDetails:nth-last-child(2) {
 			htmlTable+="</tr>"
 			if (current) {
 				current.listData.push(dataP);
-				$('#block-data-picker').find('table tbody').append(htmlTable);
+				$('#block-data-picker').find('table#'+ tableSelected+' tbody').append(htmlTable);
 			} else {
 				//create table
 				let tableHTML = '<table id="'+tableSelected+'"><tbody>' + htmlTable + '</tbody></table>'
