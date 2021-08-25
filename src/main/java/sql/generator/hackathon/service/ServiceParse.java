@@ -172,7 +172,6 @@ public class ServiceParse {
 		if (joins != null && !joins.isEmpty()) {
 			joins.forEach(join -> {
 				try {
-					System.out.println("JOINNNNNN" + join);
 					processJoin(join);
 				} catch (JSQLParserException e) {
 					e.printStackTrace();
@@ -232,8 +231,6 @@ public class ServiceParse {
 	}
 
 	private void processExpression(Expression expression, boolean isNot, FromItem alias) throws JSQLParserException {
-		System.out.println("Expresionssssss" + expression);
-		System.out.println(expression.getClass());
 		String currentAlias;
 		if (alias instanceof Table) {
 			currentAlias = alias.getAlias() != null ? alias.getAlias().getName() : alias.toString();
@@ -245,7 +242,6 @@ public class ServiceParse {
 				|| expression instanceof MinorThanEquals || expression instanceof NotEqualsTo) {
 			BinaryExpression binary = (BinaryExpression) expression;
 			if (binary.getLeftExpression() instanceof Column && binary.getRightExpression() instanceof Column) {
-				System.out.println("COLUMN AND COLUMN");
 				String expresionLeft;
 				String expresionRight;
 				if (binary.getStringExpression().equals(GREATHER_OR_EQUAL)
@@ -255,9 +251,6 @@ public class ServiceParse {
 							: binary.getStringExpression();
 					expresionRight = isNot ? binary.getStringExpression()
 							: reverseExpression.get(binary.getStringExpression());
-					System.out.println("RIGHTTTT" + expresionRight);
-					System.out.println("IS NOT" + isNot);
-					System.out.println("NEEEE" + binary.getStringExpression());
 				} else {
 					expresionRight = isNot ? reverseExpression.get(binary.getStringExpression())
 							: binary.getStringExpression();

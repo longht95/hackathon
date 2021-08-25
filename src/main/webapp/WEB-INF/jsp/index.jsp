@@ -460,7 +460,7 @@ table td.appDetails:nth-last-child(2) {
 					url : url,
 					schema : schema,
 					user : user,
-					pass :pass,
+					password :pass,
 			}
 			const inputGenerate = {
 					dataPicker : dataPicker,
