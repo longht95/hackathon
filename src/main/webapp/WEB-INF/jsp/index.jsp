@@ -340,9 +340,8 @@ table td.appDetails:nth-last-child(2) {
 		$(document).on("click", ".appDetails", function() {
 			var clickedBtnID = $(this).attr('id'); // or var clickedBtnID = this.id
 			var inputT = $(this).attr('id')+'-input';
-			alert('you clicked on button #' + clickedBtnID);
+			$("#" + inputT).show().find('input').focus();
 			$("#" + clickedBtnID).hide();
-			$("#" + inputT).show();
 		});
 		
 		//import file
