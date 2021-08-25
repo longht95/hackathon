@@ -8,6 +8,8 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.sql.SQLException;
+import java.sql.SQLSyntaxErrorException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -156,7 +158,6 @@ public class GenController {
 			viewQuery = ViewQuery.builder().listTable(serviceParse.getListTableByStatement(query)).query(query).build();
 
 		} catch (JSQLParserException e) {
-
 			viewQuery.setMess("Statement is not valid");
 		}
 		ObjectMapper mapper = new ObjectMapper();
@@ -170,11 +171,16 @@ public class GenController {
 		boolean isConnect = executeDBServer.connectDB(tableSelected, url, schema, user, pass);
 		ObjectMapper mapper = new ObjectMapper();
 		if (isConnect) {
-
-			InfoDisplayScreen infoDisplayScreen = executeDBServer.getDataDisplay(schema, tableName);
-			mapper.enable(SerializationFeature.INDENT_OUTPUT);
-			executeDBServer.disconnectDB();
-			return mapper.writeValueAsString(infoDisplayScreen);
+			try {
+				InfoDisplayScreen infoDisplayScreen = executeDBServer.getDataDisplay(schema, tableName);
+				mapper.enable(SerializationFeature.INDENT_OUTPUT);
+				return mapper.writeValueAsString(infoDisplayScreen);
+			}
+			catch (SQLSyntaxErrorException e) {
+				return mapper.writeValueAsString("Table not exit");
+			} finally {
+				executeDBServer.disconnectDB();
+			}
 		}
 		return mapper.writeValueAsString("Connect error");
 
@@ -240,6 +246,8 @@ public class GenController {
 		} catch (JSQLParserException e) {
 			// sql is not valid
 			e.printStackTrace();
+		} finally {
+			executeDBServer.disconnectDB();
 		}
 		System.out.println(dataPick.toString());
 		return null;
