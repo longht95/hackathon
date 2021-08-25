@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -33,6 +34,7 @@ import sql.generator.hackathon.model.ParseObject;
 import sql.generator.hackathon.model.TableSQL;
 import sql.generator.hackathon.model.ViewQuery;
 import sql.generator.hackathon.service.CreateService;
+import sql.generator.hackathon.service.ExcelExporter;
 import sql.generator.hackathon.service.ExecuteDBSQLServer;
 import sql.generator.hackathon.service.ServiceDatabase;
 import sql.generator.hackathon.service.ServiceParse;
@@ -52,6 +54,9 @@ public class GenController {
 	
 	@Autowired
 	private CreateService createService;
+	
+	@Autowired
+	private ExcelExporter excelExporter;
 	
 	public String url;
 	public String schema;
@@ -198,8 +203,8 @@ public class GenController {
 		});
 
 		try {
-			int row = 2;
-			boolean type = true;
+
+			int row = 1;
 			
 			executeDBServer.connectDB(objectGenate.infoDatabase.getType(), objectGenate.infoDatabase.getUrl(), 
 					objectGenate.infoDatabase.getSchema(), objectGenate.infoDatabase.getUser(), 
@@ -211,7 +216,11 @@ public class GenController {
 			createService.setTableInfo(executeDBServer.getInforTable(objectGenate.infoDatabase.getSchema(), 
 					serviceParse.getListTableByStatement(objectGenate.queryInput)));
 			CreateData createData = new CreateData(executeDBServer, createService, parseObject.getListTableSQL(), parseObject.getMappingKey());
-			Map<String, List<List<ColumnInfo>>> response = createData.multipleCreate(dataPick, row, type);
+			Map<String, List<List<ColumnInfo>>> response = createData.multipleCreate(dataPick, row, false);
+			HSSFWorkbook workbook = excelExporter.createEex(response);
+			workbook.getBytes();
+			
+			
 		} catch (JSQLParserException e) {
 			// sql is not valid
 			e.printStackTrace();
@@ -219,4 +228,6 @@ public class GenController {
 		System.out.println(dataPick.toString());
 		return null;
 	}
+	
+	
 }
