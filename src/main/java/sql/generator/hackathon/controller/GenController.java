@@ -1,6 +1,11 @@
 package sql.generator.hackathon.controller;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
@@ -10,8 +15,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import javax.annotation.Resource;
+
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -159,7 +171,7 @@ public class GenController {
 		ObjectMapper mapper = new ObjectMapper();
 		if (isConnect) {
 
-			InfoDisplayScreen infoDisplayScreen = executeDBServer.getDataDisplay("admindb", tableName);
+			InfoDisplayScreen infoDisplayScreen = executeDBServer.getDataDisplay(schema, tableName);
 			mapper.enable(SerializationFeature.INDENT_OUTPUT);
 			executeDBServer.disconnectDB();
 			return mapper.writeValueAsString(infoDisplayScreen);
@@ -182,7 +194,7 @@ public class GenController {
 	}
 
 	@PostMapping(value = "/generate")
-	public @ResponseBody String generate(@RequestBody ObjectGenate objectGenate) throws Exception {
+	public ResponseEntity<InputStreamResource> generate(@RequestBody ObjectGenate objectGenate) throws Exception {
 //		Map<String, List<List<ColumnInfo>>> dataPick = new HashMap<>();
 		Map<String, List<ColumnInfo>> dataPick = new HashMap<>();
 		objectGenate.dataPicker.forEach(x -> {
@@ -208,18 +220,22 @@ public class GenController {
 			executeDBServer.connectDB(objectGenate.infoDatabase.getType(), objectGenate.infoDatabase.getUrl(), 
 					objectGenate.infoDatabase.getSchema(), objectGenate.infoDatabase.getUser(), 
 					objectGenate.infoDatabase.getPassword());
-			
 			createService.connect(executeDBServer.connect);
-			
 			ParseObject parseObject = serviceParse.parseSelectStatement(objectGenate.queryInput);
 			createService.setTableInfo(executeDBServer.getInforTable(objectGenate.infoDatabase.getSchema(), 
 					serviceParse.getListTableByStatement(objectGenate.queryInput)));
 			CreateData createData = new CreateData(executeDBServer, createService, parseObject.getListTableSQL(), parseObject.getMappingKey());
 			Map<String, List<List<ColumnInfo>>> response = createData.multipleCreate(dataPick, row, false);
 			HSSFWorkbook workbook = excelExporter.createEex(response);
-			workbook.getBytes();
-			
-			
+			HttpHeaders header = new HttpHeaders();
+	        header.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=data.xls");
+	        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+	        workbook.write(bos);
+	        ByteArrayInputStream resource = new ByteArrayInputStream(bos.toByteArray());
+			return ResponseEntity.ok()
+	                .headers(header)
+	                .contentType(MediaType.parseMediaType("application/vnd.ms-excel"))
+	                .body(new InputStreamResource(resource));
 		} catch (JSQLParserException e) {
 			// sql is not valid
 			e.printStackTrace();
