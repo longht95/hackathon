@@ -119,13 +119,13 @@ public class CreateData {
 		lastEndValidValue = new HashMap<>();
 	}
 	
-	public Map<String, List<List<ColumnInfo>>> multipleCreate(Map<String, List<ColumnInfo>> dataClient, 
+	public Map<String, List<List<ColumnInfo>>> multipleCreate(Map<String, List<List<ColumnInfo>>> dataClient, 
 			int row, boolean type) throws SQLException {
 		Map<String, List<List<ColumnInfo>>> response = new HashMap<>();
 		
 		// Insert multiple row
 		for (int i = 0; i < row; ++i) {
-			Map<String, List<ColumnInfo>> dataOneRow = create(dataClient, type);
+			Map<String, List<ColumnInfo>> dataOneRow = create(dataClient, type, i);
 			for (Map.Entry<String, List<ColumnInfo>> m : dataOneRow.entrySet()) {
 				String tableName = m.getKey();
 				List<List<ColumnInfo>> t;
@@ -145,8 +145,8 @@ public class CreateData {
 	 * Execute create data after parse object
 	 * @throws SQLException 
 	 */
-	public Map<String, List<ColumnInfo>> create(Map<String, List<ColumnInfo>> dataClient,
-			boolean type) throws SQLException {
+	public Map<String, List<ColumnInfo>> create(Map<String, List<List<ColumnInfo>>> dataClient,
+			boolean type, int idxRow) throws SQLException {
 		
 		init();
 		
@@ -166,7 +166,7 @@ public class CreateData {
 		// Create last data for column!
 		createLastData();
 		
-		Map<String, List<ColumnInfo>> lst = processInsert(dataClient);
+		Map<String, List<ColumnInfo>> lst = processInsert(dataClient, idxRow);
 		
 		
 		if (type) {
@@ -1877,7 +1877,8 @@ public class CreateData {
 	}
 	
 	
-	private Map<String, List<ColumnInfo>> processInsert(Map<String, List<ColumnInfo>> clientData) throws SQLException {
+	private Map<String, List<ColumnInfo>> processInsert(Map<String, List<List<ColumnInfo>>> clientData,
+			int idxRow) throws SQLException {
 		Map<String, List<ColumnInfo>> res = new HashMap<>();
 		Map<String, List<ColumnInfo>> tableInfo = createService.getTableInfo();
 		for (Map.Entry<String, List<ColumnInfo>> e : tableInfo.entrySet()) {
@@ -1932,7 +1933,13 @@ public class CreateData {
 			}
 			
 			// Set value from client!
-			List<ColumnInfo> client = clientData.get(tableName);
+			List<ColumnInfo> client;
+			if (idxRow >= clientData.get(tableName).size()) {
+				client = clientData.get(tableName).get(clientData.get(tableName).size() - 1);
+			} else {
+				client = clientData.get(tableName).get(idxRow);
+			}
+			 
 			if (client != null) {
 				for (ColumnInfo colInfo : l) {
 					for (ColumnInfo c : client) {
