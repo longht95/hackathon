@@ -195,27 +195,27 @@ public class GenController {
 
 	@PostMapping(value = "/generate")
 	public ResponseEntity<InputStreamResource> generate(@RequestBody ObjectGenate objectGenate) throws Exception {
-//		Map<String, List<List<ColumnInfo>>> dataPick = new HashMap<>();
-		Map<String, List<ColumnInfo>> dataPick = new HashMap<>();
+		Map<String, List<List<ColumnInfo>>> dataPick = new HashMap<>();
 		objectGenate.dataPicker.forEach(x -> {
-//			List<List<ColumnInfo>> list = new ArrayList<>();
-//			for (List<String> data : x.listData) {
+			List<List<ColumnInfo>> list = new ArrayList<>();
+			for (List<String> data : x.listData) {
 				List<ColumnInfo> listColumnInfo = new ArrayList<>();
 				for (int i = 0; i < x.listData.get(0).size(); i++) {
 
 					ColumnInfo columnInfo = new ColumnInfo();
-					columnInfo.val = x.listData.get(0).get(i);
+					columnInfo.val = data.get(i);
 					columnInfo.name = x.getListColumn().get(i);
 					listColumnInfo.add(columnInfo);
 				}
-//				list.add(listColumnInfo);
-//			}
+				list.add(listColumnInfo);
+			}
 			System.out.println();
-			dataPick.put(x.tableName, listColumnInfo);
+			dataPick.put(x.tableName, list);
 		});
 
 		try {
-			int row = 1;
+
+			int row = 2;
 			
 			executeDBServer.connectDB(objectGenate.infoDatabase.getType(), objectGenate.infoDatabase.getUrl(), 
 					objectGenate.infoDatabase.getSchema(), objectGenate.infoDatabase.getUser(), 
@@ -224,7 +224,8 @@ public class GenController {
 			ParseObject parseObject = serviceParse.parseSelectStatement(objectGenate.queryInput);
 			createService.setTableInfo(executeDBServer.getInforTable(objectGenate.infoDatabase.getSchema(), 
 					serviceParse.getListTableByStatement(objectGenate.queryInput)));
-			CreateData createData = new CreateData(executeDBServer, createService, parseObject.getListTableSQL(), parseObject.getMappingKey());
+			CreateData createData = new CreateData(executeDBServer, createService, parseObject.getListTableSQL(), 
+					parseObject.getMappingKey(), objectGenate.infoDatabase.getSchema());
 			Map<String, List<List<ColumnInfo>>> response = createData.multipleCreate(dataPick, row, false);
 			HSSFWorkbook workbook = excelExporter.createEex(response);
 			HttpHeaders header = new HttpHeaders();
