@@ -36,15 +36,22 @@ public class CreateData {
 	{
 		priorityOfOperator.put("=", 1);
 		priorityOfOperator.put("IN", 2);
-		priorityOfOperator.put(">=", 3);
-		priorityOfOperator.put("<=", 4);
-		priorityOfOperator.put(">", 5);
-		priorityOfOperator.put("<", 6);
-		priorityOfOperator.put("NOT IN", 7);
-		priorityOfOperator.put("!=", 8);
-		priorityOfOperator.put("<>", 9);
+		priorityOfOperator.put("LIKE", 3);
+		priorityOfOperator.put(">=", 4);
+		priorityOfOperator.put("<=", 5);
+		priorityOfOperator.put(">", 6);
+		priorityOfOperator.put("<", 7);
+		priorityOfOperator.put("NOT IN", 8);
+		priorityOfOperator.put("!=", 9);
+		priorityOfOperator.put("<>", 10);
 	}
 
+	private static List<String> conditionInLike = new ArrayList<>();
+	{
+		conditionInLike.add("%");
+		conditionInLike.add("_");
+	}
+	
 	private String SCHEMA_NAME = "admindb";
 	
 	// Save mapping table.column mapping with other table.column
@@ -451,6 +458,8 @@ public class CreateData {
 				if (operator.equals("=")) {
 					lastEndValidValue.put(tableName + "." + colName, cur[1]);
 					break;
+				} else if (operator.equals("LIKE")) {
+					lastEndValidValue.put(tableName + "." + colName, processConditionLike(cur[1]));
 				}
 
 //				priorityOfOperator.put("IN", 2);
@@ -1999,36 +2008,16 @@ public class CreateData {
 		return res;
 	}
 	
-	// TODO
-	// Thinking? 
-//	/**
-//	 * Check valid value
-//	 * @param Set<Cond> allMappingOfColumn
-//	 * @param value String current value
-//	 * @param dataType dataType of column
-//	 * @return return when val Valid in list<Cond>
-//	 */
-//	public checkValueValidMapping(Set<Cond> allMapping, String val, String dataType) {
-//		boolean flgCheck = true;
-//		for (Cond cond : allMapping) {
-//			switch(cond.operator) {
-//			case "=":
-//				break;
-//			case "<=":
-//				break;
-//			case ">=":
-//				break;
-//			case ">":
-//				break;
-//			case "<":
-//				break;
-//			case "!=":
-//				break;
-//			default:
-//				System.out.println("Other operator?");
-//				break;
-//			}
-//		}
-//		return flgCheck;
-//	}
+	private String processConditionLike(String condition) {
+		StringBuilder res = new StringBuilder();
+		int n = condition.length();
+		for (int i = 0; i < n; ++i) {
+			if (conditionInLike.contains(condition.charAt(i))) {
+				res.append("a");
+			} else {
+				res.append(condition.charAt(i));
+			}
+		}
+		return res.toString();
+	}
 }
