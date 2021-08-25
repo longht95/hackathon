@@ -22,7 +22,7 @@ public class Cond{
 			return false;
 		}
 		Cond obj = (Cond) o;
-		return this.value.equals(obj.value);
+		return this.value.equals(obj.value) && this.operator.equals(obj.operator);
 	}
 	
 	@Override
