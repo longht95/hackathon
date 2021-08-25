@@ -215,7 +215,7 @@ public class GenController {
 
 		try {
 
-			int row = 2;
+			int row = 1;
 			
 			executeDBServer.connectDB(objectGenate.infoDatabase.getType(), objectGenate.infoDatabase.getUrl(), 
 					objectGenate.infoDatabase.getSchema(), objectGenate.infoDatabase.getUser(), 
