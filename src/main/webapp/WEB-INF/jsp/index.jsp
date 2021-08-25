@@ -178,6 +178,7 @@ table td.appDetails:nth-last-child(2) {
 					<option value="Excel">Excel</option>
 					<option value="SQL">SQL</option>
 				</select>
+				<input type="text" value="" id="" >
 				<input type="submit" value="Generate" id="Generate" onclick="genate()">
 			</div>
 		</div>
@@ -229,7 +230,7 @@ table td.appDetails:nth-last-child(2) {
 			}
 			let dataP = [];
 			
-			for (let i = 1; i < data.length; i++) {
+			for (let i = 0; i < data.length; i++) {
 				if (!$(data[i].innerHTML).is('input')) {
 					htmlTable+="<td>";
 					htmlTable+=data[i].innerHTML;
@@ -280,22 +281,30 @@ table td.appDetails:nth-last-child(2) {
 						dataType : 'json',
 						timeout : 100000,
 						success : function(data) {
+							if("Table not exit" == data) {
+								alert("Table not exit");
+								return;
+							}
+							if("Connect error" == data) {
+								alert("Connect error");
+								return;
+							} 
 							console.log("SUCCESS: ", data);
 							let tbl = $(".table > tbody");
 							let arrData = data.listData;
 							let arrColumn = data.listColumnName;
-							console.log(data);
 							let tien = "";
 							tien += "<tr><th>#</th>";
 							let tbl1 = $(".table > thead");
 							tbl1.empty();
+							$(".table > tbody").empty();
 							for (let j = 0; j < arrColumn.length; j++) {
 								tien += "<th>" + arrColumn[j] + "</th>";
 							}
 							tien+="</tr>";
 							tbl.empty();
 							tbl1.append(tien);
-							for (let i = 1; i < arrData.length; i++) {
+							for (let i = 0; i < arrData.length; i++) {
 								let abc = "<tr>";
 								let tmp = 1;
 								abc += '<td><input type="checkbox" class="checkbox" onchange="checkedBoxChange(this)" id="'+tableName+i+'"></td>';
@@ -309,7 +318,6 @@ table td.appDetails:nth-last-child(2) {
 								abc += "</tr>";
 								tbl.append(abc);
 							}
-							console.log(data);
 						},
 						error : function(e) {
 							alert("Connect Error");
