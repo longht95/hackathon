@@ -151,7 +151,7 @@ table td.appDetails:nth-last-child(2) {
 				</div>
 			</div>
 			<div class="text-statement">
-				<textarea id="inputQuerySQL" rows="10" cols="40">${errMess}</textarea>
+				<textarea id="inputQuerySQL" rows="10" cols="40"></textarea>
 			</div>
 		</div>
 		<div class="right-layout">
@@ -204,10 +204,12 @@ table td.appDetails:nth-last-child(2) {
 			let isNotTable = $('#block-data-picker').find('#'+tableSelected).length == 0;
 			let id = $(check).attr('id');
 			let data = $(check).parent().parent().find("td");
+			
 			let htmlTable = '<tr id="'+id+'"><td><input id="'+id+'" class="delete-picker" style="width:50px" type="submit" value="Del" onClick="delPicker(this)"></td>';
 			let findColumn = [];
 			
 			let current = dataPicker.find(tb => tb.tableName == tableSelected);
+			console.log(current);
 			let htmlColumn = "<thead><tr><th>#</th>";
 			if (!check.checked) {
 				console.log('false');
@@ -241,7 +243,7 @@ table td.appDetails:nth-last-child(2) {
 			htmlTable+="</tr>"
 			if (current) {
 				current.listData.push(dataP);
-				$('#block-data-picker').find('table tbody').append(htmlTable);
+				$('#block-data-picker').find('table#'+ tableSelected+' tbody').append(htmlTable);
 			} else {
 				//create table
 				let tableHTML = '<table id="'+tableSelected+'"><tbody>' + htmlTable + '</tbody></table>'
@@ -306,14 +308,13 @@ table td.appDetails:nth-last-child(2) {
 							tbl1.append(tien);
 							for (let i = 0; i < arrData.length; i++) {
 								let abc = "<tr>";
-								let tmp = 1;
 								abc += '<td><input type="checkbox" class="checkbox" onchange="checkedBoxChange(this)" id="'+tableName+i+'"></td>';
 								for (let k = 0; k < arrData[i].length; k++) {
-									abc += "<td id ='row"+ tmp +"-col"+ tmp +"-p' class='appDetails'>";
+									abc += "<td id ='row"+ i +"-col"+ k +"-p' class='appDetails'>";
 									abc += arrData[i][k];
 									abc += "</td>";
-									abc += '<td id="row'+ tmp +'-col'+ tmp +'-p-input" style="display: none;"><input  type="text" placeholder="Nhập..."></td>'
-									tmp++;
+									abc += '<td id="row'+ i +'-col'+ k +'-p-input" style="display: none;" ><input  type="text" onblur="changeDataInput(this)" value='+ arrData[i][k]+' placeholder="Nhập..."></td>'
+									
 								}
 								abc += "</tr>";
 								tbl.append(abc);
@@ -339,9 +340,8 @@ table td.appDetails:nth-last-child(2) {
 		$(document).on("click", ".appDetails", function() {
 			var clickedBtnID = $(this).attr('id'); // or var clickedBtnID = this.id
 			var inputT = $(this).attr('id')+'-input';
-			alert('you clicked on button #' + clickedBtnID);
+			$("#" + inputT).show().find('input').focus();
 			$("#" + clickedBtnID).hide();
-			$("#" + inputT).show();
 		});
 		
 		//import file
@@ -432,6 +432,19 @@ table td.appDetails:nth-last-child(2) {
 			});
 		}
 		
+		function changeDataInput(cur) {
+			console.log();
+			let curParentInput = $(cur).parent();
+			
+			let valInput = $(cur).val();
+			let curId = $(cur).parent().attr('id');
+			let label = curId.substring(0, curId.length - 6);
+			curParentInput.hide();
+			$("#"+label).show();
+			$("#"+label).html(valInput);
+			
+		}
+		
 		function genate() {
 			let typeGen = $('#selectType :selected').text();
 			let queryInput = $('#inputQuerySQL').val();
@@ -446,7 +459,7 @@ table td.appDetails:nth-last-child(2) {
 					url : url,
 					schema : schema,
 					user : user,
-					pass :pass,
+					password :pass,
 			}
 			const inputGenerate = {
 					dataPicker : dataPicker,
