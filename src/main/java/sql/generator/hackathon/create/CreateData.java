@@ -36,15 +36,22 @@ public class CreateData {
 	{
 		priorityOfOperator.put("=", 1);
 		priorityOfOperator.put("IN", 2);
-		priorityOfOperator.put(">=", 3);
-		priorityOfOperator.put("<=", 4);
-		priorityOfOperator.put(">", 5);
-		priorityOfOperator.put("<", 6);
-		priorityOfOperator.put("NOT IN", 7);
-		priorityOfOperator.put("!=", 8);
-		priorityOfOperator.put("<>", 9);
+		priorityOfOperator.put("LIKE", 3);
+		priorityOfOperator.put(">=", 4);
+		priorityOfOperator.put("<=", 5);
+		priorityOfOperator.put(">", 6);
+		priorityOfOperator.put("<", 7);
+		priorityOfOperator.put("NOT IN", 8);
+		priorityOfOperator.put("!=", 9);
+		priorityOfOperator.put("<>", 10);
 	}
 
+	private static List<String> conditionInLike = new ArrayList<>();
+	{
+		conditionInLike.add("%");
+		conditionInLike.add("_");
+	}
+	
 	private String SCHEMA_NAME = "admindb";
 	
 	// Save mapping table.column mapping with other table.column
@@ -450,6 +457,9 @@ public class CreateData {
 				// When priority = 1 stop here
 				if (operator.equals("=")) {
 					lastEndValidValue.put(tableName + "." + colName, cur[1]);
+					break;
+				} else if (operator.equals("LIKE")) {
+					lastEndValidValue.put(tableName + "." + colName, processConditionLike(cur[1]));
 					break;
 				}
 
@@ -1055,11 +1065,8 @@ public class CreateData {
 			
 			// Get valid value of column
 			List<Cond> validV = validValuesForColumn.get(col);
+			String lastValidV = lastEndValidValue.get(col);
 			
-			// Call method cua a Trung
-			// Number
-			// Date
-			// char
 			ColumnInfo t = createService.getColumInfo(tableName, colName);
 			ColumnInfo colInfo = new ColumnInfo(t.getName(), "", t.getTypeName(), t.getTypeValue(),
 						t.getIsNull(), t.getIsPrimarykey(), t.getIsForeignKey(), t.getUnique());
@@ -1070,20 +1077,24 @@ public class CreateData {
 			
 			List<String> validOfCol = new ArrayList<>();
 			
+			
 			boolean isCompositeKey = createService.isCompositeKey(tableName);
 			
-			// When size = 1 => use equals(=)
-			if (validV == null) {
+			if (lastValidV != null && !lastValidV.isEmpty()) {
+				validOfCol.add(lastValidV);
+			} else {
+				// When size = 1 => use equals(=)
+				if (validV == null) {
 
-				// When not validValue for this column => free style this case.
-				// Maybe data type, min-len => push default key for this.
-				processGenKey(tableName, validOfCol, validV, colInfo, dataType, len, colInfo.isKey());
-			} else if (validV.size() == 1) {
-				validOfCol.add(validV.get(0).value);
-			} else if (validV.size() > 1) {
-				processGenKey(tableName, validOfCol, validV, colInfo, dataType, len, colInfo.isKey());
+					// When not validValue for this column => free style this case.
+					// Maybe data type, min-len => push default key for this.
+					processGenKey(tableName, validOfCol, validV, colInfo, dataType, len, colInfo.isKey());
+				} else if (validV.size() == 1) {
+					validOfCol.add(validV.get(0).value);
+				} else if (validV.size() > 1) {
+					processGenKey(tableName, validOfCol, validV, colInfo, dataType, len, colInfo.isKey());
+				}
 			}
-		
 			
 			// Save in there!
 			// Use DFS confirm this case!
@@ -1094,15 +1105,25 @@ public class CreateData {
 			// Visited
 			Set<NodeColumn> visited = new HashSet<>();
 			
+			boolean flgOut = false;
 			// Init 
 			// index -> Cond in e.getValue()
 			// 0 -> Cond in e.getValue()
-			// 0 -> Cond = value => columnName.tableName, operator => <=, >=, >, <, !=
+			// 0 -> Cond = value => tableName.colName, operator => <=, >=, >, <, !=
 			HashMap<Integer, Cond> l = new HashMap<>(e.getValue().size());
 			int i = 0;
 			for (Cond conD : e.getValue()) {
+				if ((lastEndValidValue.get(conD.value) != null &&
+						!lastEndValidValue.get(conD.value).isEmpty())) {
+					flgOut = true;
+					break;
+				}
 				l.put(i, conD);
 				++i;
+			}
+			
+			if(flgOut) {
+				continue;
 			}
 			
 			// Init
@@ -1146,7 +1167,12 @@ public class CreateData {
 					List<Cond> conditionInWhere = new ArrayList<>();
 					// When has condition will remove current 
 					if (validValuesForColumn.get(nextCond.value) != null) {
-						conditionInWhere = validValuesForColumn.get(nextCond.value);
+						if (lastEndValidValue.get(nextCond.value) != null &&
+								!lastEndValidValue.get(nextCond.value).isEmpty()) {
+							conditionInWhere.add(new Cond("=", lastEndValidValue.get(nextCond.value)));
+						} else {
+							conditionInWhere = validValuesForColumn.get(nextCond.value);
+						}
 						validOfCol = calculatorValidValWithColumnCondition(validOfCol, dataType,
 								conditionInWhere, null);
 					} 
@@ -1244,8 +1270,9 @@ public class CreateData {
 					}
 					String[] innerTableColName = getTableAndColName(nextCond.value);
 					ColumnInfo t2 = createService.getColumInfo(innerTableColName[0], innerTableColName[1]);
-					ColumnInfo colInnerInfo = new ColumnInfo(t2.getName(), "", t2.getTypeName(), t2.getTypeValue(),
-							t2.getIsNull(), t2.getIsPrimarykey(), t2.getIsForeignKey(), t2.getUnique());
+					ColumnInfo colInnerInfo = new ColumnInfo(t2.getName(), "", 
+							t2.getTypeName(), t2.getTypeValue(), t2.getIsNull(), 
+							t2.getIsPrimarykey(), t2.getIsForeignKey(), t2.getUnique());
 
 					if (flgAdd) {
 						// Execute for composite key
@@ -1258,7 +1285,7 @@ public class CreateData {
 							}
 						}
 						// Check value unique
-						if (!dbServer.isUniqueValue(innerTableColName[0], colInnerInfo, validOfCol.get(i))) {
+						if (!dbServer.isUniqueValue(innerTableColName[0], colInnerInfo, removeSpecifyCharacter("'", validOfCol.get(i)))) {
 							flgAdd = false;
 						} else {
 							flgAdd = true;
@@ -1999,36 +2026,16 @@ public class CreateData {
 		return res;
 	}
 	
-	// TODO
-	// Thinking? 
-//	/**
-//	 * Check valid value
-//	 * @param Set<Cond> allMappingOfColumn
-//	 * @param value String current value
-//	 * @param dataType dataType of column
-//	 * @return return when val Valid in list<Cond>
-//	 */
-//	public checkValueValidMapping(Set<Cond> allMapping, String val, String dataType) {
-//		boolean flgCheck = true;
-//		for (Cond cond : allMapping) {
-//			switch(cond.operator) {
-//			case "=":
-//				break;
-//			case "<=":
-//				break;
-//			case ">=":
-//				break;
-//			case ">":
-//				break;
-//			case "<":
-//				break;
-//			case "!=":
-//				break;
-//			default:
-//				System.out.println("Other operator?");
-//				break;
-//			}
-//		}
-//		return flgCheck;
-//	}
+	private String processConditionLike(String condition) {
+		StringBuilder res = new StringBuilder();
+		int n = condition.length();
+		for (int i = 0; i < n; ++i) {
+			if (conditionInLike.contains("" + condition.charAt(i))) {
+				res.append("a");
+			} else {
+				res.append(condition.charAt(i));
+			}
+		}
+		return res.toString();
+	}
 }
