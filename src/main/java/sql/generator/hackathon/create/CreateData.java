@@ -1977,7 +1977,7 @@ public class CreateData {
 			
 			// Set value from client!
 			List<ColumnInfo> client = new ArrayList<>();
-			if (clientData.size() > 0) {
+			if (clientData.size() > 0 && clientData.get(tableName) != null) {
 				if (idxRow >= clientData.get(tableName).size()) {
 					client = clientData.get(tableName).get(clientData.get(tableName).size() - 1);
 				} else {
@@ -1988,7 +1988,8 @@ public class CreateData {
 			if (client.size() > 0) {
 				for (ColumnInfo colInfo : l) {
 					for (ColumnInfo c : client) {
-						if (colInfo.getName().equals(c.getName()) && colInfo.val.isEmpty()) {
+						if (c.val != null && !c.val.equals("null") 
+								&& colInfo.getName().equals(c.getName()) && colInfo.val.isEmpty()) {
 							colInfo.val = c.val;
 						}
 					}
