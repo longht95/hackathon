@@ -159,22 +159,28 @@ public class GenController {
 	@GetMapping(value = "/selectTable")
 	public @ResponseBody String selectTable(@RequestParam String tableName, @RequestParam String url,
 			@RequestParam String schema, @RequestParam String user, @RequestParam String pass,
-			@RequestParam String tableSelected) throws Exception {
-		boolean isConnect = executeDBServer.connectDB(tableSelected, url, schema, user, pass);
+			@RequestParam String tableSelected, @RequestParam String query) throws Exception {
 		ObjectMapper mapper = new ObjectMapper();
-		if (isConnect) {
-			try {
-				InfoDisplayScreen infoDisplayScreen = executeDBServer.getDataDisplay(schema, tableName);
-				mapper.enable(SerializationFeature.INDENT_OUTPUT);
-				return mapper.writeValueAsString(infoDisplayScreen);
+		mapper.enable(SerializationFeature.INDENT_OUTPUT);
+		if (tableSelected.equals("No database")) {
+			return mapper.writeValueAsString(serviceParse.getColumnInfoView(query, tableName));
+		} else {
+			boolean isConnect = executeDBServer.connectDB(tableSelected, url, schema, user, pass);
+			
+			if (isConnect) {
+				try {
+					InfoDisplayScreen infoDisplayScreen = executeDBServer.getDataDisplay(schema, tableName);
+					return mapper.writeValueAsString(infoDisplayScreen);
+				}
+				catch (SQLSyntaxErrorException e) {
+					return mapper.writeValueAsString("Table not exit");
+				} finally {
+					System.out.println("DISSSSSSSSSSS");
+					executeDBServer.disconnectDB();
+				}
 			}
-			catch (SQLSyntaxErrorException e) {
-				return mapper.writeValueAsString("Table not exit");
-			} finally {
-				executeDBServer.disconnectDB();
-			}
+			return mapper.writeValueAsString("Connect error");
 		}
-		return mapper.writeValueAsString("Connect error");
 
 	}
 
