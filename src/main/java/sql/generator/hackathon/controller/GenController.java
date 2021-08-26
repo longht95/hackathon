@@ -231,19 +231,27 @@ public class GenController {
 			
 			CreateObject createObj = createData.multipleCreate(dataPick, objectGenate.row, false);
 			Map<String, List<List<ColumnInfo>>> response = createObj.listData;
-
-			// list Mark color
-			List<String> listMarkColor = createObj.listMarkColor;
-			
-			HSSFWorkbook workbook = excelExporter.createEex(response);
+			ByteArrayInputStream resource ;
+			ByteArrayOutputStream bos = new ByteArrayOutputStream();
 			HttpHeaders header = new HttpHeaders();
-	        header.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=data.xls");
-	        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-	        workbook.write(bos);
-	        ByteArrayInputStream resource = new ByteArrayInputStream(bos.toByteArray());
+			MediaType typeMedia;
+			System.out.println("TYPE GEN"+objectGenate.typeGen);
+			if (objectGenate.typeGen.equals("SQL")) {
+				resource = new ByteArrayInputStream(excelExporter.outputFieSql(serviceParse.dataToSqlInsert(response)));
+				header.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=data.txt");
+				typeMedia = MediaType.parseMediaType("text/plain");
+			} else {
+				//list markcolor
+				List<String> listMarkColor = createObj.listMarkColor;
+				HSSFWorkbook workbook = excelExporter.createEex(response);
+		        header.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=data.xls");
+		        workbook.write(bos);
+		        typeMedia = MediaType.parseMediaType("application/vnd.ms-excel");
+		        resource = new ByteArrayInputStream(bos.toByteArray());
+			}
 			return ResponseEntity.ok()
 	                .headers(header)
-	                .contentType(MediaType.parseMediaType("application/vnd.ms-excel"))
+	                .contentType(typeMedia)
 	                .body(new InputStreamResource(resource));
 		} catch (JSQLParserException e) {
 			// sql is not valid

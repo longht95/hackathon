@@ -488,12 +488,15 @@ table td.appDetails:nth-last-child(2) {
 			xhr.setRequestHeader('Content-type', 'application/json; charset=utf-8');
 			xhr.onload = function(e) {
 			    if (this.status == 200) {
-			    	console.log('byte', this.response);
-			    	var blob = new Blob([xhr.response], {type: 'application/vnd.ms-excel'});
+			    	var blob = new Blob([xhr.response], {type: xhr.getResponseHeader("Content-Type")});
 			        var downloadUrl = URL.createObjectURL(blob);
 			        var a = document.createElement("a");
 			        a.href = downloadUrl;
-			        a.download = "data.xls";
+			        if (xhr.getResponseHeader("Content-Type") == 'application/vnd.ms-excel') {
+			        	a.download = "data.xls";
+			        } else {
+			        	a.download = "data.txt";
+			        }
 			        document.body.appendChild(a);
 			        a.click();
 			    } else {

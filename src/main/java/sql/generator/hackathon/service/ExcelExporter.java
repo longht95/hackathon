@@ -93,51 +93,20 @@ public class ExcelExporter {
         }
     }
 
-	public byte[] outputFieSql(List<String> inputSQL) {
+	public byte[] outputFieSql(List<String> inputSQL) throws IOException {
 		ByteArrayOutputStream bos = new ByteArrayOutputStream();
-		ObjectOutputStream oos = null;
 		try {
-			oos = new ObjectOutputStream(bos);
 			for (String x : inputSQL) {
 				bos.write(x.getBytes());
-				bos.write("\n".getBytes());
+				bos.write(";\n".getBytes());
 			}
 
 		} catch (IOException e) {
 			e.printStackTrace();
+		} finally {
+			bos.close();
 		}
 		return bos.toByteArray();
 	}
 	
-    public FileOutputStream outputFile(String fileName) throws FileNotFoundException {
-       // HSSFWorkbook workbook =  this.createEex();
-
-        File file = null;
-        FileOutputStream outFile =null;
-            try {
-                    file= new File(fileName);
-                    outFile = new FileOutputStream(file);
-                    file.getParentFile().mkdirs();
-                    //workbook.write(outFile);
-
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        System.out.println("Created file: " + file.getAbsolutePath());
-        return  outFile;
-
-    }
-    public FileOutputStream outputFileSQL(ServiceParse serviceParse, String fileName) throws FileNotFoundException{
-        File file = null;
-        FileOutputStream outFile =null;
-        try {
-            file= new File(fileName);
-            outFile = new FileOutputStream(file);
-            file.getParentFile().mkdirs();
-         //   serviceParse.dataToSqlInsert();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return  outFile;
-    }
 }
