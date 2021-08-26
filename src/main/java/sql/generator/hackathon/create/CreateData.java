@@ -1977,7 +1977,7 @@ public class CreateData {
 			
 			// Set value from client!
 			List<ColumnInfo> client = new ArrayList<>();
-			if (clientData.size() > 0) {
+			if (clientData.size() > 0 && clientData.get(tableName) != null) {
 				if (idxRow >= clientData.get(tableName).size()) {
 					client = clientData.get(tableName).get(clientData.get(tableName).size() - 1);
 				} else {
