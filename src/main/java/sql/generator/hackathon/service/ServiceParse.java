@@ -111,6 +111,7 @@ public class ServiceParse {
 		parseObject.listTableSQL = tables.entrySet().stream().map(table -> table.getValue())
 				.collect(Collectors.toList());
 		parseObject.mappingKey = mappingKey;
+		System.out.println(listCondition.toString());
 		return parseObject;
 	}
 
@@ -282,6 +283,7 @@ public class ServiceParse {
 				listCondition.add(condition);
 			} else if (binary.getLeftExpression() instanceof Column
 					&& binary.getRightExpression() instanceof SubSelect) {
+				
 				Column leftColumn = (Column) binary.getLeftExpression();
 				if (leftColumn.getTable() == null) {
 					leftColumn.setTable(new Table(currentAlias));
@@ -300,8 +302,14 @@ public class ServiceParse {
 					}
 				}).collect(Collectors.toList()));
 				Condition condition = Condition.builder().left(leftColumn.toString())
-						.expression(binary.getStringExpression()).right(selectItems.get(0).toString()).build();
+						.expression(binary.getStringExpression()).right("KEY"+state).build();
+				Condition conditionRight = Condition.builder().left(selectItems.get(0).toString())
+						.expression(binary.getStringExpression()).right("KEY"+state).build();
 				listCondition.add(condition);
+				listCondition.add(conditionRight);
+				mappingKey.put("KEY" + state,
+						new ArrayList<>(Arrays.asList(leftColumn.toString(), selectItems.get(0).toString())));
+				state++;
 				processSelectBody(selectBody, isNot, null);
 			} else {
 				Column leftColumn = (Column) binary.getLeftExpression();
