@@ -126,6 +126,11 @@ table td.appDetails:nth-last-child(2) {
 .delete-picker {
 	width:50px;
 }
+#rowGen {
+	width: 36px;
+    border: 1px solid #d9d9d9;
+    height: 28px;
+}
 </style>
 <body>
 	<main>
@@ -320,18 +325,20 @@ table td.appDetails:nth-last-child(2) {
 							tien+="</tr>";
 							tbl.empty();
 							tbl1.append(tien);
-							for (let i = 0; i < arrData.length; i++) {
-								let abc = "<tr>";
-								abc += '<td><input type="checkbox" class="checkbox" onchange="checkedBoxChange(this)" id="'+tableName+i+'"></td>';
-								for (let k = 0; k < arrData[i].length; k++) {
-									abc += "<td id ='row"+ i +"-col"+ k +"-p' class='appDetails'>";
-									abc += arrData[i][k];
-									abc += "</td>";
-									abc += '<td id="row'+ i +'-col'+ k +'-p-input" style="display: none;" ><input  type="text" onblur="changeDataInput(this)" value='+ arrData[i][k]+' placeholder="Nhập..."></td>'
-									
+							if (arrData && arrData.length != 0) {
+								for (let i = 0; i < arrData.length; i++) {
+									let abc = "<tr>";
+									abc += '<td><input type="checkbox" class="checkbox" onchange="checkedBoxChange(this)" id="'+tableName+i+'"></td>';
+									for (let k = 0; k < arrData[i].length; k++) {
+										abc += "<td id ='row"+ i +"-col"+ k +"-p' class='appDetails'>";
+										abc += arrData[i][k];
+										abc += "</td>";
+										abc += '<td id="row'+ i +'-col'+ k +'-p-input" style="display: none;" ><input  type="text" onblur="changeDataInput(this)" value='+ arrData[i][k]+' placeholder="Nhập..."></td>'
+										
+									}
+									abc += "</tr>";
+									tbl.append(abc);
 								}
-								abc += "</tr>";
-								tbl.append(abc);
 							}
 						},
 						error : function(e) {
