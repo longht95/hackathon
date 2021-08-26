@@ -24,6 +24,7 @@ import sql.generator.hackathon.exception.NotFoundValueSQLException;
 import sql.generator.hackathon.model.ColumnInfo;
 import sql.generator.hackathon.model.Cond;
 import sql.generator.hackathon.model.Condition;
+import sql.generator.hackathon.model.CreateObject;
 import sql.generator.hackathon.model.NodeColumn;
 import sql.generator.hackathon.model.TableSQL;
 import sql.generator.hackathon.service.CreateService;
@@ -85,6 +86,9 @@ public class CreateData {
 	
 	private ExecuteDBSQLServer dbServer;
 	
+	private int idxColor = 1;
+	private Map<String, String> markColor;
+	
 	public CreateData() {
 		
 	}
@@ -124,14 +128,15 @@ public class CreateData {
 		
 		// Key tableName.colName
 		lastEndValidValue = new HashMap<>();
-		// Key tableName.colName
-		lastEndValidValue = new HashMap<>();
+		
+		// tableName.colName
+		markColor = new HashMap<>();
 	}
 	
-	public Map<String, List<List<ColumnInfo>>> multipleCreate(Map<String, List<List<ColumnInfo>>> dataClient, 
+	public CreateObject multipleCreate(Map<String, List<List<ColumnInfo>>> dataClient, 
 			int row, boolean type) throws SQLException {
 		Map<String, List<List<ColumnInfo>>> response = new HashMap<>();
-		
+		CreateObject createObj = new CreateObject();
 		// Insert multiple row
 		for (int i = 0; i < row; ++i) {
 			Map<String, List<ColumnInfo>> dataOneRow = create(dataClient, type, i);
@@ -147,7 +152,12 @@ public class CreateData {
 				t.add(m.getValue());
 			}
 		}
-		return response;
+		createObj.listData = response;
+		
+		// Process add listMarkColor
+		createObj.listMarkColor = processAddListMarkColor();
+		
+		return createObj;
 	}
 	
 	/**
@@ -190,97 +200,6 @@ public class CreateData {
 		return lst;
 	}
 	
-	/**
-	 * Execute update data from client!
-	 * When click gen data will call this method
-	 * @param dataClient String = tableName => List<ColumnInfo>
-	 */
-	public void update(Map<String, List<ColumnInfo>> dataClient) {
-		// Get data from client?
-		// Check current data valid?
-		
-		// use columnMap
-		// Save mapping table.column mapping with other table.column
-		// Calculator valid values in Where.
-		// Key = tableName.colName => Value = List<Cond> => Cond
-		// private Map<String, List<Cond>> validValuesForColumn = new HashMap<>();
-		
-		// Save mapping table.column mapping with other table.column
-		// private Map<String, Set<Cond>> columnMap = new HashMap<>();
-		
-		
-		// Key = tableName.colName => List data use operator (NOT IN, !=, <>)
-		// private Map<String, List<String>> valueInValidOfColumn = new HashMap<>();
-		
-		// Check this condition valid?
-		for (Map.Entry<String, List<ColumnInfo>> e : dataClient.entrySet()) {
-			String tableName = e.getKey();
-			List<ColumnInfo> l = e.getValue();
-			
-			// Array flag check when all column in flg = true => insert, otherwise will update
-			boolean[] arrFlg = new boolean[l.size()];
-			
-			List<ColumnInfo> listConditionUpdate = new ArrayList<>();
-			
-			// Execute update
-			for (int i = 0; i < l.size(); ++i) {
-			
-				boolean flgCur = true;
-				
-				ColumnInfo colInfo = createService.getColumInfo(tableName, l.get(i).name);
-				String dataType = createService.getDataTypeOfColumn(colInfo);
-				
-				String fullTableColName = tableName + "." + colInfo.name;
-
-				// Check valid value in ValidValues
-				List<Cond> validValue = validValuesForColumn.get(fullTableColName);
-				if (!checkValidValue(validValue, colInfo.val, dataType)) {
-					flgCur = false;
-				}
-				
-				// Check valid value for all mapping
-//				Set<Cond> allMapping = columnMap.get(fullTableColName);
-//				if (!checkValueValidMapping(allMapping, colInfo.val, dataType)) {
-//					continue;
-//				}
-				
-				// Check value in value different with value of (NOT IN, !=, <>)
-				List<String> inValidVal = valueInValidOfColumn.get(fullTableColName);
-				if (inValidVal.contains(colInfo.val)) {
-					flgCur = false;
-				}
-				
-				// TODO
-				// Not unikey for this
-				if (colInfo.isKey()) {
-					flgCur = false;
-					// Get value in tableData
-					List<ColumnInfo> tmp = tableData.get(fullTableColName);
-					for (ColumnInfo col : tmp) {
-						if (col.name.equals(colInfo.name)) {
-							listConditionUpdate.add(col);
-						}
-					}
-				}
-				
-				// Add to flg Check
-				arrFlg[i] = flgCur;
-			}
-			
-			List<ColumnInfo> listColUpdate = new ArrayList<>();
-
-			// When insert just call method insert and input List<ColumnInfo>
-			// When update -> List<ColumnInfo> can Update,
-			// List<ColumnInfo> condition of primary key in this table!
-			for (int i = 0; i < l.size(); ++i) {
-				if (arrFlg[i]) {
-					listColUpdate.add(l.get(i));
-				}
-			}
-			
-			createService.update(tableName, listColUpdate, listConditionUpdate);
-		}
-	}
 
 	private void exeEachTable(TableSQL table) {
 
@@ -1315,26 +1234,15 @@ public class CreateData {
 			List<NodeColumn> pathValidValue = findPathValidForMapping(parentMap, nodeGoal);
 			i = 0;
 			for (; i < pathValidValue.size(); ++i) {
+				
+				// Mark color for column Info
+				markColor.put(pathValidValue.get(i).tableColumnName, "MARK_COLOR_" + idxColor);
 				lastEndValidValue.put(pathValidValue.get(i).tableColumnName, pathValidValue.get(i).val);
 				visitedMapping.add(pathValidValue.get(i).tableColumnName);
 			}
+			
+			idxColor++;
 		}
-	}
-	
-	/**
-	 * @param List<Boolean> flgCheck
-	 * @return true when all boolean = true, otherwiser return false
-	 */
-	private boolean checkFlgMapping(List<Boolean> flgCheck) {
-		if (flgCheck.isEmpty()) {
-			return false;
-		}
-		for (int i = 0; i < flgCheck.size(); ++i) {
-			if (!flgCheck.get(i)) {
-				return false;
-			}
-		}
-		return true;
 	}
 	
 	/**
@@ -1944,6 +1852,13 @@ public class CreateData {
 					for (ColumnInfo d : data) {
 						if (colInfo.getName().equals(d.getName())) {
 							colInfo.val = d.val;
+							if (markColor.containsKey(tableName + "." + colInfo.getName())) {
+								colInfo.color = markColor.get(tableName + "." + colInfo.getName());
+							} else {
+								colInfo.color = "MARK_COLOR_" + idxColor;
+								markColor.put(tableName + "." + colInfo.getName(), "MARK_COLOR_" + idxColor);
+								idxColor++;
+							}
 						}
 					}
 				}
@@ -1977,7 +1892,7 @@ public class CreateData {
 			
 			// Set value from client!
 			List<ColumnInfo> client = new ArrayList<>();
-			if (clientData.size() > 0) {
+			if (clientData.size() > 0 && clientData.get(tableName) != null) {
 				if (idxRow >= clientData.get(tableName).size()) {
 					client = clientData.get(tableName).get(clientData.get(tableName).size() - 1);
 				} else {
@@ -1988,7 +1903,8 @@ public class CreateData {
 			if (client.size() > 0) {
 				for (ColumnInfo colInfo : l) {
 					for (ColumnInfo c : client) {
-						if (colInfo.getName().equals(c.getName()) && colInfo.val.isEmpty()) {
+						if (c.val != null && !c.val.equals("null") 
+								&& colInfo.getName().equals(c.getName()) && colInfo.val.isEmpty()) {
 							colInfo.val = c.val;
 						}
 					}
@@ -2032,6 +1948,11 @@ public class CreateData {
 		return res;
 	}
 	
+	/**
+	 * Process condition LIKE
+	 * @param condition
+	 * @return
+	 */
 	private String processConditionLike(String condition) {
 		StringBuilder res = new StringBuilder();
 		int n = condition.length();
@@ -2043,5 +1964,20 @@ public class CreateData {
 			}
 		}
 		return res.toString();
+	}
+
+	/**
+	 * Process add List Mark Color
+	 * @return
+	 */
+	private List<String> processAddListMarkColor() {
+		List<String> res = new ArrayList<>();
+		markColor.entrySet().forEach(e -> {
+			if (!res.contains(e.getValue())) {
+				res.add(e.getValue());
+			}
+		});
+		Collections.sort(res);
+		return res;
 	}
 }
