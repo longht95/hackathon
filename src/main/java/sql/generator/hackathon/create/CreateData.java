@@ -1988,7 +1988,8 @@ public class CreateData {
 			if (client.size() > 0) {
 				for (ColumnInfo colInfo : l) {
 					for (ColumnInfo c : client) {
-						if (colInfo.getName().equals(c.getName()) && colInfo.val.isEmpty()) {
+						if (c.val != null && !c.val.equals("null") 
+								&& colInfo.getName().equals(c.getName()) && colInfo.val.isEmpty()) {
 							colInfo.val = c.val;
 						}
 					}
