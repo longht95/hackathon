@@ -20,6 +20,7 @@ import java.util.Stack;
 
 import org.springframework.stereotype.Service;
 
+import sql.generator.hackathon.exception.NotFoundValueSQLException;
 import sql.generator.hackathon.model.ColumnInfo;
 import sql.generator.hackathon.model.Cond;
 import sql.generator.hackathon.model.Condition;
@@ -1180,6 +1181,11 @@ public class CreateData {
 						List<String> inValidValue = valueInValidOfColumn.get(nextCond.value);
 						validOfCol = calculatorValidValWithColumnCondition(validOfCol, dataType,
 								conditionInWhere, inValidValue);
+					}
+					
+					// Not found valid for mapping column
+					if (validOfCol.isEmpty()) {
+						throw new NotFoundValueSQLException("Not found valid value for this SQL!");
 					}
 				}
 				
