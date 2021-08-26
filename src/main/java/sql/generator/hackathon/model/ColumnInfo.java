@@ -10,8 +10,9 @@ public class ColumnInfo {
 	public boolean isForeignKey;
 	public boolean unique;
 	
+	public String color = "";
+	
 	public ColumnInfo() {
-		
 	}
 	
 	public ColumnInfo(String name, String val) {

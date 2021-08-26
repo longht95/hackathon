@@ -35,6 +35,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import net.sf.jsqlparser.JSQLParserException;
 import sql.generator.hackathon.create.CreateData;
 import sql.generator.hackathon.model.ColumnInfo;
+import sql.generator.hackathon.model.CreateObject;
 import sql.generator.hackathon.model.InfoDisplayScreen;
 import sql.generator.hackathon.model.ObjectGenate;
 import sql.generator.hackathon.model.ParseObject;
@@ -221,7 +222,13 @@ public class GenController {
 					serviceParse.getListTableByStatement(objectGenate.queryInput)));
 			CreateData createData = new CreateData(executeDBServer, createService, parseObject.getListTableSQL(), 
 					parseObject.getMappingKey(), objectGenate.infoDatabase.getSchema());
-			Map<String, List<List<ColumnInfo>>> response = createData.multipleCreate(dataPick, objectGenate.row, false);
+			
+			CreateObject createObj = createData.multipleCreate(dataPick, objectGenate.row, false);
+			Map<String, List<List<ColumnInfo>>> response = createObj.listData;
+
+			// list Mark color
+			List<String> listMarkColor = createObj.listMarkColor;
+			
 			HSSFWorkbook workbook = excelExporter.createEex(response);
 			HttpHeaders header = new HttpHeaders();
 	        header.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=data.xls");
