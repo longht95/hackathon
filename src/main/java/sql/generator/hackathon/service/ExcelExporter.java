@@ -92,20 +92,23 @@ public class ExcelExporter {
             System.out.println(isNameTable.get(i).val + "header");
         }
     }
-    public byte[] outputFieSql( List<String> inputSQL )  {
-        byte[] byteArrray = new byte[1024];
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        ObjectOutputStream oos = null;
-        try {
-            oos = new ObjectOutputStream(bos);
-            oos.writeObject(inputSQL);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
 
-        byte[] bytes = bos.toByteArray();
-        return  byteArrray;
-    }
+	public byte[] outputFieSql(List<String> inputSQL) {
+		ByteArrayOutputStream bos = new ByteArrayOutputStream();
+		ObjectOutputStream oos = null;
+		try {
+			oos = new ObjectOutputStream(bos);
+			for (String x : inputSQL) {
+				bos.write(x.getBytes());
+				bos.write("\n".getBytes());
+			}
+
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return bos.toByteArray();
+	}
+	
     public FileOutputStream outputFile(String fileName) throws FileNotFoundException {
        // HSSFWorkbook workbook =  this.createEex();
 

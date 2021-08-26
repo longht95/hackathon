@@ -291,22 +291,27 @@ public class ServiceParse {
 	
 	
 
-	public List<String> dataToSqlInsert(Map<String, List<ColumnInfo>> listData) {
+	public List<String> dataToSqlInsert(Map<String, List<List<ColumnInfo>>> listData) {
+
 		List<String> listSQL = new ArrayList<>();
-		for (java.util.Map.Entry<String, List<ColumnInfo>> s : listData.entrySet()) {
-			Insert insert = new Insert();
-			Table table = new Table(s.getKey().toString());
-			List<Column> columnList = new ArrayList<>();
-			ExpressionList values = new ExpressionList();
-			for (ColumnInfo columnInfo : s.getValue()) {
-				columnList.add(new Column(columnInfo.name));
-				values.addExpressions(new StringValue(columnInfo.val));
-			}
-			insert.setTable(table);
-			insert.setItemsList(values);
-			insert.setColumns(columnList);
-			listSQL.add(insert.toString());
+		for (java.util.Map.Entry<String, List<List<ColumnInfo>>> s : listData.entrySet()) {
+			s.getValue().forEach(x -> {
+				Insert insert = new Insert();
+				Table table = new Table(s.getKey().toString());
+				List<Column> columnList = new ArrayList<>();
+				ExpressionList values = new ExpressionList();
+				for (ColumnInfo columnInfo : x) {
+					columnList.add(new Column(columnInfo.name));
+					values.addExpressions(new StringValue(columnInfo.val));
+				}
+				insert.setTable(table);
+				insert.setItemsList(values);
+				insert.setColumns(columnList);
+				listSQL.add(insert.toString());
+			});
+
 		}
+
 		return listSQL;
 	}
 
