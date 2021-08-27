@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -185,6 +186,48 @@ public class CommonCreateService {
 		return res;
 	}
 	
+	
+	public void setClientData(List<ColumnInfo> curListColumn, Map<String, List<List<ColumnInfo>>> clientData, 
+			String tableName, int idxRow) {
+		// Set value from client!
+		List<ColumnInfo> client = new ArrayList<>();
+		if (clientData.size() > 0 && clientData.get(tableName) != null) {
+			if (idxRow >= clientData.get(tableName).size()) {
+				client = clientData.get(tableName).get(clientData.get(tableName).size() - 1);
+			} else {
+				client = clientData.get(tableName).get(idxRow);
+			}
+		}
+		
+		Set<ColumnInfo> clientTableData = new HashSet<>();
+		if (client.size() > 0) {
+			for (ColumnInfo colInfo : curListColumn) {
+				for (ColumnInfo c : client) {
+					if (c.val != null && !c.val.equals("null") 
+							&& colInfo.getName().equals(c.getName()) && colInfo.val.isEmpty()) {
+						colInfo.val = c.val;
+					}
+					
+					// Tracking column not in tableInfo and have in data picker
+					if (!colInfo.getName().equals(c.getName())) {
+						clientTableData.add(c);
+					}
+				}
+			}
+		}
+		
+		if (commonCreateObj.getType() == 0) {
+			for (ColumnInfo colInfo : clientTableData) {
+				curListColumn.add(colInfo);
+			}
+		}
+	}
+	
+	/**
+	 * 
+	 * @param type
+	 * @return
+	 */
 	public String getDefaultValue(String type) {
 		String res = "";
 		switch(type) {
