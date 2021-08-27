@@ -296,7 +296,7 @@ public class ExecuteDBSQLServer {
 		// get value FOREIGN KEY
 		for (ObjForeignKeyInfo objForeignKeyInfo : lstObjForeignKeyInfo) {
 			valForeignKey = getValueForeignKey(tableName, objForeignKeyInfo);
-			mapUnique.put(objForeignKeyInfo.getColumnName() + "." + objForeignKeyInfo.getColumnName(), valForeignKey);
+			mapUnique.put(objForeignKeyInfo.getTableName()+ "." + objForeignKeyInfo.getColumnName(), valForeignKey);
 		}
 		
 		// get column primary key
