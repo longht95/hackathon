@@ -956,7 +956,7 @@ public class CreateData {
 			// Init
 			i = validOfCol.size() - 1;
 			for (; i >= 0; --i) {
-				NodeColumn nodeCol = new NodeColumn(col, validOfCol.get(i), 0);
+				NodeColumn nodeCol = new NodeColumn(col, validOfCol.get(i), 0, null);
 				toExploder.add(nodeCol);
 			}
 			
@@ -972,13 +972,20 @@ public class CreateData {
 			List<NodeColumn> pathValidValue = findPathValidForMapping(parentMap, nodeGoal);
 			i = 0;
 			for (; i < pathValidValue.size(); ++i) {
+				NodeColumn cur = pathValidValue.get(i);
 				
 				// Mark color for column Info
-				markColor.put(pathValidValue.get(i).tableColumnName, "MARK_COLOR_" + idxColor);
-				lastEndValidValue.put(pathValidValue.get(i).tableColumnName, pathValidValue.get(i).val);
-				visitedMapping.add(pathValidValue.get(i).tableColumnName);
+				markColor.put(cur.tableColumnName, "MARK_COLOR_" + idxColor);
+				lastEndValidValue.put(cur.tableColumnName, pathValidValue.get(i).val);
+				
+				// Add value for composite key
+				if (cur.valCompositeKey != null && cur.valCompositeKey.size() > 0) {
+					cur.valCompositeKey.entrySet().forEach(inner -> {
+						lastEndValidValue.put(inner.getKey(), inner.getValue());
+					});
+				}
+				visitedMapping.add(cur.tableColumnName);
 			}
-			
 			idxColor++;
 		}
 	}
@@ -1585,6 +1592,9 @@ public class CreateData {
 			// Set again value
 			List<ColumnInfo> data = tableData.get(tableName);
 			
+			// confirm KEY no value
+			ColumnInfo colNoVal = null;
+						
 			if (data != null) {
 				for (ColumnInfo colInfo : l) {
 					for (ColumnInfo d : data) {
@@ -1599,18 +1609,13 @@ public class CreateData {
 							}
 						}
 					}
+					
+					if (colInfo.isKey() && colInfo.val.isEmpty()) {
+						colNoVal = colInfo;
+						break;
+					}
 				}
 			} 
-			
-			
-			// confirm KEY no value
-			ColumnInfo colNoVal = null;
-			for (ColumnInfo colInfo : l) {
-				if (colInfo.isKey() && colInfo.val.isEmpty()) {
-					colNoVal = colInfo;
-					break;
-				}
-			}
 			
 			if (colNoVal != null) {
 				Map<String, ColumnInfo> mapVal = genValueForKeyNoCondition(tableName, colNoVal);
@@ -1860,12 +1865,15 @@ public class CreateData {
 						t2.getIsPrimarykey(), t2.getIsForeignKey(), t2.getUnique());
 				
 				boolean flgAdd = isKeyMapping(nextCond, val, validOfCol.get(i), dataType);
-				
+
+				// Add execute for composite key
+				Map<String, String> valCompositeKey = null; 
 				if (flgAdd) {
 					// Execute for composite key
 					if (isCompositeKey) {
-						if (dbServer.genUniqueCol(SCHEMA_NAME, innerTableColName[0], colInnerInfo, 
-								validOfCol.get(i)).size() != 0) {
+						valCompositeKey = dbServer.genUniqueCol(SCHEMA_NAME, innerTableColName[0], colInnerInfo, 
+								validOfCol.get(i));
+						if (valCompositeKey.size() != 0) {
 							flgAdd = true;
 						} else {
 							flgAdd = false;
@@ -1882,7 +1890,7 @@ public class CreateData {
 				
 				if (flgAdd) {
 					// Table columnName, value, index
-					NodeColumn innerNode = new NodeColumn(nextCond.value, validOfCol.get(i), index + 1);
+					NodeColumn innerNode = new NodeColumn(nextCond.value, validOfCol.get(i), index + 1, valCompositeKey);
 					parentMap.put(innerNode, curNode);
 					toExploder.add(innerNode);
 				}
