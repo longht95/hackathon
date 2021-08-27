@@ -75,8 +75,8 @@ public class TestCreateController {
 		List<String> lstTableName = serviceParse.getListTableByStatement(query);
 		
 		// Connect dB
-		createService.connect(executeDBServer.connect);
-		createService.setTableInfo(executeDBServer.getInforTable("admindb", lstTableName));
+//		createService.connect(executeDBServer.connect);
+//		createService.setTableInfo(executeDBServer.getInforTable("admindb", lstTableName));
 		
 		Map<String, List<ColumnInfo>> dataClient = new HashMap<>();
 //		List<ColumnInfo> listCol = new ArrayList<ColumnInfo>();

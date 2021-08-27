@@ -18,6 +18,7 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.Stack;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import sql.generator.hackathon.exception.NotFoundValueSQLException;
@@ -27,6 +28,7 @@ import sql.generator.hackathon.model.Condition;
 import sql.generator.hackathon.model.CreateObject;
 import sql.generator.hackathon.model.NodeColumn;
 import sql.generator.hackathon.model.TableSQL;
+import sql.generator.hackathon.service.CommonCreateService;
 import sql.generator.hackathon.service.CreateService;
 import sql.generator.hackathon.service.ExecuteDBSQLServer;
 
@@ -55,6 +57,9 @@ public class CreateData {
 	}
 	
 	private String SCHEMA_NAME = "admindb";
+	
+	@Autowired
+	private CommonCreateService commonService;
 
 	// Save Key exists
 	private List<TableSQL> tables = new ArrayList<>();
@@ -87,20 +92,16 @@ public class CreateData {
 	private Map<String, String> markColor;
 	
 	public CreateData() {
-		
 	}
 	
-	public CreateData(ExecuteDBSQLServer dbServer, CreateService createService, List<TableSQL> tables, 
-			Map<String, List<String>> keys, String schema) throws SQLException {
-		// Connection for service
-		this.createService = createService;
-		createService.getDataExample();
-		
+	public void init(String type, ExecuteDBSQLServer dbServer, String schema, List<String> listTables, List<TableSQL> tables, 
+			Map<String, List<String>> keys) throws Exception {
 		this.dbServer = dbServer;
-		
+		SCHEMA_NAME = schema;
 		this.tables = tables;
 		this.keys = keys;
-		SCHEMA_NAME = schema;
+		commonService.init(type, listTables, schema, dbServer);
+		commonService.exeGetTableInfo(tables);
 	}
 	
 	public void init(){
@@ -227,7 +228,7 @@ public class CreateData {
 				return;
 			}
 
-			String[] sp = getTableAndColName(left);
+			String[] sp = commonService.getTableAndColName(left);
 			
 			// Format all Key aliasName.colName => tableName.colName
 			List<String> valKey;
@@ -278,7 +279,7 @@ public class CreateData {
 		String val = condition.right;
 
 		// TableName.columnName
-		String fullColName = tableName + "." + getTableAndColName(col)[1];
+		String fullColName = tableName + "." + commonService.getTableAndColName(col)[1];
 
 		lastEndValidValue.put(fullColName, "");
 		
@@ -307,23 +308,6 @@ public class CreateData {
 	}
 
 	/**
-	 * Get table name and column name
-	 * 
-	 * @param column table.colName || colName
-	 * @return String[2], String[0] = tableName, String[1] = columnName
-	 */
-	private String[] getTableAndColName(String input) {
-		String[] res = new String[2];
-		if (input.indexOf(".") != -1) {
-			res = input.split("\\.");
-			;
-		} else {
-			res[1] = input;
-		}
-		return res;
-	}
-
-	/**
 	 * Calculator valid value for column
 	 * Use for condition in where
 	 * @return Map<String, List<Cond> Key = tableName.colName, Value = Valid value.
@@ -334,9 +318,9 @@ public class CreateData {
 			String key = entry.getKey();
 			
 			// Get dataType of column
-			String tableName = getTableAndColName(key)[0];
-			String colName = getTableAndColName(key)[1];
-			String dataType = createService.getDataTypeOfColumn(createService.getColumInfo(tableName, colName));
+			String tableName = commonService.getTableAndColName(key)[0];
+			String colName = commonService.getTableAndColName(key)[1];
+			String dataType = commonService.getDataTypeOfColumn(commonService.getColumnInfo(tableName, colName).getTypeName());
 
 			// {operator, value, priority}
 			// operator => (=, <>, !=, ..)
@@ -798,9 +782,9 @@ public class CreateData {
 			String fullTableColName = e.getKey();
 			
 			// Get tableName and colName
-			String tableName = getTableAndColName(fullTableColName)[0];
-			String colName = getTableAndColName(fullTableColName)[1];
-			ColumnInfo colInfo = createService.getColumInfo(tableName, colName);
+			String tableName = commonService.getTableAndColName(fullTableColName)[0];
+			String colName = commonService.getTableAndColName(fullTableColName)[1];
+			ColumnInfo colInfo = commonService.getColumnInfo(tableName, colName);
 			
 			// When last have calculator in mapping
 			List<ColumnInfo> l = tableData.get(tableName);
@@ -880,8 +864,8 @@ public class CreateData {
 		// Map<String, List<Cond>> columnMap;
 		for (Map.Entry<String, Set<Cond>> e : columnMap.entrySet()) {
 			String col = e.getKey();
-			String tableName = getTableAndColName(col)[0];
-			String colName = getTableAndColName(col)[1];
+			String tableName = commonService.getTableAndColName(col)[0];
+			String colName = commonService.getTableAndColName(col)[1];
 			
 			// calculated this column!
 			if (visitedMapping.contains(col)) {
@@ -900,13 +884,13 @@ public class CreateData {
 			List<Cond> validV = validValuesForColumn.get(col);
 			String lastValidV = lastEndValidValue.get(col);
 			
-			ColumnInfo t = createService.getColumInfo(tableName, colName);
+			ColumnInfo t = commonService.getColumnInfo(tableName, colName);
 			ColumnInfo colInfo = new ColumnInfo(t.getName(), "", t.getTypeName(), t.getTypeValue(),
 						t.getIsNull(), t.getIsPrimarykey(), t.getIsForeignKey(), t.getUnique());
 
 					
-			String dataType = createService.getDataTypeOfColumn(colInfo);
-			int len = createService.getLengthOfColumn(colInfo);
+			String dataType = commonService.getDataTypeOfColumn(colInfo.getTypeName());
+			int len = commonService.getLengthOfColumn(colInfo);
 			
 			List<String> validOfCol = new ArrayList<>();
 			
@@ -960,7 +944,7 @@ public class CreateData {
 				toExploder.add(nodeCol);
 			}
 			
-			boolean isCompositeKey = createService.isCompositeKey(tableName);
+			boolean isCompositeKey = commonService.isCompositeKey(tableName);
 
 			NodeColumn nodeGoal = processCalKeyMap(toExploder, parentMap, e.getValue(), validOfCol, 
 					loopSearch, isCompositeKey, dataType);
@@ -1328,9 +1312,6 @@ public class CreateData {
 		if (dataType.equals("date")) {
 			SimpleDateFormat sdformat = new SimpleDateFormat("yyyy-MM-dd");
 			LocalDateTime now = LocalDateTime.now();
-			// TODO
-			// more?
-			// Get current date
 			return sdformat.format(now);  
 		}
 		
@@ -1576,7 +1557,7 @@ public class CreateData {
 	private Map<String, List<ColumnInfo>> processInsert(Map<String, List<List<ColumnInfo>>> clientData,
 			int idxRow) throws SQLException {
 		Map<String, List<ColumnInfo>> res = new HashMap<>();
-		Map<String, List<ColumnInfo>> tableInfo = createService.getTableInfo();
+		Map<String, List<ColumnInfo>> tableInfo = commonService.getTableInfo();
 		for (Map.Entry<String, List<ColumnInfo>> e : tableInfo.entrySet()) {
 			String tableName = e.getKey();
 			List<ColumnInfo> l = new ArrayList<>();
@@ -1657,7 +1638,7 @@ public class CreateData {
 			// Add default value
 			for (ColumnInfo colInfo : l) {
 				if (colInfo.getVal().isEmpty()) {
-					colInfo.val = createService.getDefaultValue(colInfo.getTypeName());
+					colInfo.val = commonService.getDefaultValue(colInfo.getTypeName());
 				}
 			}
 			
@@ -1681,7 +1662,7 @@ public class CreateData {
 		List<String> listVal = dbServer.genListUniqueVal(tableName, colInfo, "", "");
 		
 		// Gen value for key with no condition
-		if (!createService.isCompositeKey(tableName)) {
+		if (!commonService.isCompositeKey(tableName)) {
 			res.put(colInfo.name, new ColumnInfo(colInfo.name, listVal.get(0)));
 		} else {
 			for (String val : listVal) {
@@ -1739,8 +1720,8 @@ public class CreateData {
 		List<Cond> validVal = validValuesForColumn.get(tableName + "." + colName);
 		List<String> invalidVal = valueInValidOfColumn.get(tableName + "." + colName);
 		
-		int len = createService.getLengthOfColumn(colInfo);
-		String dataType = createService.getDataTypeOfColumn(colInfo);
+		int len = commonService.getLengthOfColumn(colInfo);
+		String dataType = commonService.getDataTypeOfColumn(colInfo.getTypeName());
 		
 		List<String> curValidVal = new ArrayList<>();
 
@@ -1752,7 +1733,7 @@ public class CreateData {
 			if (invalidVal == null || (!invalidVal.contains(curValidVal.get(i)))) {
 				boolean flgAdd = false;
 				// Key will gen value from DB
-				if (createService.isCompositeKey(tableName)) {
+				if (commonService.isCompositeKey(tableName)) {
 					
 					// TODO
 					// xem xet schemaName
@@ -1765,9 +1746,9 @@ public class CreateData {
 					// Get composite key
 					for (Map.Entry<String, String> entry : m.entrySet()) {
 						ColumnInfo columnInfo = new ColumnInfo(entry.getKey(), entry.getValue());
-						ColumnInfo colInner = createService.getColumInfo(tableName, entry.getKey());
+						ColumnInfo colInner = commonService.getColumnInfo(tableName, entry.getKey());
 						
-						createService.getDataTypeOfColumn(columnInfo);
+//						createService.getDataTypeOfColumn(columnInfo);
 						columnInfo.setTypeName(colInner.getTypeName());
 						columnInfo.setTypeValue(colInner.getTypeValue());
 					}
@@ -1856,10 +1837,10 @@ public class CreateData {
 			
 			checkMeet[index] = true;
 			
-			for (int i = 0; i < validOfCol.size(); ++i) {
+			for (int i = validOfCol.size() - 1; i >= 0; --i) {
 				
-				String[] innerTableColName = getTableAndColName(nextCond.value);
-				ColumnInfo t2 = createService.getColumInfo(innerTableColName[0], innerTableColName[1]);
+				String[] innerTableColName = commonService.getTableAndColName(nextCond.value);
+				ColumnInfo t2 = commonService.getColumnInfo(innerTableColName[0], innerTableColName[1]);
 				ColumnInfo colInnerInfo = new ColumnInfo(t2.getName(), "", 
 						t2.getTypeName(), t2.getTypeValue(), t2.getIsNull(), 
 						t2.getIsPrimarykey(), t2.getIsForeignKey(), t2.getUnique());
@@ -1869,24 +1850,24 @@ public class CreateData {
 				// Add execute for composite key
 				Map<String, String> valCompositeKey = null; 
 				if (flgAdd) {
-					// Execute for composite key
-					if (isCompositeKey) {
-						valCompositeKey = dbServer.genUniqueCol(SCHEMA_NAME, innerTableColName[0], colInnerInfo, 
-								validOfCol.get(i));
-						if (valCompositeKey.size() != 0) {
-							flgAdd = true;
-						} else {
-							flgAdd = false;
-						}
-					}
 					// Check value unique
 					if (!dbServer.isUniqueValue(innerTableColName[0], colInnerInfo, removeSpecifyCharacter("'", validOfCol.get(i)))) {
 						flgAdd = false;
 					} else {
 						flgAdd = true;
 					}
+					
+					// Execute for composite key
+					if (flgAdd && isCompositeKey) {
+						valCompositeKey = dbServer.genUniqueCol(SCHEMA_NAME, innerTableColName[0], colInnerInfo, 
+								removeSpecifyCharacter("'", validOfCol.get(i)));
+						if (valCompositeKey.size() != 0) {
+							flgAdd = true;
+						} else {
+							flgAdd = false;
+						}
+					}
 				}
-
 				
 				if (flgAdd) {
 					// Table columnName, value, index
