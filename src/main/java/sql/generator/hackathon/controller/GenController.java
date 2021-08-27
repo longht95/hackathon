@@ -39,8 +39,9 @@ import sql.generator.hackathon.model.CreateObject;
 import sql.generator.hackathon.model.InfoDisplayScreen;
 import sql.generator.hackathon.model.ObjectGenate;
 import sql.generator.hackathon.model.ParseObject;
+import sql.generator.hackathon.model.TableSQL;
 import sql.generator.hackathon.model.ViewQuery;
-import sql.generator.hackathon.service.CreateService;
+import sql.generator.hackathon.service.CommonCreateService;
 import sql.generator.hackathon.service.ExcelExporter;
 import sql.generator.hackathon.service.ExecuteDBSQLServer;
 import sql.generator.hackathon.service.ServiceDatabase;
@@ -60,7 +61,10 @@ public class GenController {
 	private ServiceParse serviceParse;
 	
 	@Autowired
-	private CreateService createService;
+	private CommonCreateService commonCreateService;
+	
+	@Autowired
+	private CreateData createData;
 	
 	@Autowired
 	private ExcelExporter excelExporter;
@@ -218,16 +222,31 @@ public class GenController {
 			dataPick.put(x.tableName, list);
 		});
 
+		String type = objectGenate.infoDatabase.getType();
+		
 		try {
-			executeDBServer.connectDB(objectGenate.infoDatabase.getType(), objectGenate.infoDatabase.getUrl(), 
-					objectGenate.infoDatabase.getSchema(), objectGenate.infoDatabase.getUser(), 
-					objectGenate.infoDatabase.getPassword());
-			createService.connect(executeDBServer.connect);
+			
 			ParseObject parseObject = serviceParse.parseSelectStatement(objectGenate.queryInput);
-			createService.setTableInfo(executeDBServer.getInforTable(objectGenate.infoDatabase.getSchema(), 
-					serviceParse.getListTableByStatement(objectGenate.queryInput)));
-			CreateData createData = new CreateData(executeDBServer, createService, parseObject.getListTableSQL(), 
-					parseObject.getMappingKey(), objectGenate.infoDatabase.getSchema());
+//			createService.setTableInfo(executeDBServer.getInforTable(objectGenate.infoDatabase.getSchema(), 
+//					serviceParse.getListTableByStatement(objectGenate.queryInput)));
+//			CommonCreateObj commonCreateObj = new CommonCreateObj(objectGenate.infoDatabase.getSchema(), objectGenate.queryInput);
+			
+//			CreateData createData = new CreateData(executeDBServer, createService, parseObject.getListTableSQL(), 
+//					parseObject.getMappingKey(), objectGenate.infoDatabase.getSchema());
+			
+			if (type.equalsIgnoreCase("no database")) {
+				createData.init(type, null, objectGenate.infoDatabase.getSchema(), 
+						serviceParse.getListTableByStatement(objectGenate.getQueryInput()),
+						parseObject.getListTableSQL(), parseObject.getMappingKey());
+			}  else {
+				executeDBServer.connectDB(objectGenate.infoDatabase.getType(), objectGenate.infoDatabase.getUrl(), 
+						objectGenate.infoDatabase.getSchema(), objectGenate.infoDatabase.getUser(), 
+						objectGenate.infoDatabase.getPassword());
+				createData.init(type, executeDBServer, objectGenate.infoDatabase.getSchema(), 
+						serviceParse.getListTableByStatement(objectGenate.getQueryInput()),
+						parseObject.getListTableSQL(), parseObject.getMappingKey());
+			}
+			
 			
 			CreateObject createObj = createData.multipleCreate(dataPick, objectGenate.row, false);
 			Map<String, List<List<ColumnInfo>>> response = createObj.listData;
@@ -257,7 +276,9 @@ public class GenController {
 			// sql is not valid
 			e.printStackTrace();
 		} finally {
-			executeDBServer.disconnectDB();
+			if (!type.equalsIgnoreCase("no database")) {
+				executeDBServer.disconnectDB();
+			}
 		}
 		System.out.println(dataPick.toString());
 		return null;

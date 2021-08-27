@@ -1,15 +1,19 @@
 package sql.generator.hackathon.model;
 
+import java.util.Map;
+
 public class NodeColumn {
 
 	public String tableColumnName;
 	public String val;
 	public int index; 
+	public Map<String, String> valCompositeKey;
 	
-	public NodeColumn(String tableColumnName, String val, int index) {
+	public NodeColumn(String tableColumnName, String val, int index, Map<String, String> valCompositeKey) {
 		this.tableColumnName = tableColumnName;
 		this.val = val;
 		this.index = index;
+		this.valCompositeKey = valCompositeKey;
 	}
 	
 	@Override
