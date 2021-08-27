@@ -296,7 +296,7 @@ public class ExecuteDBSQLServer {
 		// get value FOREIGN KEY
 		for (ObjForeignKeyInfo objForeignKeyInfo : lstObjForeignKeyInfo) {
 			valForeignKey = getValueForeignKey(tableName, objForeignKeyInfo);
-			mapUnique.put(objForeignKeyInfo.getColumnName(), valForeignKey);
+			mapUnique.put(objForeignKeyInfo.getColumnName() + "." + objForeignKeyInfo.getColumnName(), valForeignKey);
 		}
 		
 		// get column primary key
@@ -314,7 +314,7 @@ public class ExecuteDBSQLServer {
 			do {
 				randomValue = createValueRandom(entry.getValue());
 			} while (!isUniqueValue(tableName, entry.getValue(), randomValue));
-			mapUnique.put(entry.getKey(), randomValue);
+			mapUnique.put(entry.getKey() + "." + entry.getValue().getName(), randomValue);
 		}
 		return mapUnique;
 	}
