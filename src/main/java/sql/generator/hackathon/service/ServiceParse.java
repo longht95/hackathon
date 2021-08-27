@@ -109,7 +109,10 @@ public class ServiceParse {
 		processSelectBody(selectBody, null);
 		processColumnWithAlias();
 		InfoDisplayScreen infoDisplayScreen = new InfoDisplayScreen();
-		infoDisplayScreen.listColumnName = tables.get(tableName).getColumns().stream().collect(Collectors.toList());
+		TableSQL table = tables.get(tableName);
+		if (table != null && table.getColumns() != null) {
+			infoDisplayScreen.listColumnName = tables.get(tableName).getColumns().stream().collect(Collectors.toList());
+		}
 		return infoDisplayScreen;
 	}
 	
@@ -185,7 +188,7 @@ public class ServiceParse {
 		if (joins != null && !joins.isEmpty()) {
 			joins.forEach(join -> {
 				try {
-					processJoinColumn(join, plainSelect.getFromItem());
+					processJoinColumn(join, plainSelect.getFromItem(), selectItems);
 				} catch (JSQLParserException e) {
 					e.printStackTrace();
 				}
@@ -197,7 +200,7 @@ public class ServiceParse {
 
 	}
 
-	private void processJoinColumn(Join join, FromItem fromItem) throws JSQLParserException {
+	private void processJoinColumn(Join join, FromItem fromItem, List<SelectItem> selectItems) throws JSQLParserException {
 
 		if (join.getRightItem() instanceof SubSelect) {
 			SubSelect subSelect = (SubSelect) join.getRightItem();
@@ -207,43 +210,50 @@ public class ServiceParse {
 		} else {
 			processExpression(join.getOnExpression(), fromItem);
 			processTable(join.getRightItem());
+			String tableNameORAlias = join.getRightItem().getAlias() != null ? join.getRightItem().getAlias().getName() : join.getRightItem().toString();
+			if (selectItems != null && !selectItems.isEmpty()) {
+				listColumnAlias.put(tableNameORAlias.replace(" ", ""),selectItems.stream().map(x -> x.toString()).collect(Collectors.toSet()));
+			}
 		}
 	}
 	
 	private void processExpression(Expression expression, FromItem fromItem) {
-		expression.accept(new ExpressionVisitorAdapter() {
-			@Override
-			protected void visitBinaryExpression(BinaryExpression expr) {
-				if (expr.getLeftExpression() instanceof Column) {
+		if (expression != null) {
+			expression.accept(new ExpressionVisitorAdapter() {
+				@Override
+				protected void visitBinaryExpression(BinaryExpression expr) {
+					if (expr.getLeftExpression() instanceof Column) {
 
-					Column column = (Column) expr.getLeftExpression();
-					String aliasOrTable = column.getTable() == null
-							? fromItem.getAlias() != null ? fromItem.getAlias().getName() : fromItem.toString()
-							: column.getTable().getAlias() != null ? column.getTable().getAlias().getName()
-									: column.getTable().getName();
-					Set<String> listTMP = listColumnAlias.get(aliasOrTable);
-					if (listTMP == null) {
-						listTMP = new HashSet<>();
+						Column column = (Column) expr.getLeftExpression();
+						String aliasOrTable = column.getTable() == null
+								? fromItem.getAlias() != null ? fromItem.getAlias().getName() : fromItem.toString()
+								: column.getTable().getAlias() != null ? column.getTable().getAlias().getName()
+										: column.getTable().getName();
+						Set<String> listTMP = listColumnAlias.get(aliasOrTable);
+						if (listTMP == null) {
+							listTMP = new HashSet<>();
+						}
+						listTMP.add(column.getColumnName());
+						listColumnAlias.put(aliasOrTable.replace(" ", ""), listTMP);
 					}
-					listTMP.add(column.getColumnName());
-					listColumnAlias.put(aliasOrTable.replace(" ", ""), listTMP);
-				}
-				if (expr.getRightExpression() instanceof Column) {
-					Column column = (Column) expr.getRightExpression();
-					String aliasOrTable = column.getTable() == null
-							? fromItem.getAlias() != null ? fromItem.getAlias().getName() : fromItem.toString()
-							: column.getTable().getAlias() != null ? column.getTable().getAlias().getName()
-									: column.getTable().getName();
-					Set<String> listTMP = listColumnAlias.get(aliasOrTable);
-					if (listTMP == null) {
-						listTMP = new HashSet<>();
+					if (expr.getRightExpression() instanceof Column) {
+						Column column = (Column) expr.getRightExpression();
+						String aliasOrTable = column.getTable() == null
+								? fromItem.getAlias() != null ? fromItem.getAlias().getName() : fromItem.toString()
+								: column.getTable().getAlias() != null ? column.getTable().getAlias().getName()
+										: column.getTable().getName();
+						Set<String> listTMP = listColumnAlias.get(aliasOrTable);
+						if (listTMP == null) {
+							listTMP = new HashSet<>();
+						}
+						listTMP.add(column.getColumnName());
+						listColumnAlias.put(aliasOrTable.replace(" ", ""), listTMP);
 					}
-					listTMP.add(column.getColumnName());
-					listColumnAlias.put(aliasOrTable.replace(" ", ""), listTMP);
+					super.visitBinaryExpression(expr);
 				}
-				super.visitBinaryExpression(expr);
-			}
-		});
+			});
+		}
+		
 
 	}
 

@@ -167,6 +167,8 @@ table td.appDetails:nth-last-child(2) {
 				onchange="selectTable(this)">
 				<option value="None" disabled="disabled" selected="selected">Select table</option>
 			</select>
+			<input type="submit" value="Add column" onclick="addColumnDataSet()">
+			<input type="submit" value="Add row" onclick="addRowDataSet()">
 			<table class="table">
 				<thead>
 					
@@ -220,6 +222,7 @@ table td.appDetails:nth-last-child(2) {
 			let isNotHeader = $('#block-data-picker').find('#'+tableSelected+' thead').length == 0;
 			let isNotTable = $('#block-data-picker').find('#'+tableSelected).length == 0;
 			let id = $(check).attr('id');
+			console.log('check', check);
 			let data = $(check).parent().parent().find("td");
 			
 			let htmlTable = '<tr id="'+id+'"><td><input id="'+id+'" class="delete-picker" style="width:50px" type="submit" value="Del" onClick="delPicker(this)"></td>';
@@ -230,6 +233,7 @@ table td.appDetails:nth-last-child(2) {
 			let htmlColumn = "<thead><tr><th>#</th>";
 			if (!check.checked) {
 				console.log('false');
+				console.log('find data', id);
 				$('#block-data-picker').find('table tbody #'+id).remove();
 				dataPicker = dataPicker.filter(item => item.id != id);
 				return;
@@ -278,6 +282,117 @@ table td.appDetails:nth-last-child(2) {
 				$('#block-data-picker').find('#'+tableSelected).append(htmlColumn);
 			}
 		}
+		var stateId = 0;
+		function delRowDataPicker() {
+			
+		}
+		
+		function addRowDataSet() {
+			let tableName = $('#selectBox :selected').val();
+			let tableSelected = $('#select-database :selected').val();
+			let listColumn = $('table.table thead tr th');
+			let tbl = $("table.table > tbody");
+			let rowHTML = '<tr id="row'+stateId+'">';
+			for (let i = 0; i < listColumn.length; i++) {
+				if (i == 0) {
+					let rowId = "row"+stateId;
+					rowHTML += '<td><input type="submit" value="Add" onclick="addRowDataPicker(this)" id="'+tableName+'"></td>';
+				} else {
+					let ind = i - 1;
+					rowHTML += '<td id="row'+ stateId +'-col'+ ind +'-p-input" ><input  type="text" value="" placeholder="Nhập..."></td>'
+					
+				}
+			}
+			stateId++;
+			rowHTML += "</tr>";
+			tbl.prepend(rowHTML);
+		}
+		function addRowDataPicker(rowId) {
+			let listCell = $(rowId).parent().parent().find('td');
+			
+			let listColumn = $('table.table').find('thead tr th');
+			
+			let table = $('#selectBox :selected').text();
+			
+			let listData = [];
+			
+			let listDataHeader = [];
+			
+			let dataPick = dataPicker.find(item => item.tableName == table);
+			
+			let tdHTML = "<tr>";
+			
+			for (let i = 1 ; i <listCell.length; i++) {
+				tdHTML += "<td>"
+				listData.push($(listCell[i]).children().val());
+				tdHTML += $(listCell[i]).children().val();
+				tdHTML += "</td>"
+			}
+			
+			tdHTML += "</tr>"
+			
+			console.log('list header', listColumn.length);
+			
+			let tableHTML = '<table id="'+table+'">';
+			let theadHTML = "<thead><tr>";
+			if (!dataPick) {
+				//chua co get column
+				for (let i = 1 ; i < listColumn.length; i++) {
+					theadHTML += "<th>";
+					if ($(listColumn[i]).children().prop("tagName") == "INPUT") {
+						theadHTML += $(listColumn[i]).children().val();
+						listDataHeader.push($(listColumn[i]).children().val());
+					} else {
+						listDataHeader.push($(listColumn[i]).html());
+						theadHTML += $(listColumn[i]).html();
+					}
+					theadHTML += "</th>";
+				}
+				theadHTML += "</tr>";
+				theadHTML += "</thead>"
+				
+			}
+			
+			if (dataPick) {
+				$('#block-data-picker').find('table#'+dataPick.tableName+' tbody').prepend(tdHTML);
+				dataPick.listData.push(listData);
+			} else {
+				let resultHTML = tableHTML +"<caption>" + table + "</caption>" + theadHTML + "<tbody>" + tdHTML + "</tbody" + "</table>";
+				$('#block-data-picker').append(resultHTML);
+				const dataPush = {
+						tableName : table,
+						listColumn : listDataHeader,
+						listData : [listData],
+				}
+				dataPicker.push(dataPush);
+			}
+			console.log('dataPicker', dataPicker);
+			console.log('listData', listData);
+			console.log('length td', parent.length);
+			console.log('list data header', listDataHeader);
+			
+			console.log('rowid', rowId);
+		}
+		
+		function addColumnDataSet() {
+			let tableDataSet = $('table.table');
+			let headerDataSet = $(tableDataSet).find('thead tr th');
+			let rowDataSet = $(tableDataSet).find('tbody');
+			let listRowDataSet = $(rowDataSet).find('tr');
+			console.log('length tr', listRowDataSet.length);
+			for (let i = 0 ; i < listRowDataSet.length ; i++) {
+				let listTD = $(listRowDataSet[i]).find('td');
+				let trId = $(listRowDataSet[i]).attr('id');
+				console.log('trId', trId);
+				let lengthTD = (listTD.length - 1)/2;
+				console.log('lengtd', lengthTD);
+				let rowHTML = "";
+				rowHTML += "<td id='"+trId+"-col"+lengthTD+"-p-input' ><input  type='text' value='' placeholder='Nhập...'></td>"
+				$(listTD).first().after(rowHTML);
+			}
+			$(headerDataSet).first().after('<th><input type="text"></th>');
+		}
+		
 		function selectTable(select) {
 			let url = $('#url').val();
 			let schema = $('#schema').val();
@@ -300,7 +415,7 @@ table td.appDetails:nth-last-child(2) {
 							"query" : query,
 						},
 						dataType : 'json',
-						timeout : 100000,
+						timeout : 10000,
 						success : function(data) {
 							if("Table not exit" == data) {
 								alert("Table not exit");
