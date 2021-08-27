@@ -3,8 +3,10 @@ package sql.generator.hackathon.service;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -13,6 +15,7 @@ import net.sf.jsqlparser.JSQLParserException;
 import net.sf.jsqlparser.expression.Alias;
 import net.sf.jsqlparser.expression.BinaryExpression;
 import net.sf.jsqlparser.expression.Expression;
+import net.sf.jsqlparser.expression.ExpressionVisitorAdapter;
 import net.sf.jsqlparser.expression.Function;
 import net.sf.jsqlparser.expression.NotExpression;
 import net.sf.jsqlparser.expression.Parenthesis;
@@ -48,6 +51,7 @@ import net.sf.jsqlparser.statement.select.WithItem;
 import net.sf.jsqlparser.util.TablesNamesFinder;
 import sql.generator.hackathon.model.ColumnInfo;
 import sql.generator.hackathon.model.Condition;
+import sql.generator.hackathon.model.InfoDisplayScreen;
 import sql.generator.hackathon.model.ParseObject;
 import sql.generator.hackathon.model.TableSQL;
 
@@ -58,6 +62,8 @@ public class ServiceParse {
 	private Map<String, List<String>> mappingKey;
 	private static Map<String, String> reverseExpression = new HashMap<>();
 	private List<Condition> listCondition;
+	private Map<String,Set<ColumnInfo>> listColumnInfo;
+	
 	public static final String NOT_IN = "NOT IN";
 	public static final String IN = "IN";
 	public static final String GREATHER_OR_EQUAL = ">=";
@@ -69,6 +75,8 @@ public class ServiceParse {
 	public static final String DOT = ".";
 	public static final String LIKE = "LIKE";
 	private int state = 1;
+	
+	private Map<String, Set<String>> listColumnAlias;
 
 	static {
 		reverseExpression.put("=", "!=");
@@ -78,23 +86,232 @@ public class ServiceParse {
 		reverseExpression.put(">=", "<");
 		reverseExpression.put("<=", ">");
 	}
-
-	public List<String> dataToSqlInsert(Map<String, List<ColumnInfo>> listData) {
-		List<String> listSQL = new ArrayList<>();
-		for (java.util.Map.Entry<String, List<ColumnInfo>> s : listData.entrySet()) {
-			Insert insert = new Insert();
-			Table table = new Table(s.getKey().toString());
-			List<Column> columnList = new ArrayList<>();
-			ExpressionList values = new ExpressionList();
-			for (ColumnInfo columnInfo : s.getValue()) {
-				columnList.add(new Column(columnInfo.name));
-				values.addExpressions(new StringValue(columnInfo.val));
+	
+	public Map<String, TableSQL> getColumnInfo(String query) throws JSQLParserException {
+		Select select = (Select) CCJSqlParserUtil.parse(query);
+		listColumnInfo = new HashMap<>();
+		tables = new HashMap<>();
+		parentAlias = new HashMap<>();
+		listColumnAlias = new HashMap<>();
+		SelectBody selectBody = select.getSelectBody();
+		processSelectBody(selectBody, null);
+		processColumnWithAlias();
+		return tables;
+	}
+	
+	public InfoDisplayScreen getColumnInfoView(String query, String tableName) throws JSQLParserException {
+		Select select = (Select) CCJSqlParserUtil.parse(query);
+		listColumnInfo = new HashMap<>();
+		tables = new HashMap<>();
+		parentAlias = new HashMap<>();
+		listColumnAlias = new HashMap<>();
+		SelectBody selectBody = select.getSelectBody();
+		processSelectBody(selectBody, null);
+		processColumnWithAlias();
+		InfoDisplayScreen infoDisplayScreen = new InfoDisplayScreen();
+		infoDisplayScreen.listColumnName = tables.get(tableName).getColumns().stream().collect(Collectors.toList());
+		return infoDisplayScreen;
+	}
+	
+	private void processColumnWithAlias() {
+		listColumnAlias.entrySet().forEach(x -> {
+			TableSQL tbl = tables.get(x.getKey());
+			Set<String> listTMP = new HashSet<>();
+			if (tbl != null) {
+				if (tbl.columns != null) {
+					listTMP = tbl.columns;
+				}
+				listTMP.addAll(x.getValue());
+				tbl.setColumns(listTMP);
+				tables.put(x.getKey(), tbl);
+			} else {
+				List<String> alias = parentAlias.get(x.getKey());
+				if (alias != null && !alias.isEmpty()) {
+					for (String s : alias) {
+						tbl = tables.get(s);
+						if (tbl != null) {
+							if (tbl.columns != null) {
+								listTMP = tbl.columns;
+							}
+							for (String z : x.getValue()) {
+								listTMP.add(z);
+							}
+							tbl.setColumns(listTMP);
+							tables.put(s, tbl);
+						}
+						
+					}
+				}
 			}
-			insert.setTable(table);
-			insert.setItemsList(values);
-			insert.setColumns(columnList);
-			listSQL.add(insert.toString());
+		});
+	}
+	
+	private void processSelectBody(SelectBody selectBody, Alias alias) throws JSQLParserException {
+		if (selectBody instanceof PlainSelect) {
+			processSingle((PlainSelect) selectBody, alias);
+		} else if (selectBody instanceof WithItem) {
+		} else {
+			SetOperationList operationList = (SetOperationList) selectBody;
+			if (operationList.getSelects() != null && !operationList.getSelects().isEmpty()) {
+				List<SelectBody> plainSelects = operationList.getSelects();
+				for (SelectBody plainSelect : plainSelects) {
+					processSelectBody(plainSelect, alias);
+				}
+			}
 		}
+	}
+
+	
+	private void processSingle(PlainSelect plainSelect, Alias alias) throws JSQLParserException {
+		String tableNameORAlias;
+		if (plainSelect.getFromItem() instanceof Table) {
+			Table table = (Table) plainSelect.getFromItem();
+			tableNameORAlias = table.getAlias() != null ? table.getAlias().getName() : table.getName();
+		} else {
+			if (plainSelect.getFromItem().getAlias() == null) {
+				throw new JSQLParserException();
+			}
+			tableNameORAlias = plainSelect.getFromItem().getAlias().getName();
+		}
+		List<SelectItem> selectItems = plainSelect.getSelectItems();
+		if (selectItems != null && !selectItems.isEmpty()) {
+			listColumnAlias.put(tableNameORAlias.replace(" ", ""),selectItems.stream().map(x -> x.toString()).collect(Collectors.toSet()));
+		}
+		
+		
+		
+		processFrom(plainSelect.getFromItem(), alias);
+		List<Join> joins = plainSelect.getJoins();
+		if (joins != null && !joins.isEmpty()) {
+			joins.forEach(join -> {
+				try {
+					processJoinColumn(join, plainSelect.getFromItem());
+				} catch (JSQLParserException e) {
+					e.printStackTrace();
+				}
+			});
+		}
+		if (plainSelect.getWhere() != null) {
+			processExpression(plainSelect.getWhere(), plainSelect.getFromItem());
+		}
+
+	}
+
+	private void processJoinColumn(Join join, FromItem fromItem) throws JSQLParserException {
+
+		if (join.getRightItem() instanceof SubSelect) {
+			SubSelect subSelect = (SubSelect) join.getRightItem();
+			processExpression(join.getOnExpression(), fromItem);
+			processSelectBody(subSelect.getSelectBody(), null);
+
+		} else {
+			processExpression(join.getOnExpression(), fromItem);
+			processTable(join.getRightItem());
+		}
+	}
+	
+	private void processExpression(Expression expression, FromItem fromItem) {
+		expression.accept(new ExpressionVisitorAdapter() {
+			@Override
+			protected void visitBinaryExpression(BinaryExpression expr) {
+				if (expr.getLeftExpression() instanceof Column) {
+
+					Column column = (Column) expr.getLeftExpression();
+					String aliasOrTable = column.getTable() == null
+							? fromItem.getAlias() != null ? fromItem.getAlias().getName() : fromItem.toString()
+							: column.getTable().getAlias() != null ? column.getTable().getAlias().getName()
+									: column.getTable().getName();
+					Set<String> listTMP = listColumnAlias.get(aliasOrTable);
+					if (listTMP == null) {
+						listTMP = new HashSet<>();
+					}
+					listTMP.add(column.getColumnName());
+					listColumnAlias.put(aliasOrTable.replace(" ", ""), listTMP);
+				}
+				if (expr.getRightExpression() instanceof Column) {
+					Column column = (Column) expr.getRightExpression();
+					String aliasOrTable = column.getTable() == null
+							? fromItem.getAlias() != null ? fromItem.getAlias().getName() : fromItem.toString()
+							: column.getTable().getAlias() != null ? column.getTable().getAlias().getName()
+									: column.getTable().getName();
+					Set<String> listTMP = listColumnAlias.get(aliasOrTable);
+					if (listTMP == null) {
+						listTMP = new HashSet<>();
+					}
+					listTMP.add(column.getColumnName());
+					listColumnAlias.put(aliasOrTable.replace(" ", ""), listTMP);
+				}
+				super.visitBinaryExpression(expr);
+			}
+		});
+
+	}
+
+	private void processFrom(FromItem fromItem, Alias alias) throws JSQLParserException {
+		if (fromItem instanceof SubSelect) {
+			SubSelect subSelect = (SubSelect) fromItem;
+			processSelectBody(subSelect.getSelectBody(), alias != null ? alias : fromItem.getAlias());
+		} else {
+			processTable(fromItem);
+			if (alias != null) {
+				processAlias(alias, fromItem);
+			}
+		}
+	}
+	
+	private void processTableColumn(FromItem fromItem) {
+		Table table = (Table) fromItem;
+		String alias = table.getAlias() != null ? table.getAlias().getName() : table.getName();
+		Set<ColumnInfo> columnInfo = listColumnInfo.get(alias);
+		if (columnInfo == null) {
+			columnInfo = new HashSet<>();
+		}
+		listColumnInfo.put(alias, columnInfo);
+	}
+
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+
+	public List<String> dataToSqlInsert(Map<String, List<List<ColumnInfo>>> listData) {
+
+		List<String> listSQL = new ArrayList<>();
+		for (java.util.Map.Entry<String, List<List<ColumnInfo>>> s : listData.entrySet()) {
+			s.getValue().forEach(x -> {
+				Insert insert = new Insert();
+				Table table = new Table(s.getKey().toString());
+				List<Column> columnList = new ArrayList<>();
+				ExpressionList values = new ExpressionList();
+				for (ColumnInfo columnInfo : x) {
+					columnList.add(new Column(columnInfo.name));
+					values.addExpressions(new StringValue(columnInfo.val));
+				}
+				insert.setTable(table);
+				insert.setItemsList(values);
+				insert.setColumns(columnList);
+				listSQL.add(insert.toString());
+			});
+
+		}
+
 		return listSQL;
 	}
 

@@ -93,6 +93,7 @@ h3 {
 }
 
 .box-connect {
+	margin-top:15px;
 	display: flex;
 }
 table {
@@ -125,6 +126,11 @@ table td.appDetails:nth-last-child(2) {
 .delete-picker {
 	width:50px;
 }
+#rowGen {
+	width: 36px;
+    border: 1px solid #d9d9d9;
+    height: 28px;
+}
 </style>
 <body>
 	<main>
@@ -132,6 +138,7 @@ table td.appDetails:nth-last-child(2) {
 			<div class="box-button">
 				<div class="box-control">
 					<select class="select-database" id="select-database" style="margin-right:2.5px;">
+						<option value="No database">No database</option>
 						<option value="Oracle">Oracle</option>
 						<option value="Mysql">Mysql</option>
 						<option value="H2">H2</option>
@@ -139,15 +146,15 @@ table td.appDetails:nth-last-child(2) {
 					<input type="submit" value="Import SQL" id="importFile" style="margin-left:2.5px;">
 					<input type="file" name="inputFile" id="inputFile" style="display: none;">
 				</div>
-				<div class="box-input">
+				<div class="box-input" style="display:none;">
 					<input type="text" placeholder="URL" id="url">
 					<input type="text" placeholder="Schema" id="schema">
 					<input type="text" placeholder="User" id="user">
 					<input type="text" placeholder="Password" id="pass">
-					<div class="box-connect">
-						<input type="submit" value="Test Connection" onclick="testConnection()" style="margin-right:2.5px;">
-						<input type="submit" value="Update query" id="updateQuery" style="margin-left:2.5px;">
-					</div>
+				</div>
+				<div class="box-connect">
+					<input type="submit" value="Update query" id="updateQuery" style="margin-right:2.5px;">
+					<input type="submit" value="Test Connection" id="testConnection" onclick="testConnection()" style="margin-left:2.5px; display:none;">
 				</div>
 			</div>
 			<div class="text-statement">
@@ -185,6 +192,16 @@ table td.appDetails:nth-last-child(2) {
 	</main>
 	<script>
 	var dataPicker = [];
+	
+	$('#select-database').on('change', function() {
+		if ($(this).val() == 'No database') {
+			$('#testConnection').hide();
+			$('.box-input').hide();
+		} else {
+			$('#testConnection').show();
+			$('.box-input').show();
+		}
+	});
 	
 	function delPicker(inp) {
 		let id = $(inp).attr('id');
@@ -266,6 +283,7 @@ table td.appDetails:nth-last-child(2) {
 			let schema = $('#schema').val();
 			let user = $('#user').val();
 			let pass = $('#pass').val();
+			let query = $('#inputQuerySQL').val();
 			let tableSelected = $('#select-database :selected').val();
 			let tableName = select.value;
 					$.ajax({
@@ -278,7 +296,8 @@ table td.appDetails:nth-last-child(2) {
 							"schema" : schema,
 							"user" : user,
 							"pass" :pass,
-							"tableSelected" : tableSelected
+							"tableSelected" : tableSelected,
+							"query" : query,
 						},
 						dataType : 'json',
 						timeout : 100000,
@@ -306,18 +325,20 @@ table td.appDetails:nth-last-child(2) {
 							tien+="</tr>";
 							tbl.empty();
 							tbl1.append(tien);
-							for (let i = 0; i < arrData.length; i++) {
-								let abc = "<tr>";
-								abc += '<td><input type="checkbox" class="checkbox" onchange="checkedBoxChange(this)" id="'+tableName+i+'"></td>';
-								for (let k = 0; k < arrData[i].length; k++) {
-									abc += "<td id ='row"+ i +"-col"+ k +"-p' class='appDetails'>";
-									abc += arrData[i][k];
-									abc += "</td>";
-									abc += '<td id="row'+ i +'-col'+ k +'-p-input" style="display: none;" ><input  type="text" onblur="changeDataInput(this)" value='+ arrData[i][k]+' placeholder="Nhập..."></td>'
-									
+							if (arrData && arrData.length != 0) {
+								for (let i = 0; i < arrData.length; i++) {
+									let abc = "<tr>";
+									abc += '<td><input type="checkbox" class="checkbox" onchange="checkedBoxChange(this)" id="'+tableName+i+'"></td>';
+									for (let k = 0; k < arrData[i].length; k++) {
+										abc += "<td id ='row"+ i +"-col"+ k +"-p' class='appDetails'>";
+										abc += arrData[i][k];
+										abc += "</td>";
+										abc += '<td id="row'+ i +'-col'+ k +'-p-input" style="display: none;" ><input  type="text" onblur="changeDataInput(this)" value='+ arrData[i][k]+' placeholder="Nhập..."></td>'
+										
+									}
+									abc += "</tr>";
+									tbl.append(abc);
 								}
-								abc += "</tr>";
-								tbl.append(abc);
 							}
 						},
 						error : function(e) {
@@ -474,12 +495,15 @@ table td.appDetails:nth-last-child(2) {
 			xhr.setRequestHeader('Content-type', 'application/json; charset=utf-8');
 			xhr.onload = function(e) {
 			    if (this.status == 200) {
-			    	console.log('byte', this.response);
-			    	var blob = new Blob([xhr.response], {type: 'application/vnd.ms-excel'});
+			    	var blob = new Blob([xhr.response], {type: xhr.getResponseHeader("Content-Type")});
 			        var downloadUrl = URL.createObjectURL(blob);
 			        var a = document.createElement("a");
 			        a.href = downloadUrl;
-			        a.download = "data.xls";
+			        if (xhr.getResponseHeader("Content-Type") == 'application/vnd.ms-excel') {
+			        	a.download = "data.xls";
+			        } else {
+			        	a.download = "data.txt";
+			        }
 			        document.body.appendChild(a);
 			        a.click();
 			    } else {

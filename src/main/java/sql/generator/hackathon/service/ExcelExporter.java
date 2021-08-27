@@ -92,49 +92,21 @@ public class ExcelExporter {
             System.out.println(isNameTable.get(i).val + "header");
         }
     }
-    public byte[] outputFieSql( List<String> inputSQL )  {
-        byte[] byteArrray = new byte[1024];
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        ObjectOutputStream oos = null;
-        try {
-            oos = new ObjectOutputStream(bos);
-            oos.writeObject(inputSQL);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
 
-        byte[] bytes = bos.toByteArray();
-        return  byteArrray;
-    }
-    public FileOutputStream outputFile(String fileName) throws FileNotFoundException {
-       // HSSFWorkbook workbook =  this.createEex();
+	public byte[] outputFieSql(List<String> inputSQL) throws IOException {
+		ByteArrayOutputStream bos = new ByteArrayOutputStream();
+		try {
+			for (String x : inputSQL) {
+				bos.write(x.getBytes());
+				bos.write(";\n".getBytes());
+			}
 
-        File file = null;
-        FileOutputStream outFile =null;
-            try {
-                    file= new File(fileName);
-                    outFile = new FileOutputStream(file);
-                    file.getParentFile().mkdirs();
-                    //workbook.write(outFile);
-
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        System.out.println("Created file: " + file.getAbsolutePath());
-        return  outFile;
-
-    }
-    public FileOutputStream outputFileSQL(ServiceParse serviceParse, String fileName) throws FileNotFoundException{
-        File file = null;
-        FileOutputStream outFile =null;
-        try {
-            file= new File(fileName);
-            outFile = new FileOutputStream(file);
-            file.getParentFile().mkdirs();
-         //   serviceParse.dataToSqlInsert();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return  outFile;
-    }
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			bos.close();
+		}
+		return bos.toByteArray();
+	}
+	
 }
