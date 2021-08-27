@@ -18,6 +18,7 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.Stack;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import sql.generator.hackathon.exception.NotFoundValueSQLException;
@@ -27,6 +28,7 @@ import sql.generator.hackathon.model.Condition;
 import sql.generator.hackathon.model.CreateObject;
 import sql.generator.hackathon.model.NodeColumn;
 import sql.generator.hackathon.model.TableSQL;
+import sql.generator.hackathon.service.CommonCreateService;
 import sql.generator.hackathon.service.CreateService;
 import sql.generator.hackathon.service.ExecuteDBSQLServer;
 
@@ -48,16 +50,16 @@ public class CreateData {
 		priorityOfOperator.put("<>", 10);
 	}
 
-	private static List<String> conditionInLike = new ArrayList<>();
+	private static List<String> operatorInLike = new ArrayList<>();
 	{
-		conditionInLike.add("%");
-		conditionInLike.add("_");
+		operatorInLike.add("%");
+		operatorInLike.add("_");
 	}
 	
 	private String SCHEMA_NAME = "admindb";
 	
-	// Save mapping table.column mapping with other table.column
-	private Map<String, Set<Cond>> columnMap;
+	@Autowired
+	private CommonCreateService commonService;
 
 	// Save Key exists
 	private List<TableSQL> tables = new ArrayList<>();
@@ -90,26 +92,19 @@ public class CreateData {
 	private Map<String, String> markColor;
 	
 	public CreateData() {
-		
 	}
 	
-	public CreateData(ExecuteDBSQLServer dbServer, CreateService createService, List<TableSQL> tables, 
-			Map<String, List<String>> keys, String schema) throws SQLException {
-		// Connection for service
-		this.createService = createService;
-		createService.getDataExample();
-		
+	public void init(String type, ExecuteDBSQLServer dbServer, String schema, List<String> listTables, List<TableSQL> tables, 
+			Map<String, List<String>> keys) throws Exception {
 		this.dbServer = dbServer;
-		
+		SCHEMA_NAME = schema;
 		this.tables = tables;
 		this.keys = keys;
-		SCHEMA_NAME = schema;
+		commonService.init(type, listTables, schema, dbServer);
+		commonService.exeGetTableInfo(tables);
 	}
 	
 	public void init(){
-		// Save mapping table.column mapping with other table.column
-		columnMap = new HashMap<>();
-
 		keysFormat = new HashMap<>();
 
 		// alias.Name => <tableName.columnName, operator>
@@ -177,25 +172,22 @@ public class CreateData {
 		// Get column Mapping (Key1 -> Key2, Key2 -> Key) in keys
 		Map<String, Set<String>> colMapping = getMappingColumn();
 		// Get all mapping of 1 column (Key1 -> key2,key3,key4)
-		getAllMappingColum(colMapping);
+		Map<String, Set<Cond>> columnMap  = getAllMappingColum(colMapping);
 		
 		// execute calculator for mapping key.
-		exeCalcForMappingKey();
+		exeCalcForMappingKey(columnMap);
 		
 		// Create last data for column!
 		createLastData();
 		
 		Map<String, List<ColumnInfo>> lst = processInsert(dataClient, idxRow);
 		
-		
+		// Insert table
 		if (type) {
-			// Insert each table
 			for (Map.Entry<String, List<ColumnInfo>> e : lst.entrySet()) {
-				// Call JDBC execute insert data to table!
 				createService.insert(e.getKey(), e.getValue());
 			}
 		}
-		
 		
 		return lst;
 	}
@@ -236,10 +228,7 @@ public class CreateData {
 				return;
 			}
 
-			// TODO when columnname is alias?
-			// Put aliasTable.aliasName => [tableName.columnName]
-			// Save for calculator all mapping
-			String[] sp = getTableAndColName(left);
+			String[] sp = commonService.getTableAndColName(left);
 			
 			// Format all Key aliasName.colName => tableName.colName
 			List<String> valKey;
@@ -252,7 +241,6 @@ public class CreateData {
 			String tableColName = tableName + "." + sp[1];
 			valKey.add(tableColName);
 			
-//			infoCol.put(left, new String[] { tableColName, operator });
 			infoCol.put(tableColName, new String[] { tableColName, operator });
 			lastEndValidValue.put(tableColName, "");
 		}
@@ -261,7 +249,6 @@ public class CreateData {
 		for (Map.Entry<String, List<String[]>> entry : mapValOfColumn.entrySet()) {
 			List<String[]> t = entry.getValue();
 
-			// Sort list priority execute operator
 			Collections.sort(t, new Comparator<String[]>() {
 				@Override
 				public int compare(String[] o1, String[] o2) {
@@ -292,7 +279,7 @@ public class CreateData {
 		String val = condition.right;
 
 		// TableName.columnName
-		String fullColName = tableName + "." + getTableAndColName(col)[1];
+		String fullColName = tableName + "." + commonService.getTableAndColName(col)[1];
 
 		lastEndValidValue.put(fullColName, "");
 		
@@ -321,23 +308,6 @@ public class CreateData {
 	}
 
 	/**
-	 * Get table name and column name
-	 * 
-	 * @param column table.colName || colName
-	 * @return String[2], String[0] = tableName, String[1] = columnName
-	 */
-	private String[] getTableAndColName(String input) {
-		String[] res = new String[2];
-		if (input.indexOf(".") != -1) {
-			res = input.split("\\.");
-			;
-		} else {
-			res[1] = input;
-		}
-		return res;
-	}
-
-	/**
 	 * Calculator valid value for column
 	 * Use for condition in where
 	 * @return Map<String, List<Cond> Key = tableName.colName, Value = Valid value.
@@ -346,18 +316,11 @@ public class CreateData {
 		Map<String, List<Cond>> m = new HashMap<>();
 		for (Map.Entry<String, List<String[]>> entry : mapValOfColumn.entrySet()) {
 			String key = entry.getKey();
-
-			// Get data type of column?
-			// a Trung
-			// char
-			// number [p,s] OR [p]
-			// date
-//			String dataType = "number";
 			
 			// Get dataType of column
-			String tableName = getTableAndColName(key)[0];
-			String colName = getTableAndColName(key)[1];
-			String dataType = createService.getDataTypeOfColumn(createService.getColumInfo(tableName, colName));
+			String tableName = commonService.getTableAndColName(key)[0];
+			String colName = commonService.getTableAndColName(key)[1];
+			String dataType = commonService.getDataTypeOfColumn(commonService.getColumnInfo(tableName, colName).getTypeName());
 
 			// {operator, value, priority}
 			// operator => (=, <>, !=, ..)
@@ -382,15 +345,6 @@ public class CreateData {
 					lastEndValidValue.put(tableName + "." + colName, processConditionLike(cur[1]));
 					break;
 				}
-
-//				priorityOfOperator.put("IN", 2);
-//				priorityOfOperator.put("<=", 3);
-//				priorityOfOperator.put(">=", 4);
-//				priorityOfOperator.put("<", 5);
-//				priorityOfOperator.put(">", 6);
-//				priorityOfOperator.put("NOT IN", 7);
-//				priorityOfOperator.put("!=", 8);
-//				priorityOfOperator.put("<>", 9);
 
 				switch (operator) {
 				case "IN":
@@ -456,12 +410,6 @@ public class CreateData {
 					break;
 				}
 			}
-
-//			// When filter not contains conditions => query invalid
-//			if (tmpVal.isEmpty()) {
-//				System.out.println("SQL condition invalid!");
-//			}
-			
 			// When has condition IN => get value of IN
 			if (flgCheckCondIN) {
 				m.put(key, listCondIN);
@@ -834,9 +782,9 @@ public class CreateData {
 			String fullTableColName = e.getKey();
 			
 			// Get tableName and colName
-			String tableName = getTableAndColName(fullTableColName)[0];
-			String colName = getTableAndColName(fullTableColName)[1];
-			ColumnInfo colInfo = createService.getColumInfo(tableName, colName);
+			String tableName = commonService.getTableAndColName(fullTableColName)[0];
+			String colName = commonService.getTableAndColName(fullTableColName)[1];
+			ColumnInfo colInfo = commonService.getColumnInfo(tableName, colName);
 			
 			// When last have calculator in mapping
 			List<ColumnInfo> l = tableData.get(tableName);
@@ -849,57 +797,8 @@ public class CreateData {
 				
 				l.add(columnInfo);
 			} else {
-				List<Cond> validVal = validValuesForColumn.get(fullTableColName);
-				List<String> invalidVal = valueInValidOfColumn.get(fullTableColName);
-				
-				int len = createService.getLengthOfColumn(colInfo);
-				String dataType = createService.getDataTypeOfColumn(colInfo);
-				
-				List<String> curValidVal = new ArrayList<>();
-
-				// Manual gen value
-				processGenKey(tableName, curValidVal, validVal, colInfo, dataType, len, colInfo.isKey());
-				
-				// Remove
-				for (int i = 0; i < curValidVal.size(); ++i) {
-					if (invalidVal == null || (!invalidVal.contains(curValidVal.get(i)))) {
-						boolean flgAdd = false;
-						// Key will gen value from DB
-						if (createService.isCompositeKey(tableName)) {
-							
-							// TODO
-							// xem xet schemaName
-							Map<String, String> m = dbServer.genUniqueCol(SCHEMA_NAME, tableName, colInfo, curValidVal.get(i));
-							if (m.size() == 0) {
-								continue;
-							}
-							flgAdd = true;
-							
-							// Get composite key
-							for (Map.Entry<String, String> entry : m.entrySet()) {
-								ColumnInfo columnInfo = new ColumnInfo(entry.getKey(), entry.getValue());
-								ColumnInfo colInner = createService.getColumInfo(tableName, entry.getKey());
-								
-								createService.getDataTypeOfColumn(columnInfo);
-								columnInfo.setTypeName(colInner.getTypeName());
-								columnInfo.setTypeValue(colInner.getTypeValue());
-							}
-						} else {
-							flgAdd = true;
-						}
-						
-						if(flgAdd) {
-							ColumnInfo columnInfo = new ColumnInfo(colName, curValidVal.get(i));
-							
-							// Set type for excute case add ' or not!
-							columnInfo.setTypeName(colInfo.typeName);
-							columnInfo.setTypeValue(colInfo.typeValue);
-							
-							l.add(columnInfo);
-							break;
-						}
-					}
-				}
+				// Process create last data
+				processGetLastData(l, colInfo, tableName, colName);
 			}
 		}
 	}
@@ -908,7 +807,8 @@ public class CreateData {
 	 * Get all mapping for each column With each column will find all related
 	 * column. Put data to columnMap variable
 	 */
-	private void getAllMappingColum(Map<String, Set<String>> columnMapping) {
+	private Map<String, Set<Cond>> getAllMappingColum(Map<String, Set<String>> columnMapping) {
+		Map<String, Set<Cond>> columnMap = new HashMap<>();
 		for (Map.Entry<String, Set<String>> e : columnMapping.entrySet()) {
 			Set<String> mappings = new HashSet<>();
 			String curKey = e.getKey();
@@ -939,16 +839,13 @@ public class CreateData {
 			// VALUE COND {operator, value{KEY}}
 			Set<Cond> s = new HashSet<Cond>();
 
-//			columnMap.put(infoCol.get(e.getKey()), set);
 			for (String c : mappings) {
 				Cond cond = new Cond(infoCol.get(c)[1], infoCol.get(c)[0]);
 				s.add(cond);
 			}
 			columnMap.put(e.getKey(), s);
-//			for (String c : mappings) {
-//				Cond cond = new Cond()
-//			}
 		}
+		return columnMap;
 	}
 
 	/**
@@ -957,7 +854,7 @@ public class CreateData {
 	 * @return push value to dataTable
 	 * @throws SQLException 
 	 */
-	private void exeCalcForMappingKey() throws SQLException {
+	private void exeCalcForMappingKey(Map<String, Set<Cond>> columnMap) throws SQLException {
 		// table.colName => all column mapping of current table.colName
 		// Map<String, Set<Cond>> columnMap;
 		
@@ -967,8 +864,8 @@ public class CreateData {
 		// Map<String, List<Cond>> columnMap;
 		for (Map.Entry<String, Set<Cond>> e : columnMap.entrySet()) {
 			String col = e.getKey();
-			String tableName = getTableAndColName(col)[0];
-			String colName = getTableAndColName(col)[1];
+			String tableName = commonService.getTableAndColName(col)[0];
+			String colName = commonService.getTableAndColName(col)[1];
 			
 			// calculated this column!
 			if (visitedMapping.contains(col)) {
@@ -987,18 +884,15 @@ public class CreateData {
 			List<Cond> validV = validValuesForColumn.get(col);
 			String lastValidV = lastEndValidValue.get(col);
 			
-			ColumnInfo t = createService.getColumInfo(tableName, colName);
+			ColumnInfo t = commonService.getColumnInfo(tableName, colName);
 			ColumnInfo colInfo = new ColumnInfo(t.getName(), "", t.getTypeName(), t.getTypeValue(),
 						t.getIsNull(), t.getIsPrimarykey(), t.getIsForeignKey(), t.getUnique());
 
 					
-			String dataType = createService.getDataTypeOfColumn(colInfo);
-			int len = createService.getLengthOfColumn(colInfo);
+			String dataType = commonService.getDataTypeOfColumn(colInfo.getTypeName());
+			int len = commonService.getLengthOfColumn(colInfo);
 			
 			List<String> validOfCol = new ArrayList<>();
-			
-			
-			boolean isCompositeKey = createService.isCompositeKey(tableName);
 			
 			if (lastValidV != null && !lastValidV.isEmpty()) {
 				validOfCol.add(lastValidV);
@@ -1022,15 +916,12 @@ public class CreateData {
 			Stack<NodeColumn> toExploder = new Stack<>();
 			Map<NodeColumn, NodeColumn> parentMap = new HashMap<>();
 			
-			// Visited
-			Set<NodeColumn> visited = new HashSet<>();
-			
 			boolean flgOut = false;
 			// Init 
 			// index -> Cond in e.getValue()
 			// 0 -> Cond in e.getValue()
 			// 0 -> Cond = value => tableName.colName, operator => <=, >=, >, <, !=
-			HashMap<Integer, Cond> l = new HashMap<>(e.getValue().size());
+			HashMap<Integer, Cond> loopSearch = new HashMap<>(e.getValue().size());
 			int i = 0;
 			for (Cond conD : e.getValue()) {
 				if ((lastEndValidValue.get(conD.value) != null &&
@@ -1038,7 +929,7 @@ public class CreateData {
 					flgOut = true;
 					break;
 				}
-				l.put(i, conD);
+				loopSearch.put(i, conD);
 				++i;
 			}
 			
@@ -1047,185 +938,16 @@ public class CreateData {
 			}
 			
 			// Init
-			i = 0;
-			for (; i < validOfCol.size(); ++i) {
-				NodeColumn nodeCol = new NodeColumn(col, validOfCol.get(i), 0);
+			i = validOfCol.size() - 1;
+			for (; i >= 0; --i) {
+				NodeColumn nodeCol = new NodeColumn(col, validOfCol.get(i), 0, null);
 				toExploder.add(nodeCol);
 			}
 			
-			NodeColumn nodeGoal = null;
-			
-			// Init flagMeet
-			boolean[] checkMeet = new boolean[e.getValue().size()];
-			i = 0;
-			for (; i < e.getValue().size(); ++i) {
-				checkMeet[i] = false;
-			}
-			
-			while (!toExploder.isEmpty()) {
-				NodeColumn curNode = toExploder.pop();
-				if (visited.contains(curNode)) {
-					continue;
-				}
-				
-				String val = curNode.val;
-				int index = curNode.index;
-				
-				// Find goal then stop
-				if (index == e.getValue().size()) {
-					nodeGoal = curNode;
-					break;
-				}
-				
-				// Get next mapping.
-				Cond nextCond = l.get(index);
-				
-				// Remove value generator
-				// Just calculator first meet index
-				// Valid value will increase
-				if (!checkMeet[index]) {
-					List<Cond> conditionInWhere = new ArrayList<>();
-					// When has condition will remove current 
-					if (validValuesForColumn.get(nextCond.value) != null) {
-						if (lastEndValidValue.get(nextCond.value) != null &&
-								!lastEndValidValue.get(nextCond.value).isEmpty()) {
-							conditionInWhere.add(new Cond("=", lastEndValidValue.get(nextCond.value)));
-						} else {
-							conditionInWhere = validValuesForColumn.get(nextCond.value);
-						}
-						validOfCol = calculatorValidValWithColumnCondition(validOfCol, dataType,
-								conditionInWhere, null);
-					} 
-					if (valueInValidOfColumn.containsKey(nextCond.value)) {
-						List<String> inValidValue = valueInValidOfColumn.get(nextCond.value);
-						validOfCol = calculatorValidValWithColumnCondition(validOfCol, dataType,
-								conditionInWhere, inValidValue);
-					}
-					
-					// Not found valid for mapping column
-					if (validOfCol.isEmpty()) {
-						throw new NotFoundValueSQLException("Not found valid value for this SQL!");
-					}
-				}
-				
-				checkMeet[index] = true;
-				
-				i = 0;
-				for (; i < validOfCol.size(); ++i) {
-					boolean flgAdd = false;
-					switch (nextCond.operator) {
-					case "=":
-						if (val.equals(validOfCol.get(i))) {
-							flgAdd = true;
-						}
-						break;
-					case "<=":
-						if (dataType.equals("date")) {
-							// date
-							Date tmp1 = parseStringToDate(val);
-							Date tmp2 = parseStringToDate(validOfCol.get(i));
-							if (tmp2.compareTo(tmp1) <= 0) {
-								flgAdd = true;
-							}
-						} else if (dataType.equals("number")) {
-							Integer int1 = parseStringToInt(val);
-							Integer int2 = parseStringToInt(validOfCol.get(i));
-							if (int2 <= int1) {
-								flgAdd = true;
-							}
-						}
-						// number
-						break;
-					case ">=":
-						if (dataType.equals("date")) {
-							// date
-							Date tmp1 = parseStringToDate(val);
-							Date tmp2 = parseStringToDate(validOfCol.get(i));
-							if (tmp2.compareTo(tmp1) >= 0) {
-								flgAdd = true;
-							}
-						} else if (dataType.equals("number")) {
-							Integer int1 = parseStringToInt(val);
-							Integer int2 = parseStringToInt(validOfCol.get(i));
-							if (int2 >= int1) {
-								flgAdd = true;
-							}
-						}
-						break;
-					case "<":
-						if (dataType.equals("date")) {
-							// date
-							Date tmp1 = parseStringToDate(val);
-							Date tmp2 = parseStringToDate(validOfCol.get(i));
-							if (tmp2.compareTo(tmp1) < 0) {
-								flgAdd = true;
-							}
-						} else if (dataType.equals("number")) {
-							Integer int1 = parseStringToInt(val);
-							Integer int2 = parseStringToInt(validOfCol.get(i));
-							if (int2 < int1) {
-								flgAdd = true;
-							}
-						}
-						break;
-					case ">":
-						if (dataType.equals("date")) {
-							// date
-							Date tmp1 = parseStringToDate(val);
-							Date tmp2 = parseStringToDate(validOfCol.get(i));
-							if (tmp2.compareTo(tmp1) > 0) {
-								flgAdd = true;
-							}
-						} else if (dataType.equals("number")) {
-							Integer int1 = parseStringToInt(val);
-							Integer int2 = parseStringToInt(validOfCol.get(i));
-							if (int2 > int1) {
-								flgAdd = true;
-							}
-						}
-						break;
-					case "!=":
-						if (!val.equals(validOfCol.get(i))) {
-							flgAdd = true;
-						}
-						break;
-					default:
-						System.out.println("Not have other condition!");
-						assert(false);
-					}
-					String[] innerTableColName = getTableAndColName(nextCond.value);
-					ColumnInfo t2 = createService.getColumInfo(innerTableColName[0], innerTableColName[1]);
-					ColumnInfo colInnerInfo = new ColumnInfo(t2.getName(), "", 
-							t2.getTypeName(), t2.getTypeValue(), t2.getIsNull(), 
-							t2.getIsPrimarykey(), t2.getIsForeignKey(), t2.getUnique());
+			boolean isCompositeKey = commonService.isCompositeKey(tableName);
 
-					if (flgAdd) {
-						// Execute for composite key
-						if (isCompositeKey) {
-							if (dbServer.genUniqueCol(SCHEMA_NAME, innerTableColName[0], colInnerInfo, 
-									validOfCol.get(i)).size() != 0) {
-								flgAdd = true;
-							} else {
-								flgAdd = false;
-							}
-						}
-						// Check value unique
-						if (!dbServer.isUniqueValue(innerTableColName[0], colInnerInfo, removeSpecifyCharacter("'", validOfCol.get(i)))) {
-							flgAdd = false;
-						} else {
-							flgAdd = true;
-						}
-					}
-
-					
-					if (flgAdd) {
-						// Table columnName, value, index
-						NodeColumn innerNode = new NodeColumn(nextCond.value, validOfCol.get(i), index + 1);
-						parentMap.put(innerNode, curNode);
-						toExploder.add(innerNode);
-					}
-				}
-			} // end while
+			NodeColumn nodeGoal = processCalKeyMap(toExploder, parentMap, e.getValue(), validOfCol, 
+					loopSearch, isCompositeKey, dataType);
 			
 			// Find valid value path
 			// Next to insert to data table.
@@ -1234,13 +956,20 @@ public class CreateData {
 			List<NodeColumn> pathValidValue = findPathValidForMapping(parentMap, nodeGoal);
 			i = 0;
 			for (; i < pathValidValue.size(); ++i) {
+				NodeColumn cur = pathValidValue.get(i);
 				
 				// Mark color for column Info
-				markColor.put(pathValidValue.get(i).tableColumnName, "MARK_COLOR_" + idxColor);
-				lastEndValidValue.put(pathValidValue.get(i).tableColumnName, pathValidValue.get(i).val);
-				visitedMapping.add(pathValidValue.get(i).tableColumnName);
+				markColor.put(cur.tableColumnName, "MARK_COLOR_" + idxColor);
+				lastEndValidValue.put(cur.tableColumnName, pathValidValue.get(i).val);
+				
+				// Add value for composite key
+				if (cur.valCompositeKey != null && cur.valCompositeKey.size() > 0) {
+					cur.valCompositeKey.entrySet().forEach(inner -> {
+						lastEndValidValue.put(inner.getKey(), inner.getValue());
+					});
+				}
+				visitedMapping.add(cur.tableColumnName);
 			}
-			
 			idxColor++;
 		}
 	}
@@ -1583,9 +1312,6 @@ public class CreateData {
 		if (dataType.equals("date")) {
 			SimpleDateFormat sdformat = new SimpleDateFormat("yyyy-MM-dd");
 			LocalDateTime now = LocalDateTime.now();
-			// TODO
-			// more?
-			// Get current date
 			return sdformat.format(now);  
 		}
 		
@@ -1831,7 +1557,7 @@ public class CreateData {
 	private Map<String, List<ColumnInfo>> processInsert(Map<String, List<List<ColumnInfo>>> clientData,
 			int idxRow) throws SQLException {
 		Map<String, List<ColumnInfo>> res = new HashMap<>();
-		Map<String, List<ColumnInfo>> tableInfo = createService.getTableInfo();
+		Map<String, List<ColumnInfo>> tableInfo = commonService.getTableInfo();
 		for (Map.Entry<String, List<ColumnInfo>> e : tableInfo.entrySet()) {
 			String tableName = e.getKey();
 			List<ColumnInfo> l = new ArrayList<>();
@@ -1847,6 +1573,9 @@ public class CreateData {
 			// Set again value
 			List<ColumnInfo> data = tableData.get(tableName);
 			
+			// confirm KEY no value
+			ColumnInfo colNoVal = null;
+						
 			if (data != null) {
 				for (ColumnInfo colInfo : l) {
 					for (ColumnInfo d : data) {
@@ -1861,24 +1590,18 @@ public class CreateData {
 							}
 						}
 					}
+					
+					if (colInfo.isKey() && colInfo.val.isEmpty()) {
+						colNoVal = colInfo;
+					}
 				}
 			} 
-			
-			
-			// confirm KEY no value
-			ColumnInfo colNoVal = null;
-			for (ColumnInfo colInfo : l) {
-				if (colInfo.isKey() && colInfo.val.isEmpty()) {
-					colNoVal = colInfo;
-					break;
-				}
-			}
 			
 			if (colNoVal != null) {
 				Map<String, ColumnInfo> mapVal = genValueForKeyNoCondition(tableName, colNoVal);
 				for (ColumnInfo colInfo : l) {
 					if (colInfo.isKey() && colInfo.val.isEmpty()) {
-						colInfo.val = mapVal.get(colInfo.getName()).val;
+						colInfo.val = mapVal.get(tableName + "." + colInfo.getName()).val;
 					}
 				}
 			}
@@ -1890,24 +1613,12 @@ public class CreateData {
 				}
 			}
 			
-			// Set value from client!
-			List<ColumnInfo> client = new ArrayList<>();
-			if (clientData.size() > 0 && clientData.get(tableName) != null) {
-				if (idxRow >= clientData.get(tableName).size()) {
-					client = clientData.get(tableName).get(clientData.get(tableName).size() - 1);
-				} else {
-					client = clientData.get(tableName).get(idxRow);
-				}
-			}
-			 
-			if (client.size() > 0) {
-				for (ColumnInfo colInfo : l) {
-					for (ColumnInfo c : client) {
-						if (c.val != null && !c.val.equals("null") 
-								&& colInfo.getName().equals(c.getName()) && colInfo.val.isEmpty()) {
-							colInfo.val = c.val;
-						}
-					}
+			commonService.setClientData(l, clientData, tableName, idxRow);
+			
+			// Add default value
+			for (ColumnInfo colInfo : l) {
+				if (colInfo.getVal().isEmpty()) {
+					colInfo.val = commonService.getDefaultValue(colInfo.getTypeName());
 				}
 			}
 			
@@ -1931,7 +1642,7 @@ public class CreateData {
 		List<String> listVal = dbServer.genListUniqueVal(tableName, colInfo, "", "");
 		
 		// Gen value for key with no condition
-		if (!createService.isCompositeKey(tableName)) {
+		if (!commonService.isCompositeKey(tableName)) {
 			res.put(colInfo.name, new ColumnInfo(colInfo.name, listVal.get(0)));
 		} else {
 			for (String val : listVal) {
@@ -1957,7 +1668,7 @@ public class CreateData {
 		StringBuilder res = new StringBuilder();
 		int n = condition.length();
 		for (int i = 0; i < n; ++i) {
-			if (conditionInLike.contains("" + condition.charAt(i))) {
+			if (operatorInLike.contains("" + condition.charAt(i))) {
 				res.append("a");
 			} else {
 				res.append(condition.charAt(i));
@@ -1979,5 +1690,261 @@ public class CreateData {
 		});
 		Collections.sort(res);
 		return res;
+	}
+	
+	/**
+	 * Process get last value
+	 * @throws SQLException 
+	 */
+	private void processGetLastData(List<ColumnInfo> lstValue, ColumnInfo colInfo, String tableName, String colName) throws SQLException {
+		List<Cond> validVal = validValuesForColumn.get(tableName + "." + colName);
+		List<String> invalidVal = valueInValidOfColumn.get(tableName + "." + colName);
+		
+		int len = commonService.getLengthOfColumn(colInfo);
+		String dataType = commonService.getDataTypeOfColumn(colInfo.getTypeName());
+		
+		List<String> curValidVal = new ArrayList<>();
+
+		// Manual gen value
+		processGenKey(tableName, curValidVal, validVal, colInfo, dataType, len, colInfo.isKey());
+		
+		// Remove
+		for (int i = 0; i < curValidVal.size(); ++i) {
+			if (invalidVal == null || (!invalidVal.contains(curValidVal.get(i)))) {
+				boolean flgAdd = false;
+				// Key will gen value from DB
+				if (commonService.isCompositeKey(tableName)) {
+					
+					// TODO
+					// xem xet schemaName
+					Map<String, String> m = dbServer.genUniqueCol(SCHEMA_NAME, tableName, colInfo, curValidVal.get(i));
+					if (m.size() == 0) {
+						continue;
+					}
+					flgAdd = true;
+					
+					// Get composite key
+					for (Map.Entry<String, String> entry : m.entrySet()) {
+						ColumnInfo columnInfo = new ColumnInfo(entry.getKey(), entry.getValue());
+						ColumnInfo colInner = commonService.getColumnInfo(tableName, entry.getKey());
+						
+//						createService.getDataTypeOfColumn(columnInfo);
+						columnInfo.setTypeName(colInner.getTypeName());
+						columnInfo.setTypeValue(colInner.getTypeValue());
+					}
+				} else {
+					flgAdd = true;
+				}
+				
+				if(flgAdd) {
+					ColumnInfo columnInfo = new ColumnInfo(colName, curValidVal.get(i));
+					
+					// Set type for excute case add ' or not!
+					columnInfo.setTypeName(colInfo.typeName);
+					columnInfo.setTypeValue(colInfo.typeValue);
+					
+					lstValue.add(columnInfo);
+					break;
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Process calculator for key mapping
+	 * @throws SQLException 
+	 */
+	private NodeColumn processCalKeyMap(Stack<NodeColumn> toExploder, Map<NodeColumn, NodeColumn> parentMap,
+			Set<Cond> colMapping, List<String> validOfCol, Map<Integer, Cond> loopSearch, 
+			boolean isCompositeKey, String dataType) throws SQLException {
+		NodeColumn nodeGoal = null;
+		
+		// Visited
+		Set<NodeColumn> visited = new HashSet<>();
+		
+		// Init flagMeet
+		boolean[] checkMeet = new boolean[colMapping.size()];
+		
+		for (int i = 0; i < colMapping.size(); ++i) {
+			checkMeet[i] = false;
+		}
+		
+		while (!toExploder.isEmpty()) {
+			NodeColumn curNode = toExploder.pop();
+			if (visited.contains(curNode)) {
+				continue;
+			}
+			
+			String val = curNode.val;
+			int index = curNode.index;
+			
+			// Find goal then stop
+			if (index == colMapping.size()) {
+				nodeGoal = curNode;
+				break;
+			}
+			
+			// Get next mapping.
+			Cond nextCond = loopSearch.get(index);
+			
+			// Remove value generator
+			// Just calculator first meet index
+			// Valid value will increase
+			if (!checkMeet[index]) {
+				List<Cond> conditionInWhere = new ArrayList<>();
+				// When has condition will remove current 
+				if (validValuesForColumn.get(nextCond.value) != null) {
+					if (lastEndValidValue.get(nextCond.value) != null &&
+							!lastEndValidValue.get(nextCond.value).isEmpty()) {
+						conditionInWhere.add(new Cond("=", lastEndValidValue.get(nextCond.value)));
+					} else {
+						conditionInWhere = validValuesForColumn.get(nextCond.value);
+					}
+					validOfCol = calculatorValidValWithColumnCondition(validOfCol, dataType,
+							conditionInWhere, null);
+				} 
+				if (valueInValidOfColumn.containsKey(nextCond.value)) {
+					List<String> inValidValue = valueInValidOfColumn.get(nextCond.value);
+					validOfCol = calculatorValidValWithColumnCondition(validOfCol, dataType,
+							conditionInWhere, inValidValue);
+				}
+				
+				// Not found valid for mapping column
+				if (validOfCol.isEmpty()) {
+					throw new NotFoundValueSQLException("Not found valid value for this SQL!");
+				}
+			}
+			
+			checkMeet[index] = true;
+			
+			for (int i = validOfCol.size() - 1; i >= 0; --i) {
+				
+				String[] innerTableColName = commonService.getTableAndColName(nextCond.value);
+				ColumnInfo t2 = commonService.getColumnInfo(innerTableColName[0], innerTableColName[1]);
+				ColumnInfo colInnerInfo = new ColumnInfo(t2.getName(), "", 
+						t2.getTypeName(), t2.getTypeValue(), t2.getIsNull(), 
+						t2.getIsPrimarykey(), t2.getIsForeignKey(), t2.getUnique());
+				
+				boolean flgAdd = isKeyMapping(nextCond, val, validOfCol.get(i), dataType);
+
+				// Add execute for composite key
+				Map<String, String> valCompositeKey = null; 
+				if (flgAdd) {
+					// Check value unique
+					if (!dbServer.isUniqueValue(innerTableColName[0], colInnerInfo, removeSpecifyCharacter("'", validOfCol.get(i)))) {
+						flgAdd = false;
+					} else {
+						flgAdd = true;
+					}
+					
+					// Execute for composite key
+					if (flgAdd && isCompositeKey) {
+						valCompositeKey = dbServer.genUniqueCol(SCHEMA_NAME, innerTableColName[0], colInnerInfo, 
+								removeSpecifyCharacter("'", validOfCol.get(i)));
+						if (valCompositeKey.size() != 0) {
+							flgAdd = true;
+						} else {
+							flgAdd = false;
+						}
+					}
+				}
+				
+				if (flgAdd) {
+					// Table columnName, value, index
+					NodeColumn innerNode = new NodeColumn(nextCond.value, validOfCol.get(i), index + 1, valCompositeKey);
+					parentMap.put(innerNode, curNode);
+					toExploder.add(innerNode);
+				}
+			}
+		}
+		return nodeGoal;
+	}
+	
+	/**
+	 * Check condition for mapping key
+	 */
+	private boolean isKeyMapping(Cond nextCond, String currentVal, String checkVal, String dataType) {
+		boolean flgAdd = false;
+		switch (nextCond.operator) {
+		case "=":
+			if (currentVal.equals(checkVal)) {
+				flgAdd = true;
+			}
+			break;
+		case "<=":
+			if (dataType.equals("date")) {
+				// date
+				Date tmp1 = parseStringToDate(currentVal);
+				Date tmp2 = parseStringToDate(checkVal);
+				if (tmp2.compareTo(tmp1) <= 0) {
+					flgAdd = true;
+				}
+			} else if (dataType.equals("number")) {
+				Integer int1 = parseStringToInt(currentVal);
+				Integer int2 = parseStringToInt(checkVal);
+				if (int2 <= int1) {
+					flgAdd = true;
+				}
+			}
+			// number
+			break;
+		case ">=":
+			if (dataType.equals("date")) {
+				// date
+				Date tmp1 = parseStringToDate(currentVal);
+				Date tmp2 = parseStringToDate(checkVal);
+				if (tmp2.compareTo(tmp1) >= 0) {
+					flgAdd = true;
+				}
+			} else if (dataType.equals("number")) {
+				Integer int1 = parseStringToInt(currentVal);
+				Integer int2 = parseStringToInt(checkVal);
+				if (int2 >= int1) {
+					flgAdd = true;
+				}
+			}
+			break;
+		case "<":
+			if (dataType.equals("date")) {
+				// date
+				Date tmp1 = parseStringToDate(currentVal);
+				Date tmp2 = parseStringToDate(checkVal);
+				if (tmp2.compareTo(tmp1) < 0) {
+					flgAdd = true;
+				}
+			} else if (dataType.equals("number")) {
+				Integer int1 = parseStringToInt(currentVal);
+				Integer int2 = parseStringToInt(checkVal);
+				if (int2 < int1) {
+					flgAdd = true;
+				}
+			}
+			break;
+		case ">":
+			if (dataType.equals("date")) {
+				// date
+				Date tmp1 = parseStringToDate(currentVal);
+				Date tmp2 = parseStringToDate(checkVal);
+				if (tmp2.compareTo(tmp1) > 0) {
+					flgAdd = true;
+				}
+			} else if (dataType.equals("number")) {
+				Integer int1 = parseStringToInt(currentVal);
+				Integer int2 = parseStringToInt(checkVal);
+				if (int2 > int1) {
+					flgAdd = true;
+				}
+			}
+			break;
+		case "!=":
+			if (!currentVal.equals(checkVal)) {
+				flgAdd = true;
+			}
+			break;
+		default:
+			System.out.println("Not have other condition!");
+			assert(false);
+		}
+		return flgAdd;
 	}
 }
