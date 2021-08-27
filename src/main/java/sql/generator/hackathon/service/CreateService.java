@@ -74,30 +74,28 @@ public class CreateService {
         }
 	}
 	
-	/**
-	 * Update data table
-	 * @param tableName
-	 * @param columnInfos
-	 */
-	public void update(String tableName, List<ColumnInfo> columnInfos, List<ColumnInfo> condition) {
-		String colUpdate = getStrColumnUpdate(columnInfos);
-		String conditionUpdate = getStrColUpdateCondition(condition);
-
-		String sqlInsert = "Update " + tableName + " SET " + colUpdate + " WHERE " + conditionUpdate;
-        try {
-            // crate statement to insert student
-            PreparedStatement stmt = conn.prepareStatement(sqlInsert);
-            int c = stmt.executeUpdate();
-            if (c == 0) {
-            	System.out.println("Update Error!");
-            } else {
-            	System.out.println("Update success!");
-            }
-            
-            stmt.close();
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-        }
+	public String getDefaultValue(String type) {
+		String res = "";
+		switch(type) {
+		case "varchar":
+		case "nvarchar":
+		case "char":
+		case "nchar":
+				res = dataExamples.get("name");
+			break;
+		case "number":
+		case "int":
+		case "bigint":
+			res = dataExamples.get("number");
+			break;
+		case "date":
+			// Get current date
+			DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd");  
+			LocalDateTime now = LocalDateTime.now();  
+			res = dtf.format(now);
+			break;
+		}
+		return res;
 	}
 	
 	/**
@@ -325,29 +323,5 @@ public class CreateService {
 			}
 		}
 		return cnt > 1;
-	}
-	
-	private String getDefaultValue(String type) {
-		String res = "";
-		switch(type) {
-		case "varchar":
-		case "nvarchar":
-		case "char":
-		case "nchar":
-				res = dataExamples.get("name");
-			break;
-		case "number":
-		case "int":
-		case "bigint":
-			res = dataExamples.get("number");
-			break;
-		case "date":
-			// Get current date
-			DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd");  
-			LocalDateTime now = LocalDateTime.now();  
-			res = dtf.format(now);
-			break;
-		}
-		return res;
 	}
 }
