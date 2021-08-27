@@ -288,8 +288,21 @@ public class ExecuteDBSQLServer {
 	// gene value for primary key or unique 
 	public Map<String, String> genUniqueCol(String schema, String tableName, ColumnInfo columnInfo, String value) throws SQLException {
 		Map<String, String> mapUnique = new HashMap<String, String>();
+
+		// get FOREIGN KEY
+		List<ObjForeignKeyInfo> lstObjForeignKeyInfo = getColForeignKey(schema, tableName);
+		
+		String valForeignKey;
+		// get value FOREIGN KEY
+		for (ObjForeignKeyInfo objForeignKeyInfo : lstObjForeignKeyInfo) {
+			valForeignKey = getValueForeignKey(tableName, objForeignKeyInfo);
+			mapUnique.put(objForeignKeyInfo.getColumnName() + "." + objForeignKeyInfo.getColumnName(), valForeignKey);
+		}
+		
+		// get column primary key
 		List<ColumnInfo> listColPri = getColPrimaryKey(schema, tableName, columnInfo);
-		// no PRI or UNI
+		
+		// no PRI, UNI and FOREIGN
 		if(listColPri.size() == 0) {
 			return mapUnique;
 		}
@@ -301,19 +314,8 @@ public class ExecuteDBSQLServer {
 			do {
 				randomValue = createValueRandom(entry.getValue());
 			} while (!isUniqueValue(tableName, entry.getValue(), randomValue));
-			mapUnique.put(entry.getKey(), randomValue);
+			mapUnique.put(entry.getKey() + "." + entry.getValue().getName(), randomValue);
 		}
-		
-		// get FOREIGN KEY
-		List<ObjForeignKeyInfo> lstObjForeignKeyInfo = getColForeignKey(schema, tableName);
-		
-		String valForeignKey;
-		// get value FOREIGN KEY
-		for (ObjForeignKeyInfo objForeignKeyInfo : lstObjForeignKeyInfo) {
-			valForeignKey = getValueForeignKey(tableName, objForeignKeyInfo);
-			mapUnique.put(objForeignKeyInfo.getColumnName(), valForeignKey);
-		}
-		
 		return mapUnique;
 	}
 	
