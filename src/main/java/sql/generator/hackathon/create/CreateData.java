@@ -1852,93 +1852,15 @@ public class CreateData {
 			checkMeet[index] = true;
 			
 			for (int i = 0; i < validOfCol.size(); ++i) {
-				boolean flgAdd = false;
-				switch (nextCond.operator) {
-				case "=":
-					if (val.equals(validOfCol.get(i))) {
-						flgAdd = true;
-					}
-					break;
-				case "<=":
-					if (dataType.equals("date")) {
-						// date
-						Date tmp1 = parseStringToDate(val);
-						Date tmp2 = parseStringToDate(validOfCol.get(i));
-						if (tmp2.compareTo(tmp1) <= 0) {
-							flgAdd = true;
-						}
-					} else if (dataType.equals("number")) {
-						Integer int1 = parseStringToInt(val);
-						Integer int2 = parseStringToInt(validOfCol.get(i));
-						if (int2 <= int1) {
-							flgAdd = true;
-						}
-					}
-					// number
-					break;
-				case ">=":
-					if (dataType.equals("date")) {
-						// date
-						Date tmp1 = parseStringToDate(val);
-						Date tmp2 = parseStringToDate(validOfCol.get(i));
-						if (tmp2.compareTo(tmp1) >= 0) {
-							flgAdd = true;
-						}
-					} else if (dataType.equals("number")) {
-						Integer int1 = parseStringToInt(val);
-						Integer int2 = parseStringToInt(validOfCol.get(i));
-						if (int2 >= int1) {
-							flgAdd = true;
-						}
-					}
-					break;
-				case "<":
-					if (dataType.equals("date")) {
-						// date
-						Date tmp1 = parseStringToDate(val);
-						Date tmp2 = parseStringToDate(validOfCol.get(i));
-						if (tmp2.compareTo(tmp1) < 0) {
-							flgAdd = true;
-						}
-					} else if (dataType.equals("number")) {
-						Integer int1 = parseStringToInt(val);
-						Integer int2 = parseStringToInt(validOfCol.get(i));
-						if (int2 < int1) {
-							flgAdd = true;
-						}
-					}
-					break;
-				case ">":
-					if (dataType.equals("date")) {
-						// date
-						Date tmp1 = parseStringToDate(val);
-						Date tmp2 = parseStringToDate(validOfCol.get(i));
-						if (tmp2.compareTo(tmp1) > 0) {
-							flgAdd = true;
-						}
-					} else if (dataType.equals("number")) {
-						Integer int1 = parseStringToInt(val);
-						Integer int2 = parseStringToInt(validOfCol.get(i));
-						if (int2 > int1) {
-							flgAdd = true;
-						}
-					}
-					break;
-				case "!=":
-					if (!val.equals(validOfCol.get(i))) {
-						flgAdd = true;
-					}
-					break;
-				default:
-					System.out.println("Not have other condition!");
-					assert(false);
-				}
+				
 				String[] innerTableColName = getTableAndColName(nextCond.value);
 				ColumnInfo t2 = createService.getColumInfo(innerTableColName[0], innerTableColName[1]);
 				ColumnInfo colInnerInfo = new ColumnInfo(t2.getName(), "", 
 						t2.getTypeName(), t2.getTypeValue(), t2.getIsNull(), 
 						t2.getIsPrimarykey(), t2.getIsForeignKey(), t2.getUnique());
-
+				
+				boolean flgAdd = isKeyMapping(nextCond, val, validOfCol.get(i), dataType);
+				
 				if (flgAdd) {
 					// Execute for composite key
 					if (isCompositeKey) {
@@ -1967,5 +1889,93 @@ public class CreateData {
 			}
 		}
 		return nodeGoal;
+	}
+	
+	/**
+	 * Check condition for mapping key
+	 */
+	private boolean isKeyMapping(Cond nextCond, String currentVal, String checkVal, String dataType) {
+		boolean flgAdd = false;
+		switch (nextCond.operator) {
+		case "=":
+			if (currentVal.equals(checkVal)) {
+				flgAdd = true;
+			}
+			break;
+		case "<=":
+			if (dataType.equals("date")) {
+				// date
+				Date tmp1 = parseStringToDate(currentVal);
+				Date tmp2 = parseStringToDate(checkVal);
+				if (tmp2.compareTo(tmp1) <= 0) {
+					flgAdd = true;
+				}
+			} else if (dataType.equals("number")) {
+				Integer int1 = parseStringToInt(currentVal);
+				Integer int2 = parseStringToInt(checkVal);
+				if (int2 <= int1) {
+					flgAdd = true;
+				}
+			}
+			// number
+			break;
+		case ">=":
+			if (dataType.equals("date")) {
+				// date
+				Date tmp1 = parseStringToDate(currentVal);
+				Date tmp2 = parseStringToDate(checkVal);
+				if (tmp2.compareTo(tmp1) >= 0) {
+					flgAdd = true;
+				}
+			} else if (dataType.equals("number")) {
+				Integer int1 = parseStringToInt(currentVal);
+				Integer int2 = parseStringToInt(checkVal);
+				if (int2 >= int1) {
+					flgAdd = true;
+				}
+			}
+			break;
+		case "<":
+			if (dataType.equals("date")) {
+				// date
+				Date tmp1 = parseStringToDate(currentVal);
+				Date tmp2 = parseStringToDate(checkVal);
+				if (tmp2.compareTo(tmp1) < 0) {
+					flgAdd = true;
+				}
+			} else if (dataType.equals("number")) {
+				Integer int1 = parseStringToInt(currentVal);
+				Integer int2 = parseStringToInt(checkVal);
+				if (int2 < int1) {
+					flgAdd = true;
+				}
+			}
+			break;
+		case ">":
+			if (dataType.equals("date")) {
+				// date
+				Date tmp1 = parseStringToDate(currentVal);
+				Date tmp2 = parseStringToDate(checkVal);
+				if (tmp2.compareTo(tmp1) > 0) {
+					flgAdd = true;
+				}
+			} else if (dataType.equals("number")) {
+				Integer int1 = parseStringToInt(currentVal);
+				Integer int2 = parseStringToInt(checkVal);
+				if (int2 > int1) {
+					flgAdd = true;
+				}
+			}
+			break;
+		case "!=":
+			if (!currentVal.equals(checkVal)) {
+				flgAdd = true;
+			}
+			break;
+		default:
+			System.out.println("Not have other condition!");
+			assert(false);
+		}
+		return flgAdd;
 	}
 }
