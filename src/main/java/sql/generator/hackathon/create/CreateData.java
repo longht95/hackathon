@@ -1047,8 +1047,8 @@ public class CreateData {
 			}
 			
 			// Init
-			i = 0;
-			for (; i < validOfCol.size(); ++i) {
+			i = validOfCol.size() - 1;
+			for (; i >= 0; --i) {
 				NodeColumn nodeCol = new NodeColumn(col, validOfCol.get(i), 0);
 				toExploder.add(nodeCol);
 			}
@@ -1908,6 +1908,13 @@ public class CreateData {
 							colInfo.val = c.val;
 						}
 					}
+				}
+			}
+			
+			// Add default value
+			for (ColumnInfo colInfo : l) {
+				if (colInfo.getVal().isEmpty()) {
+					colInfo.val = createService.getDefaultValue(colInfo.getTypeName());
 				}
 			}
 			
