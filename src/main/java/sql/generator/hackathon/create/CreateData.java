@@ -172,10 +172,10 @@ public class CreateData {
 		// Get infoCol
 		for (int i = 0; i < sz; ++i) {
 			for (Condition cd : tables.get(i).getCondition()) {
-				if (!cd.getRight().startsWith("KEY")) {
+				if (cd.getRight() == null || !cd.getRight().startsWith("KEY")) {
 					continue;
 				}
-				String tableColName = commonService.getTableAndColName(cd.getLeft())[0] + "." + commonService.getTableAndColName(cd.getLeft())[1];
+				String tableColName = tables.get(i).getTableName() + "." + commonService.getTableAndColName(cd.getLeft())[1];
 				String tableColName2 = "";
 				for (String t : keysFormat.get(cd.getRight())) {
 					if (!t.equals(tableColName)) tableColName2 = commonService.getTableAndColName(t)[0] + "." + commonService.getTableAndColName(t)[1];
@@ -1596,7 +1596,7 @@ public class CreateData {
 				for (ColumnInfo colInfo : l) {
 					for (ColumnInfo d : data) {
 						if (colInfo.getName().equals(d.getName())) {
-							colInfo.val = d.val;
+							colInfo.val = removeSpecifyCharacter("'", d.val);
 							if (markColor.containsKey(tableName + "." + colInfo.getName())) {
 								colInfo.color = markColor.get(tableName + "." + colInfo.getName());
 							} else {
@@ -1617,7 +1617,7 @@ public class CreateData {
 				Map<String, ColumnInfo> mapVal = genValueForKeyNoCondition(tableName, colNoVal);
 				for (ColumnInfo colInfo : l) {
 					if (colInfo.isKey() && colInfo.val.isEmpty()) {
-						colInfo.val = mapVal.get(tableName + "." + colInfo.getName()).val;
+						colInfo.val = removeSpecifyCharacter("'", mapVal.get(tableName + "." + colInfo.getName()).val);
 					}
 				}
 			}
@@ -1625,7 +1625,7 @@ public class CreateData {
 			// get unique val
 			for (ColumnInfo colInfo : l) {
 				if (colInfo.unique && colInfo.getVal().isEmpty()) {
-					colInfo.val = dbServer.genListUniqueVal(tableName, colInfo, "", "").get(0);
+					colInfo.val = removeSpecifyCharacter("'", dbServer.genListUniqueVal(tableName, colInfo, "", "").get(0));
 				}
 			}
 			
@@ -1664,7 +1664,7 @@ public class CreateData {
 			for (String val : listVal) {
 				Map<String, String> m = dbServer.genUniqueCol(SCHEMA_NAME, tableName, colInfo, val);
 				if (m.size() > 0) {
-					res.put(colInfo.name, new ColumnInfo(colInfo.name, val));
+					res.put(tableName + "." + colInfo.name, new ColumnInfo(colInfo.name, val));
 					for (Map.Entry<String, String> e : m.entrySet()) {
 						res.put(e.getKey(), new ColumnInfo(e.getKey(), e.getValue()));
 					}
@@ -1835,6 +1835,23 @@ public class CreateData {
 					validOfCol = calculatorValidValWithColumnCondition(validOfCol, dataType,
 							conditionInWhere, inValidValue);
 				}
+//				
+//				if (validValuesForColumn.get(nextCond.rightValue) != null) {
+//					if (lastEndValidValue.get(nextCond.rightValue) != null &&
+//							!lastEndValidValue.get(nextCond.rightValue).isEmpty()) {
+//						conditionInWhere.add(new Cond("=", lastEndValidValue.get(nextCond.rightValue)));
+//					} else {
+//						conditionInWhere = validValuesForColumn.get(nextCond.rightValue);
+//					}
+//					validOfCol = calculatorValidValWithColumnCondition(validOfCol, dataType,
+//							conditionInWhere, null);
+//				} 
+//				
+//				if (valueInValidOfColumn.containsKey(nextCond.rightValue)) {
+//					List<String> inValidValue = valueInValidOfColumn.get(nextCond.rightValue);
+//					validOfCol = calculatorValidValWithColumnCondition(validOfCol, dataType,
+//							conditionInWhere, inValidValue);
+//				}
 				
 				// Not found valid for mapping column
 				if (validOfCol.isEmpty()) {
@@ -1863,7 +1880,7 @@ public class CreateData {
 					} else {
 						flgAdd = true;
 					}
-					boolean innerIsCompositeKey = commonService.isCompositeKey(commonService.getTableAndColName(curNode.tableColumnName)[0]);
+					boolean innerIsCompositeKey = commonService.isCompositeKey(innerTableColName[0]);
 					
 					// Execute for composite key
 					if (flgAdd && innerIsCompositeKey) {
@@ -1879,7 +1896,8 @@ public class CreateData {
 				
 				if (flgAdd) {
 					// Table columnName, value, index
-					NodeColumn innerNode = new NodeColumn(nextCond.value, validOfCol.get(i), index + 1, nextCond, valCompositeKey);
+					NodeColumn innerNode = new NodeColumn(nextCond.value.equals(curNode.tableColumnName) ? nextCond.rightValue : nextCond.value, 
+							validOfCol.get(i), index + 1, nextCond, valCompositeKey);
 					parentMap.put(innerNode, curNode);
 					toExploder.add(innerNode);
 				}

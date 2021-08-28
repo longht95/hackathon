@@ -225,7 +225,11 @@ public class GenController {
 		String type = objectGenate.infoDatabase.getType();
 		
 		try {
-			
+			if (!type.equalsIgnoreCase("No database")) {
+				executeDBServer.connectDB(objectGenate.infoDatabase.getType(), objectGenate.infoDatabase.getUrl(), 
+						objectGenate.infoDatabase.getSchema(), objectGenate.infoDatabase.getUser(), 
+						objectGenate.infoDatabase.getPassword());
+			}
 			ParseObject parseObject = serviceParse.parseSelectStatement(objectGenate.queryInput);
 //			createService.setTableInfo(executeDBServer.getInforTable(objectGenate.infoDatabase.getSchema(), 
 //					serviceParse.getListTableByStatement(objectGenate.queryInput)));
@@ -234,14 +238,11 @@ public class GenController {
 //			CreateData createData = new CreateData(executeDBServer, createService, parseObject.getListTableSQL(), 
 //					parseObject.getMappingKey(), objectGenate.infoDatabase.getSchema());
 			
-			if (type.equalsIgnoreCase("no database")) {
+			if (type.equalsIgnoreCase("No database")) {
 				createData.init(type, null, objectGenate.infoDatabase.getSchema(), 
 						serviceParse.getListTableByStatement(objectGenate.getQueryInput()),
 						parseObject.getListTableSQL(), parseObject.getMappingKey());
 			}  else {
-				executeDBServer.connectDB(objectGenate.infoDatabase.getType(), objectGenate.infoDatabase.getUrl(), 
-						objectGenate.infoDatabase.getSchema(), objectGenate.infoDatabase.getUser(), 
-						objectGenate.infoDatabase.getPassword());
 				createData.init(type, executeDBServer, objectGenate.infoDatabase.getSchema(), 
 						serviceParse.getListTableByStatement(objectGenate.getQueryInput()),
 						parseObject.getListTableSQL(), parseObject.getMappingKey());
@@ -276,7 +277,7 @@ public class GenController {
 			// sql is not valid
 			e.printStackTrace();
 		} finally {
-			if (!type.equalsIgnoreCase("no database")) {
+			if (!type.equalsIgnoreCase("No database")) {
 				executeDBServer.disconnectDB();
 			}
 		}
