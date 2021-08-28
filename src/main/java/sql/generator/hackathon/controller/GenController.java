@@ -255,8 +255,8 @@ public class GenController {
 			ByteArrayOutputStream bos = new ByteArrayOutputStream();
 			HttpHeaders header = new HttpHeaders();
 			MediaType typeMedia;
-			System.out.println("TYPE GEN"+objectGenate.typeGen);
-			if (objectGenate.typeGen.equals("SQL")) {
+			System.out.println("TYPE GEN"+objectGenate.getTypeExport());
+			if (objectGenate.getTypeExport().equals("SQL")) {
 				resource = new ByteArrayInputStream(excelExporter.outputFieSql(serviceParse.dataToSqlInsert(response)));
 				header.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=data.txt");
 				typeMedia = MediaType.parseMediaType("text/plain");
