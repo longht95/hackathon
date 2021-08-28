@@ -156,7 +156,7 @@ table tbody tr td {
 				onchange="selectTable(this)">
 				<option value="None" disabled="disabled" selected="selected">Select table</option>
 			</select>
-			<input type="submit" value="Add column" onclick="addColumnDataSet()">
+			<input type="submit" id="addColumn" value="Add column" onclick="addColumnDataSet()">
 			<input type="submit" value="Add row" onclick="addRowDataSet()">
 			<table class="table" contenteditable="true" spellcheck="false">
 				<thead>
@@ -192,9 +192,11 @@ table tbody tr td {
 		if ($(this).val() == 'No database') {
 			$('#testConnection').hide();
 			$('.box-input').hide();
+			$('#addColumn').show();
 		} else {
 			$('#testConnection').show();
 			$('.box-input').show();
+			$('#addColumn').hide();
 		}
 	});
 	
@@ -555,8 +557,6 @@ table tbody tr td {
 			const dataPickers = [];
 			
 			let listTable = $('#block-data-picker').find('table');
-			
-			
 			
 			if (listTable) {
 				console.log('haveeeeeeee', listTable.length);
