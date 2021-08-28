@@ -96,31 +96,18 @@ h3 {
 	margin-top:15px;
 	display: flex;
 }
+
 table {
-	border-spacing: 0;
+	border: 1px solid rgb(192, 192, 192); border-collapse: collapse; padding: 5px;
 	margin-top: 15px;
+	outline:none;
 }
 table th {
-	border-bottom: 1px solid #333;
-	border-right: 1px solid #333;
-	padding:5px 10px;
-	font-weight: normal;
-}
-table th:last-child {
-	border-right:none;
-}
-table td:not(:last-child) {
-	border-right: 1px solid #333;
-}
-table td {
-	padding: 5px 10px;
+	background-color: rgb(240, 240, 240); padding: 5px; border-width: 1px; border-style: solid; border-color: rgb(192, 192, 192);
 }
 
-table td:last-child {
-	border-right:none;
-}
-table td.appDetails:nth-last-child(2) {
-	border-right:none;
+table tbody tr td {
+	padding: 5px; border-width: 1px; border-style: solid; border-color: rgb(192, 192, 192);
 }
 
 .delete-picker {
@@ -131,6 +118,8 @@ table td.appDetails:nth-last-child(2) {
     border: 1px solid #d9d9d9;
     height: 28px;
 }
+
+
 </style>
 <body>
 	<main>
@@ -169,7 +158,7 @@ table td.appDetails:nth-last-child(2) {
 			</select>
 			<input type="submit" value="Add column" onclick="addColumnDataSet()">
 			<input type="submit" value="Add row" onclick="addRowDataSet()">
-			<table class="table">
+			<table class="table" contenteditable="true" spellcheck="false">
 				<thead>
 					
 				</thead>
@@ -195,6 +184,10 @@ table td.appDetails:nth-last-child(2) {
 	<script>
 	var dataPicker = [];
 	
+	var stateId = 0;
+	
+	var stateIdPicker = 0;
+	
 	$('#select-database').on('change', function() {
 		if ($(this).val() == 'No database') {
 			$('#testConnection').hide();
@@ -205,86 +198,33 @@ table td.appDetails:nth-last-child(2) {
 		}
 	});
 	
-	function delPicker(inp) {
-		let id = $(inp).attr('id');
-		console.log('id', id);
-		$('#block-data-picker').find('table tbody #'+id).remove();
-		dataPicker = dataPicker.filter(item => item.id != id);
-		if (dataPicker.length == 0) {
-			console.log('xxxxxxx');
-			$('#block-data-picker').find('table').remove();
+		function delPicker(inp) {
+			let id = $(inp).attr('id');
+			console.log('id', id);
+			$('#block-data-picker').find('table tbody #'+id).remove();
+			dataPicker = dataPicker.filter(item => item.id != id);
+			if (dataPicker.length == 0) {
+				console.log('xxxxxxx');
+				$('#block-data-picker').find('table').remove();
+			}
+			console.log('xxx',dataPicker);
 		}
-		console.log('xxx',dataPicker);
-	}
-		function checkedBoxChange(check) {
-			console.log('xxxxxxxx');
-			let tableSelected = $('#selectBox :selected').text();
-			let isNotHeader = $('#block-data-picker').find('#'+tableSelected+' thead').length == 0;
-			let isNotTable = $('#block-data-picker').find('#'+tableSelected).length == 0;
-			let id = $(check).attr('id');
-			console.log('check', check);
-			let data = $(check).parent().parent().find("td");
-			
-			let htmlTable = '<tr id="'+id+'"><td><input id="'+id+'" class="delete-picker" style="width:50px" type="submit" value="Del" onClick="delPicker(this)"></td>';
-			let findColumn = [];
-			
-			let current = dataPicker.find(tb => tb.tableName == tableSelected);
-			console.log(current);
-			let htmlColumn = "<thead><tr><th>#</th>";
-			if (!check.checked) {
-				console.log('false');
-				console.log('find data', id);
-				$('#block-data-picker').find('table tbody #'+id).remove();
-				dataPicker = dataPicker.filter(item => item.id != id);
-				return;
-			}
-			$('.table').find('thead tr th').each(function(index) {
-				if (index != 0) {
-					htmlColumn+= '<th>'+$(this).html()+'</th>'
-					findColumn.push($(this).html());
-				}
-			});
-			htmlColumn+='</tr>';
-			let objectPicker = {
-				tableName : tableSelected,
-				listColumn : findColumn,
-				listData : [],
-				id : id,
-			}
-			let dataP = [];
-			
-			for (let i = 0; i < data.length; i++) {
-				if (!$(data[i].innerHTML).is('input')) {
-					htmlTable+="<td>";
-					htmlTable+=data[i].innerHTML;
-					htmlTable+="</td>";
-					dataP.push(data[i].innerHTML);
-				}
-			}
-			htmlTable+="</tr>"
-			if (current) {
-				current.listData.push(dataP);
-				$('#block-data-picker').find('table#'+ tableSelected+' tbody').append(htmlTable);
-			} else {
-				//create table
-				let tableHTML = '<table id="'+tableSelected+'"><tbody>' + htmlTable + '</tbody></table>'
-				if (isNotTable) {
-					$('#block-data-picker').append(tableHTML);
-				} else {
-					console.log('id', tableSelected);
-					$('#block-data-picker #'+tableSelected).find('tbody').append(htmlTable);
-				}
-				objectPicker.listData.push(dataP);
-				dataPicker.push(objectPicker);
+		
+		function delRowDataPicker(row) {
+			let id = $(row).attr('id');
+			let table = $(row).closest('table').attr('id');
+			let objectPicker = dataPicker.find(item => item.tableName == table);
+			if (objectPicker) {
 				
+				console.log('1111111111', objectPicker.listData.filter(item => item[0] != id));
+				objectPicker.listData = objectPicker.listData.filter(item => item[0] != id);
 			}
-			if (isNotHeader) {
-				$('#block-data-picker').find('#'+tableSelected).append(htmlColumn);
+			if (objectPicker && objectPicker.listData && objectPicker.listData.length == 0) {
+				$('#block-data-picker').find('table#'+table).remove();
+			} else {
+				$(row).closest('tr').remove();
 			}
-		}
-		var stateId = 0;
-		function delRowDataPicker() {
-			
+			console.log('delRowDataPicker', dataPicker);
 		}
 		
 		function addRowDataSet() {
@@ -292,21 +232,28 @@ table td.appDetails:nth-last-child(2) {
 			let tableSelected = $('#select-database :selected').val();
 			let listColumn = $('table.table thead tr th');
 			let tbl = $("table.table > tbody");
-			let rowHTML = '<tr id="row'+stateId+'">';
+			let row = document.createElement('tr');
+			row.setAttribute('id', "row"+stateId);
+			
 			for (let i = 0; i < listColumn.length; i++) {
+				let cell = document.createElement('td');
 				if (i == 0) {
-					let rowId = "row"+stateId;
-					rowHTML += '<td><input type="submit" value="Add" onclick="addRowDataPicker(this)" id="'+tableName+'"></td>';
+					let input = document.createElement('input');
+					input.setAttribute('id', tableName);
+					input.type = "submit";
+					input.value = "Add";
+					input.style.width = "44px";
+					input.setAttribute('onclick', 'addRowDataPicker(this)');
+					cell.appendChild(input);
 				} else {
-					let ind = i - 1;
-					rowHTML += '<td id="row'+ stateId +'-col'+ ind +'-p-input" ><input  type="text" value="" placeholder="Nhập..."></td>'
-					
+					cell.appendChild(document.createTextNode(''));
 				}
+				row.appendChild(cell);
 			}
 			stateId++;
-			rowHTML += "</tr>";
-			tbl.prepend(rowHTML);
+			tbl.prepend(row);
 		}
+		
 		function addRowDataPicker(rowId) {
 			let listCell = $(rowId).parent().parent().find('td');
 			
@@ -320,45 +267,98 @@ table td.appDetails:nth-last-child(2) {
 			
 			let dataPick = dataPicker.find(item => item.tableName == table);
 			
-			let tdHTML = "<tr>";
+			let tableTag = document.createElement('table');
 			
-			for (let i = 1 ; i <listCell.length; i++) {
-				tdHTML += "<td>"
-				listData.push($(listCell[i]).children().val());
-				tdHTML += $(listCell[i]).children().val();
-				tdHTML += "</td>"
+			tableTag.setAttribute('id', table);
+			
+			tableTag.setAttribute('contenteditable', 'true');
+			
+			let theadTableName = document.createElement('thead');
+			
+			let trTableName = document.createElement('tr');
+			
+			let thTableName = document.createElement('th');
+			
+			thTableName.style.borderRight = "none";
+			
+			thTableName.appendChild(document.createTextNode(table));
+			
+			trTableName.appendChild(thTableName);
+			
+			theadTableName.appendChild(trTableName);
+			
+			tableTag.appendChild(theadTableName);
+			
+			
+			let tbody = document.createElement('tbody');
+			
+			let row = document.createElement('tr');
+			
+			for (let i = 0 ; i <listCell.length; i++) {
+				let cell = document.createElement('td');
+				if (i == 0) {
+					let index = 0;
+					if (dataPick && dataPick.listData) {
+						index = dataPick.listData.length;
+					}
+					let inputTag = document.createElement('input');
+					inputTag.type = "submit";
+					inputTag.value = "Del";
+					inputTag.style.width = "44px";
+					inputTag.setAttribute('id', stateIdPicker);
+					inputTag.setAttribute("onclick", "delRowDataPicker(this)");
+					cell.appendChild(inputTag);
+					listData.push(stateIdPicker);
+					stateIdPicker++;
+				} else {
+					let text = $(listCell[i]).text();
+					cell.appendChild(document.createTextNode(text));
+					listData.push(text);
+				}
+				row.appendChild(cell);
 			}
 			
-			tdHTML += "</tr>"
+			tbody.appendChild(row);
 			
-			console.log('list header', listColumn.length);
+			let theadTag = document.createElement('thead');
 			
-			let tableHTML = '<table id="'+table+'">';
-			let theadHTML = "<thead><tr>";
-			if (!dataPick) {
+			let rowThead = document.createElement('tr');
+			
+			
+			if (!dataPick || (dataPick && dataPick.listData && dataPick.listData.length == 0)) {
 				//chua co get column
-				for (let i = 1 ; i < listColumn.length; i++) {
-					theadHTML += "<th>";
+				for (let i = 0 ; i < listColumn.length; i++) {
+					let cellThead = document.createElement('th');
+					
 					if ($(listColumn[i]).children().prop("tagName") == "INPUT") {
-						theadHTML += $(listColumn[i]).children().val();
+						cellThead.appendChild(document.createTextNode($(listColumn[i]).children().val()));
 						listDataHeader.push($(listColumn[i]).children().val());
 					} else {
 						listDataHeader.push($(listColumn[i]).html());
-						theadHTML += $(listColumn[i]).html();
+						cellThead.appendChild(document.createTextNode($(listColumn[i]).html()));
 					}
-					theadHTML += "</th>";
+					rowThead.appendChild(cellThead);
 				}
-				theadHTML += "</tr>";
-				theadHTML += "</thead>"
-				
+				theadTag.appendChild(rowThead);
+			}
+			console.log('datapick123', dataPick);
+			if (dataPick) {
+				if (dataPick.listData.length > 0) {
+					$('#block-data-picker').find('table#'+dataPick.tableName+' tbody').prepend(row);
+				} else {
+					tableTag.appendChild(theadTag);
+					tableTag.appendChild(tbody);
+					$('#block-data-picker').append(tableTag);
+				}
+				dataPick.listData.push(listData);
 			}
 			
-			if (dataPick) {
-				$('#block-data-picker').find('table#'+dataPick.tableName+' tbody').prepend(tdHTML);
-				dataPick.listData.push(listData);
-			} else {
-				let resultHTML = tableHTML +"<caption>" + table + "</caption>" + theadHTML + "<tbody>" + tdHTML + "</tbody" + "</table>";
-				$('#block-data-picker').append(resultHTML);
+			if (!dataPick) {
+				
+				tableTag.appendChild(theadTag);
+				tableTag.appendChild(tbody);
+				
+				$('#block-data-picker').append(tableTag);
 				const dataPush = {
 						tableName : table,
 						listColumn : listDataHeader,
@@ -367,11 +367,6 @@ table td.appDetails:nth-last-child(2) {
 				dataPicker.push(dataPush);
 			}
 			console.log('dataPicker', dataPicker);
-			console.log('listData', listData);
-			console.log('length td', parent.length);
-			console.log('list data header', listDataHeader);
-			
-			console.log('rowid', rowId);
 		}
 		
 		function addColumnDataSet() {
@@ -379,18 +374,19 @@ table td.appDetails:nth-last-child(2) {
 			let headerDataSet = $(tableDataSet).find('thead tr th');
 			let rowDataSet = $(tableDataSet).find('tbody');
 			let listRowDataSet = $(rowDataSet).find('tr');
-			console.log('length tr', listRowDataSet.length);
+			let row = document.createElement('tr');
+			
 			for (let i = 0 ; i < listRowDataSet.length ; i++) {
 				let listTD = $(listRowDataSet[i]).find('td');
-				let trId = $(listRowDataSet[i]).attr('id');
-				console.log('trId', trId);
-				let lengthTD = (listTD.length - 1)/2;
-				console.log('lengtd', lengthTD);
-				let rowHTML = "";
-				rowHTML += "<td id='"+trId+"-col"+lengthTD+"-p-input' ><input  type='text' value='' placeholder='Nhập...'></td>"
-				$(listTD).first().after(rowHTML);
+				let cell = document.createElement('td');
+				cell.appendChild(document.createTextNode(''));
+				$(listTD).first().after(cell);
 			}
-			$(headerDataSet).first().after('<th><input type="text"></th>');
+			
+			let cellColumn = document.createElement('th');
+			cellColumn.appendChild(document.createTextNode('column'));
+			
+			$(headerDataSet).first().after(cellColumn);
 		}
 		
 		function selectTable(select) {
@@ -429,30 +425,58 @@ table td.appDetails:nth-last-child(2) {
 							let tbl = $(".table > tbody");
 							let arrData = data.listData;
 							let arrColumn = data.listColumnName;
-							let tien = "";
-							tien += "<tr><th>#</th>";
+														
 							let tbl1 = $(".table > thead");
 							tbl1.empty();
-							$(".table > tbody").empty();
-							for (let j = 0; j < arrColumn.length; j++) {
-								tien += "<th>" + arrColumn[j] + "</th>";
-							}
-							tien+="</tr>";
 							tbl.empty();
-							tbl1.append(tien);
+							
+							let trThead = document.createElement('tr');
+							
+							let thAction = document.createElement('th');
+							
+							thAction.appendChild(document.createTextNode('#'));
+							
+							trThead.appendChild(thAction);
+							
+							for (let j = 0; j < arrColumn.length; j++) {
+								
+								let thThead = document.createElement('th');
+								
+								thThead.appendChild(document.createTextNode(arrColumn[j]));
+								
+								trThead.appendChild(thThead);
+							}
+							tbl1.append(trThead);
 							if (arrData && arrData.length != 0) {
 								for (let i = 0; i < arrData.length; i++) {
-									let abc = "<tr>";
-									abc += '<td><input type="checkbox" class="checkbox" onchange="checkedBoxChange(this)" id="'+tableName+i+'"></td>';
+									let row = document.createElement('tr');
+									
+									row.setAttribute('id', 'row'+stateId);
+									
+									let cellAction = document.createElement('td');
+									
+									let input = document.createElement('input');
+									
+									input.type = "submit";
+									
+									input.value = "Add";
+									
+									input.style.width = "44px";
+									
+									input.setAttribute('onclick', 'addRowDataPicker(this)');
+									
+									cellAction.appendChild(input);
+									
+									row.appendChild(cellAction);
+									
 									for (let k = 0; k < arrData[i].length; k++) {
-										abc += "<td id ='row"+ i +"-col"+ k +"-p' class='appDetails'>";
-										abc += arrData[i][k];
-										abc += "</td>";
-										abc += '<td id="row'+ i +'-col'+ k +'-p-input" style="display: none;" ><input  type="text" onblur="changeDataInput(this)" value='+ arrData[i][k]+' placeholder="Nhập..."></td>'
 										
+										let cell = document.createElement('td');
+										
+										cell.appendChild(document.createTextNode(arrData[i][k]));
+										row.appendChild(cell);
 									}
-									abc += "</tr>";
-									tbl.append(abc);
+									tbl.append(row);
 								}
 							}
 						},
@@ -462,24 +486,6 @@ table td.appDetails:nth-last-child(2) {
 					});
 		}
 		
-		
-		
-		$(document).on("click", ".checkbox", function() {
-			if($(this).prop("checked") == true){
-            	console.log($(this).parent());
-            }
-            else if($(this).prop("checked") == false){
-                console.log("Checkbox is unchecked.");
-            }
-		});
-
-		$(document).on("click", ".appDetails", function() {
-			var clickedBtnID = $(this).attr('id'); // or var clickedBtnID = this.id
-			var inputT = $(this).attr('id')+'-input';
-			$("#" + inputT).show().find('input').focus();
-			$("#" + clickedBtnID).hide();
-		});
-		
 		//import file
 		$('#importFile').on("click", function(){
 			$('#inputFile').trigger('click');
@@ -487,6 +493,8 @@ table td.appDetails:nth-last-child(2) {
 		
 		$('#updateQuery').on("click", function(){
 			const queryInput = $('#inputQuerySQL').val();
+			$('table.table').find('thead').empty();
+			$('table.table').find('tbody').empty();
 			$.ajax({
 			       url : '/updateQuery',
 			       type : 'GET',

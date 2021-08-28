@@ -209,7 +209,7 @@ public class GenController {
 			List<List<ColumnInfo>> list = new ArrayList<>();
 			for (List<String> data : x.listData) {
 				List<ColumnInfo> listColumnInfo = new ArrayList<>();
-				for (int i = 0; i < x.listData.get(0).size(); i++) {
+				for (int i = 1; i < x.listData.get(0).size(); i++) {
 
 					ColumnInfo columnInfo = new ColumnInfo();
 					columnInfo.val = data.get(i);
@@ -254,8 +254,7 @@ public class GenController {
 			ByteArrayOutputStream bos = new ByteArrayOutputStream();
 			HttpHeaders header = new HttpHeaders();
 			MediaType typeMedia;
-			System.out.println("TYPE GEN"+objectGenate.typeGen);
-			if (objectGenate.typeGen.equals("SQL")) {
+			if (objectGenate.typeExport.equals("SQL")) {
 				resource = new ByteArrayInputStream(excelExporter.outputFieSql(serviceParse.dataToSqlInsert(response)));
 				header.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=data.txt");
 				typeMedia = MediaType.parseMediaType("text/plain");
