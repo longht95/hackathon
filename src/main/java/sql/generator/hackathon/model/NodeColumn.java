@@ -6,13 +6,22 @@ public class NodeColumn {
 
 	public String tableColumnName;
 	public String val;
-	public int index; 
+	public int index;
+	public Cond mapping;
 	public Map<String, String> valCompositeKey;
 	
 	public NodeColumn(String tableColumnName, String val, int index, Map<String, String> valCompositeKey) {
 		this.tableColumnName = tableColumnName;
 		this.val = val;
 		this.index = index;
+		this.valCompositeKey = valCompositeKey;
+	}
+	
+	public NodeColumn(String tableColumnName, String val, int index, Cond mapping, Map<String, String> valCompositeKey) {
+		this.tableColumnName = tableColumnName;
+		this.val = val;
+		this.index = index;
+		this.mapping = mapping;
 		this.valCompositeKey = valCompositeKey;
 	}
 	
