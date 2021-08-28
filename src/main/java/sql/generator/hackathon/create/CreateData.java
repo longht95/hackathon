@@ -1577,11 +1577,15 @@ public class CreateData {
 		for (Map.Entry<String, List<ColumnInfo>> e : tableInfo.entrySet()) {
 			String tableName = e.getKey();
 			List<ColumnInfo> l = new ArrayList<>();
+			Set<String> hasColumn = new HashSet<>();
 			// Init
 			for (ColumnInfo colInfo : e.getValue()) {
-				l.add(new ColumnInfo(colInfo.getName(), "", colInfo.getTypeName(),
-						colInfo.getTypeValue(), colInfo.getIsNull(), colInfo.getIsPrimarykey(),
-						colInfo.getIsForeignKey(), colInfo.getUnique()));
+				if (!hasColumn.contains(colInfo.getName())) {
+					l.add(new ColumnInfo(colInfo.getName(), "", colInfo.getTypeName(),
+							colInfo.getTypeValue(), colInfo.getIsNull(), colInfo.getIsPrimarykey(),
+							colInfo.getIsForeignKey(), colInfo.getUnique()));
+					hasColumn.add(colInfo.getName());
+				}
 			}
 			
 			
@@ -1600,9 +1604,8 @@ public class CreateData {
 							if (markColor.containsKey(tableName + "." + colInfo.getName())) {
 								colInfo.color = markColor.get(tableName + "." + colInfo.getName());
 							} else {
-								colInfo.color = "MARK_COLOR_" + idxColor;
-								markColor.put(tableName + "." + colInfo.getName(), "MARK_COLOR_" + idxColor);
-								idxColor++;
+								colInfo.color = "MARK_COLOR_99";
+								markColor.put(tableName + "." + colInfo.getName(), "MARK_COLOR_99");
 							}
 						}
 					}
