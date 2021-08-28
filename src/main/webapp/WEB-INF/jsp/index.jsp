@@ -354,8 +354,28 @@ table tbody tr td {
 			
 			let cellColumn = document.createElement('th');
 			cellColumn.appendChild(document.createTextNode('column'));
-			
 			$(headerDataSet).first().after(cellColumn);
+			
+			//process add column and row for data picker
+			
+			let tableName = $('#selectBox :selected').text();
+			
+			let tableDataPick = $('#block-data-picker').find('table#'+tableName);
+			
+			if (tableDataPick) {
+				let cellColumnPicker = document.createElement('th');
+				cellColumnPicker.appendChild(document.createTextNode('column'));
+				let headerDataPick = $(tableDataPick).find('thead.isColumn tr th');
+				$(headerDataPick).first().after(cellColumnPicker);
+				
+				let rowDataPick = $(tableDataPick).find('tbody tr');
+				let cell = document.createElement('td');
+				cell.appendChild(document.createTextNode(''));
+				for (let i = 0 ; i < rowDataPick.length ; i++) {
+					
+					$(rowDataPick).find('td').first().after(cell);
+				}
+			}
 		}
 		
 		function selectTable(select) {

@@ -108,11 +108,13 @@ public class ServiceParse {
 		SelectBody selectBody = select.getSelectBody();
 		processSelectBody(selectBody, null);
 		processColumnWithAlias();
+		
 		InfoDisplayScreen infoDisplayScreen = new InfoDisplayScreen();
-		TableSQL table = tables.get(tableName);
-		if (table != null && table.getColumns() != null) {
-			infoDisplayScreen.listColumnName = tables.get(tableName).getColumns().stream().collect(Collectors.toList());
-		}
+		tables.entrySet().forEach(x -> {
+			if (x.getValue().getTableName().equals(tableName)) {
+				infoDisplayScreen.listColumnName = x.getValue().getColumns().stream().collect(Collectors.toList());
+			}
+		});
 		return infoDisplayScreen;
 	}
 	
