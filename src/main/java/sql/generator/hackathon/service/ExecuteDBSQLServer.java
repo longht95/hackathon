@@ -224,9 +224,9 @@ public class ExecuteDBSQLServer {
 		SQL.append("SELECT MAX(" + columnInfo.getName() + ") FROM " + tableName);
 		ResultSet resultSet = stmt.executeQuery(SQL.toString());
 		while (resultSet.next()) {
-			String increaseValue = "";
+			String increaseValue = resultSet.getString(1);
 			for (int i = 0; i < 10000; i++) {
-				increaseValue = createData.genKeyWithTypeChar(true, resultSet.getString(1));
+				increaseValue = createData.genKeyWithTypeChar(true, increaseValue);
 				lstStringUnique.add(increaseValue);
 			}
 		}
@@ -296,7 +296,7 @@ public class ExecuteDBSQLServer {
 		// get value FOREIGN KEY
 		for (ObjForeignKeyInfo objForeignKeyInfo : lstObjForeignKeyInfo) {
 			valForeignKey = getValueForeignKey(tableName, objForeignKeyInfo);
-			mapUnique.put(objForeignKeyInfo.getTableName()+ "." + objForeignKeyInfo.getColumnName(), valForeignKey);
+			mapUnique.put(tableName + "." + objForeignKeyInfo.getColumnName(), valForeignKey);
 		}
 		
 		// get column primary key
@@ -314,7 +314,7 @@ public class ExecuteDBSQLServer {
 			do {
 				randomValue = createValueRandom(entry.getValue());
 			} while (!isUniqueValue(tableName, entry.getValue(), randomValue));
-			mapUnique.put(entry.getKey() + "." + entry.getValue().getName(), randomValue);
+			mapUnique.put(tableName + "." + entry.getKey(), randomValue);
 		}
 		return mapUnique;
 	}
