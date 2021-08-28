@@ -67,7 +67,7 @@ public class CreateData {
 	
 	private Map<String, List<String>> keysFormat;
 
-	// alias.Name => <tableName.columnName, operator>
+	// tableName1.colName1 - tableName2.colName2 => [operator1, operator2] 
 	private Map<String, String[]> infoCol;
 
 	// Data current values
@@ -168,6 +168,21 @@ public class CreateData {
 		for (int i = 0; i < sz; ++i) {
 			exeEachTable(tables.get(i));
 		}
+		
+		// Get infoCol
+		for (int i = 0; i < sz; ++i) {
+			for (Condition cd : tables.get(i).getCondition()) {
+				if (cd.getRight() == null || !cd.getRight().startsWith("KEY")) {
+					continue;
+				}
+				String tableColName = tables.get(i).getTableName() + "." + commonService.getTableAndColName(cd.getLeft())[1];
+				String tableColName2 = "";
+				for (String t : keysFormat.get(cd.getRight())) {
+					if (!t.equals(tableColName)) tableColName2 = commonService.getTableAndColName(t)[0] + "." + commonService.getTableAndColName(t)[1];
+				}
+				processCalInfoCol(tableColName, tableColName2, cd.expression);
+			}
+		}
 
 		// Get column Mapping (Key1 -> Key2, Key2 -> Key) in keys
 		Map<String, Set<String>> colMapping = getMappingColumn();
@@ -240,8 +255,6 @@ public class CreateData {
 			}
 			String tableColName = tableName + "." + sp[1];
 			valKey.add(tableColName);
-			
-			infoCol.put(tableColName, new String[] { tableColName, operator });
 			lastEndValidValue.put(tableColName, "");
 		}
 
@@ -810,8 +823,9 @@ public class CreateData {
 	private Map<String, Set<Cond>> getAllMappingColum(Map<String, Set<String>> columnMapping) {
 		Map<String, Set<Cond>> columnMap = new HashMap<>();
 		for (Map.Entry<String, Set<String>> e : columnMapping.entrySet()) {
-			Set<String> mappings = new HashSet<>();
+			Set<String[]> mappings = new HashSet<>();
 			String curKey = e.getKey();
+			String prevCol = curKey;
 			for (String val : e.getValue()) {
 				Queue<String> toExploder = new LinkedList<>();
 				Set<String> visited = new HashSet<>();
@@ -824,10 +838,13 @@ public class CreateData {
 						continue;
 					}
 					visited.add(val);
-					mappings.add(cur);
+					mappings.add(new String[] {cur, prevCol});
 					if (columnMapping.containsKey(cur)) {
 						for (String t : columnMapping.get(cur)) {
-							toExploder.add(t);
+							if (!t.equals(curKey)) {
+								prevCol = cur;
+								toExploder.add(t);
+							}
 						}
 					}
 				}
@@ -839,8 +856,9 @@ public class CreateData {
 			// VALUE COND {operator, value{KEY}}
 			Set<Cond> s = new HashSet<Cond>();
 
-			for (String c : mappings) {
-				Cond cond = new Cond(infoCol.get(c)[1], infoCol.get(c)[0]);
+			for (String[] c : mappings) {
+				String[] operators = infoCol.get(c[0] + "-" + c[1]);
+				Cond cond = new Cond(operators[0], c[0], operators[1], c[1]);
 				s.add(cond);
 			}
 			columnMap.put(e.getKey(), s);
@@ -940,14 +958,12 @@ public class CreateData {
 			// Init
 			i = validOfCol.size() - 1;
 			for (; i >= 0; --i) {
-				NodeColumn nodeCol = new NodeColumn(col, validOfCol.get(i), 0, null);
+				NodeColumn nodeCol = new NodeColumn(col, validOfCol.get(i), 0, loopSearch.get(0), null);
 				toExploder.add(nodeCol);
 			}
 			
-			boolean isCompositeKey = commonService.isCompositeKey(tableName);
-
 			NodeColumn nodeGoal = processCalKeyMap(toExploder, parentMap, e.getValue(), validOfCol, 
-					loopSearch, isCompositeKey, dataType);
+					loopSearch, dataType);
 			
 			// Find valid value path
 			// Next to insert to data table.
@@ -1580,7 +1596,7 @@ public class CreateData {
 				for (ColumnInfo colInfo : l) {
 					for (ColumnInfo d : data) {
 						if (colInfo.getName().equals(d.getName())) {
-							colInfo.val = d.val;
+							colInfo.val = removeSpecifyCharacter("'", d.val);
 							if (markColor.containsKey(tableName + "." + colInfo.getName())) {
 								colInfo.color = markColor.get(tableName + "." + colInfo.getName());
 							} else {
@@ -1601,7 +1617,7 @@ public class CreateData {
 				Map<String, ColumnInfo> mapVal = genValueForKeyNoCondition(tableName, colNoVal);
 				for (ColumnInfo colInfo : l) {
 					if (colInfo.isKey() && colInfo.val.isEmpty()) {
-						colInfo.val = mapVal.get(tableName + "." + colInfo.getName()).val;
+						colInfo.val = removeSpecifyCharacter("'", mapVal.get(tableName + "." + colInfo.getName()).val);
 					}
 				}
 			}
@@ -1609,7 +1625,7 @@ public class CreateData {
 			// get unique val
 			for (ColumnInfo colInfo : l) {
 				if (colInfo.unique && colInfo.getVal().isEmpty()) {
-					colInfo.val = dbServer.genListUniqueVal(tableName, colInfo, "", "").get(0);
+					colInfo.val = removeSpecifyCharacter("'", dbServer.genListUniqueVal(tableName, colInfo, "", "").get(0));
 				}
 			}
 			
@@ -1643,12 +1659,12 @@ public class CreateData {
 		
 		// Gen value for key with no condition
 		if (!commonService.isCompositeKey(tableName)) {
-			res.put(colInfo.name, new ColumnInfo(colInfo.name, listVal.get(0)));
+			res.put(tableName + "." + colInfo.name, new ColumnInfo(colInfo.name, listVal.get(0)));
 		} else {
 			for (String val : listVal) {
 				Map<String, String> m = dbServer.genUniqueCol(SCHEMA_NAME, tableName, colInfo, val);
 				if (m.size() > 0) {
-					res.put(colInfo.name, new ColumnInfo(colInfo.name, val));
+					res.put(tableName + "." + colInfo.name, new ColumnInfo(colInfo.name, val));
 					for (Map.Entry<String, String> e : m.entrySet()) {
 						res.put(e.getKey(), new ColumnInfo(e.getKey(), e.getValue()));
 					}
@@ -1726,7 +1742,7 @@ public class CreateData {
 					// Get composite key
 					for (Map.Entry<String, String> entry : m.entrySet()) {
 						ColumnInfo columnInfo = new ColumnInfo(entry.getKey(), entry.getValue());
-						ColumnInfo colInner = commonService.getColumnInfo(tableName, entry.getKey());
+						ColumnInfo colInner = commonService.getColumnInfo(tableName, commonService.getTableAndColName(entry.getKey())[1]);
 						
 //						createService.getDataTypeOfColumn(columnInfo);
 						columnInfo.setTypeName(colInner.getTypeName());
@@ -1756,7 +1772,7 @@ public class CreateData {
 	 */
 	private NodeColumn processCalKeyMap(Stack<NodeColumn> toExploder, Map<NodeColumn, NodeColumn> parentMap,
 			Set<Cond> colMapping, List<String> validOfCol, Map<Integer, Cond> loopSearch, 
-			boolean isCompositeKey, String dataType) throws SQLException {
+			String dataType) throws SQLException {
 		NodeColumn nodeGoal = null;
 		
 		// Visited
@@ -1787,6 +1803,17 @@ public class CreateData {
 			// Get next mapping.
 			Cond nextCond = loopSearch.get(index);
 			
+			// Find value of column
+			NodeColumn tmp = curNode;
+			while (tmp != null) {
+				if (tmp.tableColumnName.equals(nextCond.rightValue) || 
+						tmp.tableColumnName.equals(nextCond.value)) {
+					val = tmp.val;
+				}
+				tmp = parentMap.get(tmp);
+			}
+			
+			
 			// Remove value generator
 			// Just calculator first meet index
 			// Valid value will increase
@@ -1808,6 +1835,23 @@ public class CreateData {
 					validOfCol = calculatorValidValWithColumnCondition(validOfCol, dataType,
 							conditionInWhere, inValidValue);
 				}
+//				
+//				if (validValuesForColumn.get(nextCond.rightValue) != null) {
+//					if (lastEndValidValue.get(nextCond.rightValue) != null &&
+//							!lastEndValidValue.get(nextCond.rightValue).isEmpty()) {
+//						conditionInWhere.add(new Cond("=", lastEndValidValue.get(nextCond.rightValue)));
+//					} else {
+//						conditionInWhere = validValuesForColumn.get(nextCond.rightValue);
+//					}
+//					validOfCol = calculatorValidValWithColumnCondition(validOfCol, dataType,
+//							conditionInWhere, null);
+//				} 
+//				
+//				if (valueInValidOfColumn.containsKey(nextCond.rightValue)) {
+//					List<String> inValidValue = valueInValidOfColumn.get(nextCond.rightValue);
+//					validOfCol = calculatorValidValWithColumnCondition(validOfCol, dataType,
+//							conditionInWhere, inValidValue);
+//				}
 				
 				// Not found valid for mapping column
 				if (validOfCol.isEmpty()) {
@@ -1836,9 +1880,10 @@ public class CreateData {
 					} else {
 						flgAdd = true;
 					}
+					boolean innerIsCompositeKey = commonService.isCompositeKey(innerTableColName[0]);
 					
 					// Execute for composite key
-					if (flgAdd && isCompositeKey) {
+					if (flgAdd && innerIsCompositeKey) {
 						valCompositeKey = dbServer.genUniqueCol(SCHEMA_NAME, innerTableColName[0], colInnerInfo, 
 								removeSpecifyCharacter("'", validOfCol.get(i)));
 						if (valCompositeKey.size() != 0) {
@@ -1851,7 +1896,8 @@ public class CreateData {
 				
 				if (flgAdd) {
 					// Table columnName, value, index
-					NodeColumn innerNode = new NodeColumn(nextCond.value, validOfCol.get(i), index + 1, valCompositeKey);
+					NodeColumn innerNode = new NodeColumn(nextCond.value.equals(curNode.tableColumnName) ? nextCond.rightValue : nextCond.value, 
+							validOfCol.get(i), index + 1, nextCond, valCompositeKey);
 					parentMap.put(innerNode, curNode);
 					toExploder.add(innerNode);
 				}
@@ -1946,5 +1992,31 @@ public class CreateData {
 			assert(false);
 		}
 		return flgAdd;
+	}
+	
+	/**
+	 * Process calculator for info col
+	 * @param tableCol1
+	 * @param tableCol2
+	 * @param operator
+	 */
+	private void processCalInfoCol(String t1, String t2, String operator) {
+		if (infoCol.containsKey(t1 + "-" + t2)) {
+			String[] t = infoCol.get(t1 + "-" + t2);
+			t[0] = operator; 
+		} else {
+			String[] t = new String[2];
+			t[0] = operator;
+			infoCol.put(t1 + "-" + t2, t);
+		}
+		
+		if (infoCol.containsKey(t2 + "-" + t1)) {
+			String[] t = infoCol.get(t2 + "-" + t1);
+			t[1] = operator;
+		} else {
+			String[] t = new String[2];
+			t[1] = operator;
+			infoCol.put(t2 + "-" + t1, t);
+		}
 	}
 }

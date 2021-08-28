@@ -1,8 +1,10 @@
 package sql.generator.hackathon.model;
 
 public class Cond{
-	public String operator;
-	public String value;
+	public String operator = "";
+	public String value = "";
+	public String operatorRight = "";
+	public String rightValue = "";
 	
 	public Cond() {
 		
@@ -11,6 +13,13 @@ public class Cond{
 	public Cond(String operator, String value) {
 		this.operator = operator;
 		this.value = value;
+	}
+	
+	public Cond(String operator, String value, String operatorRight, String rightValue) {
+		this.operator = operator;
+		this.value = value;
+		this.operatorRight = operatorRight;
+		this.rightValue = rightValue;
 	}
 	
 	@Override
