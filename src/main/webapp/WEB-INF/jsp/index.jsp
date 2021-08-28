@@ -582,7 +582,7 @@ table td.appDetails:nth-last-child(2) {
 		}
 		
 		function genate() {
-			let typeGen = $('#selectType :selected').text();
+			let typeExport = $('#selectType :selected').text();
 			let queryInput = $('#inputQuerySQL').val();
 			let url = $('#url').val();
 			let schema = $('#schema').val();
@@ -597,12 +597,6 @@ table td.appDetails:nth-last-child(2) {
 					user : user,
 					password :pass,
 			}
-			const inputGenerate = {
-					dataPicker : dataPicker,
-					queryInput : queryInput,
-					typeGen : typeGen,
-			}
-			
 			
 			var xhr = new XMLHttpRequest();
 			xhr.open('POST', '/generate', true);
@@ -627,7 +621,7 @@ table td.appDetails:nth-last-child(2) {
 			};
 			const jsonData = {
 					queryInput : queryInput,
-					typeGen : typeGen,
+					typeExport : typeExport,
 					dataPicker : dataPicker,
 					infoDatabase : infoDatabase,
 					row :row,
