@@ -944,10 +944,8 @@ public class CreateData {
 				toExploder.add(nodeCol);
 			}
 			
-			boolean isCompositeKey = commonService.isCompositeKey(tableName);
-
 			NodeColumn nodeGoal = processCalKeyMap(toExploder, parentMap, e.getValue(), validOfCol, 
-					loopSearch, isCompositeKey, dataType);
+					loopSearch, dataType);
 			
 			// Find valid value path
 			// Next to insert to data table.
@@ -1643,7 +1641,7 @@ public class CreateData {
 		
 		// Gen value for key with no condition
 		if (!commonService.isCompositeKey(tableName)) {
-			res.put(colInfo.name, new ColumnInfo(colInfo.name, listVal.get(0)));
+			res.put(tableName + "." + colInfo.name, new ColumnInfo(colInfo.name, listVal.get(0)));
 		} else {
 			for (String val : listVal) {
 				Map<String, String> m = dbServer.genUniqueCol(SCHEMA_NAME, tableName, colInfo, val);
@@ -1726,7 +1724,7 @@ public class CreateData {
 					// Get composite key
 					for (Map.Entry<String, String> entry : m.entrySet()) {
 						ColumnInfo columnInfo = new ColumnInfo(entry.getKey(), entry.getValue());
-						ColumnInfo colInner = commonService.getColumnInfo(tableName, entry.getKey());
+						ColumnInfo colInner = commonService.getColumnInfo(tableName, commonService.getTableAndColName(entry.getKey())[1]);
 						
 //						createService.getDataTypeOfColumn(columnInfo);
 						columnInfo.setTypeName(colInner.getTypeName());
@@ -1756,7 +1754,7 @@ public class CreateData {
 	 */
 	private NodeColumn processCalKeyMap(Stack<NodeColumn> toExploder, Map<NodeColumn, NodeColumn> parentMap,
 			Set<Cond> colMapping, List<String> validOfCol, Map<Integer, Cond> loopSearch, 
-			boolean isCompositeKey, String dataType) throws SQLException {
+			String dataType) throws SQLException {
 		NodeColumn nodeGoal = null;
 		
 		// Visited
@@ -1836,9 +1834,10 @@ public class CreateData {
 					} else {
 						flgAdd = true;
 					}
+					boolean innerIsCompositeKey = commonService.isCompositeKey(commonService.getTableAndColName(curNode.tableColumnName)[0]);
 					
 					// Execute for composite key
-					if (flgAdd && isCompositeKey) {
+					if (flgAdd && innerIsCompositeKey) {
 						valCompositeKey = dbServer.genUniqueCol(SCHEMA_NAME, innerTableColName[0], colInnerInfo, 
 								removeSpecifyCharacter("'", validOfCol.get(i)));
 						if (valCompositeKey.size() != 0) {
