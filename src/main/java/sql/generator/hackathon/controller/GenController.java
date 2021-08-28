@@ -204,22 +204,10 @@ public class GenController {
 
 	@PostMapping(value = "/generate")
 	public ResponseEntity<InputStreamResource> generate(@RequestBody ObjectGenate objectGenate) throws Exception {
+		System.out.println("DTO"+objectGenate.toString());
 		Map<String, List<List<ColumnInfo>>> dataPick = new HashMap<>();
 		objectGenate.dataPicker.forEach(x -> {
-			List<List<ColumnInfo>> list = new ArrayList<>();
-			for (List<String> data : x.listData) {
-				List<ColumnInfo> listColumnInfo = new ArrayList<>();
-				for (int i = 1; i < x.listData.get(0).size(); i++) {
-
-					ColumnInfo columnInfo = new ColumnInfo();
-					columnInfo.val = data.get(i);
-					columnInfo.name = x.getListColumn().get(i);
-					listColumnInfo.add(columnInfo);
-				}
-				list.add(listColumnInfo);
-			}
-			System.out.println();
-			dataPick.put(x.tableName, list);
+			dataPick.put(x.getTableName(), x.getListColumnInfo());
 		});
 
 		String type = objectGenate.infoDatabase.getType();
