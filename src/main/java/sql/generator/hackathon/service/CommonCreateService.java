@@ -199,7 +199,6 @@ public class CommonCreateService {
 			}
 		}
 		
-		Set<ColumnInfo> clientTableData = new HashSet<>();
 		if (client.size() > 0) {
 			for (ColumnInfo colInfo : curListColumn) {
 				for (ColumnInfo c : client) {
@@ -207,16 +206,24 @@ public class CommonCreateService {
 							&& colInfo.getName().equals(c.getName()) && colInfo.val.isEmpty()) {
 						colInfo.val = c.val;
 					}
-					
-					// Tracking column not in tableInfo and have in data picker
-					if (!colInfo.getName().equals(c.getName())) {
-						clientTableData.add(c);
-					}
 				}
 			}
 		}
 		
 		if (commonCreateObj.getType() == 0) {
+			Set<ColumnInfo> clientTableData = new HashSet<>();
+			for (ColumnInfo c : client) {
+				boolean flg = true;
+				for (ColumnInfo colInfo : curListColumn) {
+					if (c.getName() != null && c.getName().equals(colInfo.getName())) {
+						flg = false;
+						break;
+					}
+				}
+				if (flg) {
+					clientTableData.add(c);
+				}
+			}
 			for (ColumnInfo colInfo : clientTableData) {
 				curListColumn.add(colInfo);
 			}

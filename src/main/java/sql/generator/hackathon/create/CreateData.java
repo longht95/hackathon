@@ -1871,11 +1871,12 @@ public class CreateData {
 				
 				boolean flgAdd = isKeyMapping(nextCond, val, validOfCol.get(i), dataType);
 
-				// Add execute for composite key
 				Map<String, String> valCompositeKey = null; 
 				if (flgAdd) {
 					// Check value unique
-					if (!dbServer.isUniqueValue(innerTableColName[0], colInnerInfo, removeSpecifyCharacter("'", validOfCol.get(i)))) {
+					if ((commonService.getColumnInfo(innerTableColName[0], colInnerInfo.getName()).isKey()
+							|| commonService.getColumnInfo(innerTableColName[0], colInnerInfo.getName()).getUnique()) &&
+							!dbServer.isUniqueValue(innerTableColName[0], colInnerInfo, removeSpecifyCharacter("'", validOfCol.get(i)))) {
 						flgAdd = false;
 					} else {
 						flgAdd = true;
