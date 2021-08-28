@@ -12,8 +12,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class ObjectDataPicker {
-	public String id;
-	public List<String> listColumn;
-	public List<List<String>> listData;
 	public String tableName;
+	public List<List<ColumnInfo>> listColumnInfo;
 }
