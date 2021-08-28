@@ -15,6 +15,6 @@ public class ObjectGenate {
 	public InfoDatabase infoDatabase;
 	public String queryInput;
 	public List<ObjectDataPicker> dataPicker;
-	public String typeGen;
+	public String typeExport;
 	public int row;
 }
