@@ -38,16 +38,16 @@ public class ExcelExporter {
 
 	public HSSFWorkbook createEex(Map<String, List<List<ColumnInfo>>> dataList, List<String> listMarkColors) {
 		HSSFWorkbook workbook = new HSSFWorkbook();
-
+		System.out.println(listMarkColors.toString());
 		dataList.entrySet().forEach(entry -> {
 			System.out.println("Name Table" + entry.getKey());
 			HSSFSheet sheet = workbook.createSheet(entry.getKey());
-
 			List<List<ColumnInfo>> isNameTable = entry.getValue();
 
 			System.out.println("reocrd" + isNameTable.size());
 			int rownum = 0;
 			for (List<ColumnInfo> imtem : isNameTable) {
+
 				Row row = sheet.createRow(rownum);
 				// Auto size all the columns
 
@@ -71,7 +71,7 @@ public class ExcelExporter {
 	private void createRow(Sheet sheet, List<ColumnInfo> isNameTable, Row row, HSSFWorkbook workbook,
 			List<String> listMarkColors) {
 		Map<String, Short> listMapingMarkColor = mapingColer(listMarkColors);
-
+		System.out.println("Colume" + "********" + isNameTable.size() + "********");
 		for (int i = 0; i < isNameTable.size(); i++) {
 
 			Cell cell = row.createCell(i, CellType.STRING);
@@ -100,57 +100,113 @@ public class ExcelExporter {
 
 	private Map<String, Short> mapingColer(List<String> listMarkColors) {
 		Map<String, Short> listMapingMarkColor = new HashMap<>();
-		listMarkColors.forEach((temp) -> {
-			listMapingMarkColor.put(temp, HSSFColor.HSSFColorPredefined.BLACK.getIndex());
-			listMapingMarkColor.put(temp, HSSFColor.HSSFColorPredefined.BROWN.getIndex());
-			listMapingMarkColor.put(temp, HSSFColor.HSSFColorPredefined.OLIVE_GREEN.getIndex());
-			listMapingMarkColor.put(temp, HSSFColor.HSSFColorPredefined.DARK_GREEN.getIndex());
-			listMapingMarkColor.put(temp, HSSFColor.HSSFColorPredefined.DARK_TEAL.getIndex());
-			listMapingMarkColor.put(temp, HSSFColor.HSSFColorPredefined.DARK_BLUE.getIndex());
-			listMapingMarkColor.put(temp, HSSFColor.HSSFColorPredefined.INDIGO.getIndex());
-			listMapingMarkColor.put(temp, HSSFColor.HSSFColorPredefined.GREY_80_PERCENT.getIndex());
-			listMapingMarkColor.put(temp, HSSFColor.HSSFColorPredefined.ORANGE.getIndex());
-			listMapingMarkColor.put(temp, HSSFColor.HSSFColorPredefined.DARK_YELLOW.getIndex());
-			listMapingMarkColor.put(temp, HSSFColor.HSSFColorPredefined.GREEN.getIndex());
-			listMapingMarkColor.put(temp, HSSFColor.HSSFColorPredefined.TEAL.getIndex());
-			listMapingMarkColor.put(temp, HSSFColor.HSSFColorPredefined.BLUE.getIndex());
-			listMapingMarkColor.put(temp, HSSFColor.HSSFColorPredefined.BLUE_GREY.getIndex());
-			listMapingMarkColor.put(temp, HSSFColor.HSSFColorPredefined.GREY_50_PERCENT.getIndex());
-			listMapingMarkColor.put(temp, HSSFColor.HSSFColorPredefined.RED.getIndex());
-			listMapingMarkColor.put(temp, HSSFColor.HSSFColorPredefined.LIGHT_ORANGE.getIndex());
-			listMapingMarkColor.put(temp, HSSFColor.HSSFColorPredefined.LIME.getIndex());
-			listMapingMarkColor.put(temp, HSSFColor.HSSFColorPredefined.SEA_GREEN.getIndex());
-			listMapingMarkColor.put(temp, HSSFColor.HSSFColorPredefined.AQUA.getIndex());
-			listMapingMarkColor.put(temp, HSSFColor.HSSFColorPredefined.LIGHT_BLUE.getIndex());
-			listMapingMarkColor.put(temp, HSSFColor.HSSFColorPredefined.VIOLET.getIndex());
-			listMapingMarkColor.put(temp, HSSFColor.HSSFColorPredefined.GREY_40_PERCENT.getIndex());
-			listMapingMarkColor.put(temp, HSSFColor.HSSFColorPredefined.PINK.getIndex());
-			listMapingMarkColor.put(temp, HSSFColor.HSSFColorPredefined.GOLD.getIndex());
-			listMapingMarkColor.put(temp, HSSFColor.HSSFColorPredefined.YELLOW.getIndex());
-			listMapingMarkColor.put(temp, HSSFColor.HSSFColorPredefined.BRIGHT_GREEN.getIndex());
-			listMapingMarkColor.put(temp, HSSFColor.HSSFColorPredefined.TURQUOISE.getIndex());
-			listMapingMarkColor.put(temp, HSSFColor.HSSFColorPredefined.DARK_RED.getIndex());
-			listMapingMarkColor.put(temp, HSSFColor.HSSFColorPredefined.SKY_BLUE.getIndex());
-			listMapingMarkColor.put(temp, HSSFColor.HSSFColorPredefined.PLUM.getIndex());
-			listMapingMarkColor.put(temp, HSSFColor.HSSFColorPredefined.GREY_25_PERCENT.getIndex());
-			listMapingMarkColor.put(temp, HSSFColor.HSSFColorPredefined.ROSE.getIndex());
-			listMapingMarkColor.put(temp, HSSFColor.HSSFColorPredefined.LIGHT_YELLOW.getIndex());
-			listMapingMarkColor.put(temp, HSSFColor.HSSFColorPredefined.LIGHT_GREEN.getIndex());
-			listMapingMarkColor.put(temp, HSSFColor.HSSFColorPredefined.LIGHT_TURQUOISE.getIndex());
-			listMapingMarkColor.put(temp, HSSFColor.HSSFColorPredefined.PALE_BLUE.getIndex());
-			listMapingMarkColor.put(temp, HSSFColor.HSSFColorPredefined.LAVENDER.getIndex());
-			listMapingMarkColor.put(temp, HSSFColor.HSSFColorPredefined.WHITE.getIndex());
-			listMapingMarkColor.put(temp, HSSFColor.HSSFColorPredefined.CORNFLOWER_BLUE.getIndex());
-			listMapingMarkColor.put(temp, HSSFColor.HSSFColorPredefined.LEMON_CHIFFON.getIndex());
-			listMapingMarkColor.put(temp, HSSFColor.HSSFColorPredefined.MAROON.getIndex());
-			listMapingMarkColor.put(temp, HSSFColor.HSSFColorPredefined.ORCHID.getIndex());
-			listMapingMarkColor.put(temp, HSSFColor.HSSFColorPredefined.CORAL.getIndex());
-			listMapingMarkColor.put(temp, HSSFColor.HSSFColorPredefined.ROYAL_BLUE.getIndex());
-			listMapingMarkColor.put(temp, HSSFColor.HSSFColorPredefined.LIGHT_CORNFLOWER_BLUE.getIndex());
-			listMapingMarkColor.put(temp, HSSFColor.HSSFColorPredefined.TAN.getIndex());
 
+		listMarkColors.forEach((temp) -> {
+			// variable: Một biến để kiểm tra.
+			switch (temp) {
+			case "MARK_COLOR_1":
+				listMapingMarkColor.put("MARK_COLOR_1", HSSFColor.HSSFColorPredefined.GREY_50_PERCENT.getIndex());
+				break;
+			case "MARK_COLOR_2":
+				listMapingMarkColor.put("MARK_COLOR_2", HSSFColor.HSSFColorPredefined.CORNFLOWER_BLUE.getIndex());
+				break;
+			case "MARK_COLOR_3":
+				listMapingMarkColor.put("MARK_COLOR_3", HSSFColor.HSSFColorPredefined.INDIGO.getIndex());
+			case "MARK_COLOR_4":
+				listMapingMarkColor.put("MARK_COLOR_4", HSSFColor.HSSFColorPredefined.TEAL.getIndex());
+			case "MARK_COLOR_5":
+				listMapingMarkColor.put("MARK_COLOR_5", HSSFColor.HSSFColorPredefined.WHITE.getIndex());
+			case "MARK_COLOR_6":
+				listMapingMarkColor.put("MARK_COLOR_6", HSSFColor.HSSFColorPredefined.OLIVE_GREEN.getIndex());
+			case "MARK_COLOR_7":
+				listMapingMarkColor.put("MARK_COLOR_7", HSSFColor.HSSFColorPredefined.CORNFLOWER_BLUE.getIndex());
+			case "MARK_COLOR_8":
+				listMapingMarkColor.put("MARK_COLOR_8", HSSFColor.HSSFColorPredefined.INDIGO.getIndex());
+			case "MARK_COLOR_9":
+				listMapingMarkColor.put("MARK_COLOR_9", HSSFColor.HSSFColorPredefined.DARK_BLUE.getIndex());
+			case "MARK_COLOR_10":
+				listMapingMarkColor.put("MARK_COLOR_10", HSSFColor.HSSFColorPredefined.INDIGO.getIndex());
+			case "MARK_COLOR_11":
+				listMapingMarkColor.put("MARK_COLOR_11", HSSFColor.HSSFColorPredefined.ROSE.getIndex());
+			case "MARK_COLOR_12":
+				listMapingMarkColor.put("MARK_COLOR_12", HSSFColor.HSSFColorPredefined.INDIGO.getIndex());
+			case "MARK_COLOR_13":
+				listMapingMarkColor.put("MARK_COLOR_13", HSSFColor.HSSFColorPredefined.YELLOW.getIndex());
+			case "MARK_COLOR_14":
+				listMapingMarkColor.put("MARK_COLOR_14", HSSFColor.HSSFColorPredefined.GREEN.getIndex());
+			case "MARK_COLOR_15":
+				listMapingMarkColor.put("MARK_COLOR_15", HSSFColor.HSSFColorPredefined.GREEN.getIndex());
+			case "MARK_COLOR_16":
+				listMapingMarkColor.put("MARK_COLOR_16", HSSFColor.HSSFColorPredefined.GREY_50_PERCENT.getIndex());
+			case "MARK_COLOR_17":
+				listMapingMarkColor.put("MARK_COLOR_17", HSSFColor.HSSFColorPredefined.RED.getIndex());
+			case "MARK_COLOR_18":
+				listMapingMarkColor.put("MARK_COLOR_18", HSSFColor.HSSFColorPredefined.LIGHT_ORANGE.getIndex());
+			case "MARK_COLOR_19":
+				listMapingMarkColor.put("MARK_COLOR_19", HSSFColor.HSSFColorPredefined.LIME.getIndex());
+			case "MARK_COLOR_20":
+				listMapingMarkColor.put("MARK_COLOR_20",
+						HSSFColor.HSSFColorPredefined.LIGHT_CORNFLOWER_BLUE.getIndex());
+			case "MARK_COLOR_21":
+				listMapingMarkColor.put("MARK_COLOR_21", HSSFColor.HSSFColorPredefined.LEMON_CHIFFON.getIndex());
+			case "MARK_COLOR_22":
+				listMapingMarkColor.put("MARK_COLOR_22", HSSFColor.HSSFColorPredefined.SEA_GREEN.getIndex());
+			case "MARK_COLOR_23":
+				listMapingMarkColor.put("MARK_COLOR_23", HSSFColor.HSSFColorPredefined.VIOLET.getIndex());
+			case "MARK_COLOR_24":
+				listMapingMarkColor.put("MARK_COLOR_24", HSSFColor.HSSFColorPredefined.GREY_40_PERCENT.getIndex());
+			case "MARK_COLOR_25":
+				listMapingMarkColor.put("MARK_COLOR_25", HSSFColor.HSSFColorPredefined.PINK.getIndex());
+			case "MARK_COLOR_26":
+				listMapingMarkColor.put("MARK_COLOR_26", HSSFColor.HSSFColorPredefined.GOLD.getIndex());
+			case "MARK_COLOR_27":
+				listMapingMarkColor.put("MARK_COLOR_27", HSSFColor.HSSFColorPredefined.YELLOW.getIndex());
+			case "MARK_COLOR_28":
+				listMapingMarkColor.put("MARK_COLOR_28", HSSFColor.HSSFColorPredefined.BRIGHT_GREEN.getIndex());
+			case "MARK_COLOR_29":
+				listMapingMarkColor.put("MARK_COLOR_29", HSSFColor.HSSFColorPredefined.TURQUOISE.getIndex());
+			case "MARK_COLOR_30":
+				listMapingMarkColor.put("MARK_COLOR_30", HSSFColor.HSSFColorPredefined.DARK_RED.getIndex());
+			case "MARK_COLOR_31":
+				listMapingMarkColor.put("MARK_COLOR_31", HSSFColor.HSSFColorPredefined.SKY_BLUE.getIndex());
+			case "MARK_COLOR_32":
+				listMapingMarkColor.put("MARK_COLOR_32", HSSFColor.HSSFColorPredefined.PLUM.getIndex());
+			case "MARK_COLOR_33":
+				listMapingMarkColor.put("MARK_COLOR_33", HSSFColor.HSSFColorPredefined.GREY_25_PERCENT.getIndex());
+			case "MARK_COLOR_34":
+				listMapingMarkColor.put("MARK_COLOR_34", HSSFColor.HSSFColorPredefined.ROSE.getIndex());
+			case "MARK_COLOR_35":
+				listMapingMarkColor.put("MARK_COLOR_35", HSSFColor.HSSFColorPredefined.LIGHT_YELLOW.getIndex());
+			case "MARK_COLOR_36":
+				listMapingMarkColor.put("MARK_COLOR_36", HSSFColor.HSSFColorPredefined.LIGHT_GREEN.getIndex());
+			case "MARK_COLOR_37":
+				listMapingMarkColor.put("MARK_COLOR_37", HSSFColor.HSSFColorPredefined.LIGHT_TURQUOISE.getIndex());
+			case "MARK_COLOR_38":
+				listMapingMarkColor.put("MARK_COLOR_38", HSSFColor.HSSFColorPredefined.PALE_BLUE.getIndex());
+			case "MARK_COLOR_39":
+				listMapingMarkColor.put("MARK_COLOR_39", HSSFColor.HSSFColorPredefined.LAVENDER.getIndex());
+			case "MARK_COLOR_40":
+				listMapingMarkColor.put("MARK_COLOR_40", HSSFColor.HSSFColorPredefined.WHITE.getIndex());
+			case "MARK_COLOR_41":
+				listMapingMarkColor.put("MARK_COLOR_41", HSSFColor.HSSFColorPredefined.BLUE_GREY.getIndex());
+			case "MARK_COLOR_42":
+				listMapingMarkColor.put("MARK_COLOR_42", HSSFColor.HSSFColorPredefined.LEMON_CHIFFON.getIndex());
+			case "MARK_COLOR_43":
+				listMapingMarkColor.put("MARK_COLOR_43", HSSFColor.HSSFColorPredefined.TAN.getIndex());
+			case "MARK_COLOR_44":
+				listMapingMarkColor.put("MARK_COLOR_44", HSSFColor.HSSFColorPredefined.ORCHID.getIndex());
+			case "MARK_COLOR_45":
+				listMapingMarkColor.put("MARK_COLOR_45", HSSFColor.HSSFColorPredefined.CORAL.getIndex());
+			case "MARK_COLOR_46":
+				listMapingMarkColor.put("MARK_COLOR_46", HSSFColor.HSSFColorPredefined.ROYAL_BLUE.getIndex());
+			case "MARK_COLOR_47":
+				listMapingMarkColor.put("MARK_COLOR_47",
+						HSSFColor.HSSFColorPredefined.LIGHT_CORNFLOWER_BLUE.getIndex());
+			default:
+			}
 			// System.out.println(temp);
 		});
+
 		return listMapingMarkColor;
 	}
 
