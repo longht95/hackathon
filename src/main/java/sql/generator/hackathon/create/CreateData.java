@@ -4,6 +4,7 @@ import java.sql.SQLException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
@@ -589,13 +590,13 @@ public class CreateData {
 	public void addValueToColWithComparationsOperator(String type, String[] cur, List<Cond> values)
 			throws ParseException {
 		String operator = cur[0];
-		String strVal = cur[1];
+		String strVal = removeSpecifyCharacter("'", cur[1]);
 		boolean flgAdd = true;
 		
 		// Convert to date when type = date
 		if (type.equals("date")) {
 			SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-			Date curD = sdf.parse(cur[1]);
+			Date curD = sdf.parse(strVal);
 			
 			
 			// Comment for execute case multiple between
@@ -607,9 +608,9 @@ public class CreateData {
 			
 			while (!toExploder.isEmpty()) {
 				Cond cond = toExploder.poll();
-				Date ld = sdf.parse(cond.value);
+				Date ld = sdf.parse(removeSpecifyCharacter("'", cond.value));
 				
-				if (cond.operator.equals("=")) {
+				if (!cond.operator.equals("=")) {
 					continue;
 				}
 				
@@ -981,7 +982,9 @@ public class CreateData {
 				// Add value for composite key
 				if (cur.valCompositeKey != null && cur.valCompositeKey.size() > 0) {
 					cur.valCompositeKey.entrySet().forEach(inner -> {
-						lastEndValidValue.put(inner.getKey(), inner.getValue());
+						if (!lastEndValidValue.containsKey(inner.getKey())) {
+							lastEndValidValue.put(inner.getKey(), inner.getValue());
+						}
 					});
 				}
 				visitedMapping.add(cur.tableColumnName);
@@ -1144,7 +1147,7 @@ public class CreateData {
 		Calendar c = Calendar.getInstance();
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 		try {
-			curD = sdf.parse(curVal);
+			curD = sdf.parse(removeSpecifyCharacter("'", curVal));
 			c.setTime(curD);
 		} catch(ParseException e) {
 			e.printStackTrace();
@@ -1197,10 +1200,10 @@ public class CreateData {
 		// Check condition mapping
 		for (int i = 0; i < conditionInWhere.size(); ++i) {
 			String operator = conditionInWhere.get(i).operator;
-			String value = conditionInWhere.get(i).value;
+			String value = removeSpecifyCharacter("'", conditionInWhere.get(i).value);
 			
 			for (int j = 0; j < curValValid.size(); ++j) {
-				String curValue = curValValid.get(i);
+				String curValue = removeSpecifyCharacter("'", curValValid.get(i));
 				boolean flg = false;
 				switch (operator) {
 				case "=":
@@ -1285,7 +1288,7 @@ public class CreateData {
 		Date curDate = new Date();
 		try {
 			SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-			curDate = sdf.parse(origin);
+			curDate = sdf.parse(removeSpecifyCharacter("'", origin));
 		} catch (ParseException e) {
 			System.out.println("Parse string to date error!");
 		}
@@ -1326,9 +1329,9 @@ public class CreateData {
 	 */
 	private String genKeyWithLen(String dataType, int len) {
 		if (dataType.equals("date")) {
-			SimpleDateFormat sdformat = new SimpleDateFormat("yyyy-MM-dd");
-			LocalDateTime now = LocalDateTime.now();
-			return sdformat.format(now);  
+			DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd");  
+			LocalDateTime now = LocalDateTime.now();  
+			return dtf.format(now);  
 		}
 		
 		StringBuilder res = new StringBuilder();
@@ -1366,7 +1369,9 @@ public class CreateData {
 	 */
 	public boolean checkValidValue(List<Cond> validVal, String val, String dataType) {
 		boolean flgCheck = true;
+		val = removeSpecifyCharacter("'", val);
 		for (Cond cond : validVal) {
+			String innerVal = removeSpecifyCharacter("'", cond.value);
 			switch (cond.operator) {
 			case "=":
 				if (!cond.value.equals(val)) {
@@ -1376,14 +1381,14 @@ public class CreateData {
 			case ">=":
 				if (dataType.equals("number")) {
 					Integer curI = parseStringToInt(val);
-					Integer innerI = parseStringToInt(cond.value);
+					Integer innerI = parseStringToInt(innerVal);
 					if (curI < innerI) {
 						flgCheck = false;
 						break;
 					}
 				} else if (dataType.equals("date")) {
 					Date curD = parseStringToDate(val);
-					Date innerD = parseStringToDate(cond.value);
+					Date innerD = parseStringToDate(innerVal);
 					if (curD.compareTo(innerD) < 0) {
 						flgCheck = false;
 						break;
@@ -1393,14 +1398,14 @@ public class CreateData {
 			case "<=":
 				if (dataType.equals("number")) {
 					Integer curI = parseStringToInt(val);
-					Integer innerI = parseStringToInt(cond.value);
+					Integer innerI = parseStringToInt(innerVal);
 					if (curI > innerI) {
 						flgCheck = false;
 						break;
 					}
 				} else if (dataType.equals("date")) {
 					Date curD = parseStringToDate(val);
-					Date innerD = parseStringToDate(cond.value);
+					Date innerD = parseStringToDate(innerVal);
 					if (curD.compareTo(innerD) > 0) {
 						flgCheck = false;
 						break;
@@ -1458,6 +1463,9 @@ public class CreateData {
 		Collections.sort(validVal, new Comparator<Cond>() {
 			@Override
 			public int compare(Cond c1, Cond c2) {
+				String val1 = removeSpecifyCharacter("'", c1.value);
+				String val2 = removeSpecifyCharacter("'", c2.value);
+				
 				// Priority equals!
 				if (c1.operator.equals("=") && c2.operator.equals("=")) {
 					return 0;
@@ -1469,8 +1477,8 @@ public class CreateData {
 				// Priority value sorted asc
 				// When value equals => will sort desc of prirityOperator >= <=
 				if (dataType.equals("number")) {
-					Integer i1 = parseStringToInt(c1.value);
-					Integer i2 = parseStringToInt(c2.value);
+					Integer i1 = parseStringToInt(val1);
+					Integer i2 = parseStringToInt(val2);
 					if (Integer.compare(i1, i2) == 0) {
 						Integer inner1 = priorityOfOperator.get(c1.operator);
 						Integer inner2 = priorityOfOperator.get(c2.operator);
@@ -1478,8 +1486,8 @@ public class CreateData {
 					}
 					return Integer.compare(i1, i2);
 				} else if (dataType.equals("date")) {
-					Date cur1 = parseStringToDate(c1.value);
-					Date cur2 = parseStringToDate(c2.value);
+					Date cur1 = parseStringToDate(val1);
+					Date cur2 = parseStringToDate(val2);
 					if (cur1.compareTo(cur2) < 0) {
 						return -1;
 					} else if (cur1.compareTo(cur2) > 0) {
@@ -1498,7 +1506,7 @@ public class CreateData {
 			Cond cond = validVal.get(i);
 			
 			String operator = cond.operator;
-			String val = cond.value;
+			String val = removeSpecifyCharacter("'", cond.value);
 
 			switch (operator) {
 			case "=":
