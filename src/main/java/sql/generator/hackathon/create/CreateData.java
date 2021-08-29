@@ -103,11 +103,12 @@ public class CreateData {
 		this.keys = keys;
 		commonService.init(type, listTables, schema, dbServer);
 		commonService.exeGetTableInfo(tables);
+		
 	}
 	
 	public void init(){
 		keysFormat = new HashMap<>();
-
+		
 		// alias.Name => <tableName.columnName, operator>
 		infoCol = new HashMap<>();
 
@@ -127,6 +128,7 @@ public class CreateData {
 		
 		// tableName.colName
 		markColor = new HashMap<>();
+		idxColor = 1;
 	}
 	
 	public CreateObject multipleCreate(Map<String, List<List<ColumnInfo>>> dataClient, 
