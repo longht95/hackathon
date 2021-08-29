@@ -40,6 +40,7 @@ import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.insert.Insert;
+import net.sf.jsqlparser.statement.select.AllColumns;
 import net.sf.jsqlparser.statement.select.FromItem;
 import net.sf.jsqlparser.statement.select.Join;
 import net.sf.jsqlparser.statement.select.PlainSelect;
@@ -141,9 +142,8 @@ public class ServiceParse {
 							if (tbl.columns != null) {
 								listTMP = tbl.columns;
 							}
-							for (String z : x.getValue()) {
-								listTMP.add(z);
-							}
+							
+							listTMP.addAll(x.getValue());
 							tbl.setColumns(listTMP);
 							tables.put(s, tbl);
 						}
@@ -172,27 +172,34 @@ public class ServiceParse {
 	private void processSelectItem(List<SelectItem> selectItems, String alias) {
 		if (selectItems != null) {
 			selectItems.forEach(item -> {
-				SelectExpressionItem selectExpressionItem = (SelectExpressionItem) item;
-				if (selectExpressionItem.getExpression() instanceof Column) {
-					Column column = (Column) selectExpressionItem.getExpression();
-
-					String aliasOrTableName = Optional.ofNullable(column.getTable()).orElse(new Table(alias)).getName();
-
-					Set<String> listColumn = listColumnAlias.getOrDefault(aliasOrTableName, new HashSet<String>());
-
-					listColumn.add(column.getColumnName());
-
-					listColumnAlias.put(aliasOrTableName, listColumn);
+				if (item instanceof AllColumns) {
+					System.out.println("ALL COLUMN"+item);
 				}
+				
+				if (item instanceof SelectExpressionItem) {
+					SelectExpressionItem selectExpressionItem = (SelectExpressionItem) item;
+					if (selectExpressionItem.getExpression() instanceof Column) {
+						Column column = (Column) selectExpressionItem.getExpression();
 
-				if (selectExpressionItem.getExpression() instanceof SubSelect) {
-					SelectBody selectBody = ((SubSelect) selectExpressionItem.getExpression()).getSelectBody();
-					try {
-						processSelectBody(selectBody, null);
-					} catch (JSQLParserException e) {
-						e.printStackTrace();
+						String aliasOrTableName = Optional.ofNullable(column.getTable()).orElse(new Table(alias)).getName();
+
+						Set<String> listColumn = listColumnAlias.getOrDefault(aliasOrTableName, new HashSet<String>());
+
+						listColumn.add(column.getColumnName());
+
+						listColumnAlias.put(aliasOrTableName, listColumn);
+					}
+
+					if (selectExpressionItem.getExpression() instanceof SubSelect) {
+						SelectBody selectBody = ((SubSelect) selectExpressionItem.getExpression()).getSelectBody();
+						try {
+							processSelectBody(selectBody, null);
+						} catch (JSQLParserException e) {
+							e.printStackTrace();
+						}
 					}
 				}
+				
 			});
 		}
 	}
