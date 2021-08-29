@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -44,6 +45,7 @@ import net.sf.jsqlparser.statement.select.Join;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 import net.sf.jsqlparser.statement.select.Select;
 import net.sf.jsqlparser.statement.select.SelectBody;
+import net.sf.jsqlparser.statement.select.SelectExpressionItem;
 import net.sf.jsqlparser.statement.select.SelectItem;
 import net.sf.jsqlparser.statement.select.SetOperationList;
 import net.sf.jsqlparser.statement.select.SubSelect;
@@ -108,9 +110,10 @@ public class ServiceParse {
 		SelectBody selectBody = select.getSelectBody();
 		processSelectBody(selectBody, null);
 		processColumnWithAlias();
-		
 		InfoDisplayScreen infoDisplayScreen = new InfoDisplayScreen();
 		tables.entrySet().forEach(x -> {
+			System.out.println("KEY:"+x.getKey());
+			System.out.println("VALUE:"+x.getValue().toString());
 			if (x.getValue().getTableName().equals(tableName)) {
 				infoDisplayScreen.listColumnName = x.getValue().getColumns().stream().collect(Collectors.toList());
 			}
@@ -166,6 +169,33 @@ public class ServiceParse {
 		}
 	}
 
+	private void processSelectItem(List<SelectItem> selectItems, String alias) {
+		if (selectItems != null) {
+			selectItems.forEach(item -> {
+				SelectExpressionItem selectExpressionItem = (SelectExpressionItem) item;
+				if (selectExpressionItem.getExpression() instanceof Column) {
+					Column column = (Column) selectExpressionItem.getExpression();
+
+					String aliasOrTableName = Optional.ofNullable(column.getTable()).orElse(new Table(alias)).getName();
+
+					Set<String> listColumn = listColumnAlias.getOrDefault(aliasOrTableName, new HashSet<String>());
+
+					listColumn.add(column.getColumnName());
+
+					listColumnAlias.put(aliasOrTableName, listColumn);
+				}
+
+				if (selectExpressionItem.getExpression() instanceof SubSelect) {
+					SelectBody selectBody = ((SubSelect) selectExpressionItem.getExpression()).getSelectBody();
+					try {
+						processSelectBody(selectBody, null);
+					} catch (JSQLParserException e) {
+						e.printStackTrace();
+					}
+				}
+			});
+		}
+	}
 	
 	private void processSingle(PlainSelect plainSelect, Alias alias) throws JSQLParserException {
 		String tableNameORAlias;
@@ -178,19 +208,15 @@ public class ServiceParse {
 			}
 			tableNameORAlias = plainSelect.getFromItem().getAlias().getName();
 		}
-		List<SelectItem> selectItems = plainSelect.getSelectItems();
-		if (selectItems != null && !selectItems.isEmpty()) {
-			listColumnAlias.put(tableNameORAlias.replace(" ", ""),selectItems.stream().map(x -> x.toString()).collect(Collectors.toSet()));
-		}
 		
-		
-		
+		processSelectItem(plainSelect.getSelectItems(), tableNameORAlias);
+
 		processFrom(plainSelect.getFromItem(), alias);
 		List<Join> joins = plainSelect.getJoins();
 		if (joins != null && !joins.isEmpty()) {
 			joins.forEach(join -> {
 				try {
-					processJoinColumn(join, plainSelect.getFromItem(), selectItems);
+					processJoinColumn(join, plainSelect.getFromItem(), null);
 				} catch (JSQLParserException e) {
 					e.printStackTrace();
 				}
@@ -357,17 +383,19 @@ public class ServiceParse {
 			TableSQL tableSQL = tables.get(alias);
 			if (tableSQL == null) {
 				List<String> childAlias = parentAlias.get(alias);
-				childAlias.forEach(child -> {
-					TableSQL childTable = tables.get(child);
-					if (childTable.getCondition() == null) {
-						condition.setLeft(condition.left.replace(alias, childTable.alias));
-						childTable.setCondition(new ArrayList<>(Arrays.asList(condition)));
-					} else {
-						condition.setLeft(condition.left.replace(alias, childTable.alias));
-						childTable.condition.add(condition);
-					}
-					tables.put(child, childTable);
-				});
+				if (childAlias != null) {
+					childAlias.forEach(child -> {
+						TableSQL childTable = tables.get(child);
+						if (childTable.getCondition() == null) {
+							condition.setLeft(condition.left.replace(alias, childTable.alias));
+							childTable.setCondition(new ArrayList<>(Arrays.asList(condition)));
+						} else {
+							condition.setLeft(condition.left.replace(alias, childTable.alias));
+							childTable.condition.add(condition);
+						}
+						tables.put(child, childTable);
+					});
+				}
 			} else {
 				if (tableSQL.getCondition() == null) {
 

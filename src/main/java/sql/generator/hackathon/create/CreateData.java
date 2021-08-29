@@ -596,8 +596,7 @@ public class CreateData {
 		// Convert to date when type = date
 		if (type.equals("date")) {
 			SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-			Date curD = sdf.parse(strVal);
-			
+			Date curD = parseStringToDate(strVal);
 			
 			// Comment for execute case multiple between
 			Queue<Cond> toExploder = new LinkedList<>();
@@ -608,7 +607,7 @@ public class CreateData {
 			
 			while (!toExploder.isEmpty()) {
 				Cond cond = toExploder.poll();
-				Date ld = sdf.parse(removeSpecifyCharacter("'", cond.value));
+				Date ld = parseStringToDate(cond.value);
 				
 				if (!cond.operator.equals("=")) {
 					continue;
@@ -737,30 +736,6 @@ public class CreateData {
 			values.add(new Cond(operator, strVal));
 		}
 	}
-
-//	/**
-//	 * Read Mapping in keys With each key add 2 mapping
-//	 * 
-//	 * @return Map<String, String> Key1 - Key2, Key2 - Key1
-//	 */
-//	private Map<String, Set<String>> getMappingColumn() {
-//		Map<String, Set<String>> m = new HashMap<>();
-//		for (Map.Entry<String, List<String>> e : keys.entrySet()) {
-//			List<String> v = e.getValue();
-//			for (int i = 0; i < v.size(); ++i) {
-//				Set<String> t;
-//				if (m.containsKey(v.get(i))) {
-//					t = m.get(v.get(i));
-//				} else {
-//					t = new HashSet<>();
-//					m.put(v.get(i), t);
-//				}
-//				// Add other.
-//				t.add(v.get(i == 0 ? 1 : 0));
-//			}
-//		}
-//		return m;
-//	}
 	
 	/**
 	 * Read Mapping in keys With each key add 2 mapping
@@ -890,14 +865,6 @@ public class CreateData {
 			if (visitedMapping.contains(col)) {
 				continue;
 			}
-			
-			// TODO
-			// Check current col is not primary key or foriegn key
-			// Then create with hand!.
-			// If this col isPrimaryKey then get all key this key!
-			// if (!isPrimaryKey(col) && !isForignKey(col)
-			// Call method genKey for this column
-			// check flag and not call line 936
 			
 			// Get valid value of column
 			List<Cond> validV = validValuesForColumn.get(col);
