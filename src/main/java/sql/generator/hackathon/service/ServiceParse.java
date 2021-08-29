@@ -581,7 +581,7 @@ public class ServiceParse {
 					leftColumn.setTable(new Table(currentAlias));
 				}
 				Condition condition = Condition.builder().left(leftColumn.toString())
-						.expression(binary.getStringExpression()).right(binary.getRightExpression().toString()).build();
+						.expression(isNot ? reverseExpression.get(binary.getStringExpression()) : binary.getStringExpression()).right(binary.getRightExpression().toString()).build();
 				listCondition.add(condition);
 			}
 		} else if (expression instanceof AndExpression) {
