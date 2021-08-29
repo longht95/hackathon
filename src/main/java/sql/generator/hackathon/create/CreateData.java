@@ -1472,13 +1472,13 @@ public class CreateData {
 				return 0;
 			}
 		});
-		
+
 		for (int i = 0; i < validVal.size(); ++i) {
 			Cond cond = validVal.get(i);
 			
 			String operator = cond.operator;
 			String val = removeSpecifyCharacter("'", cond.value);
-
+			
 			switch (operator) {
 			case "=":
 				flgEqual = true;
@@ -1546,6 +1546,27 @@ public class CreateData {
 				curValidVal.addAll(genAutoKey(valGreater, valLess, dataType, len));
 			}
 		}
+		
+		// Del invalid
+		String tableColName = tableName + "." + colInfo.getName();
+		List<String> inValidVal = valueInValidOfColumn.get(tableColName);
+		int i = 0;
+		while (i < curValidVal.size()) {
+			if (curValidVal.size() <= 0) {
+				break;
+			}
+			String cur = curValidVal.get(i);
+			// Check not in
+			if (inValidVal != null && inValidVal.contains(cur)){
+				curValidVal.remove(i);
+			} else {
+				i++;
+			}
+		}
+		
+		if (curValidVal.size() <= 0) {
+			throw new NotFoundValueSQLException("Not found valid value for this SQL");
+		}
 	}
 	
 	
@@ -1583,8 +1604,8 @@ public class CreateData {
 							if (markColor.containsKey(tableName + "." + colInfo.getName())) {
 								colInfo.color = markColor.get(tableName + "." + colInfo.getName());
 							} else {
-								colInfo.color = "MARK_COLOR_99";
-								markColor.put(tableName + "." + colInfo.getName(), "MARK_COLOR_99");
+								colInfo.color = "MARK_COLOR_47";
+								markColor.put(tableName + "." + colInfo.getName(), "MARK_COLOR_47");
 							}
 						}
 					}
