@@ -117,10 +117,10 @@ public class ServiceParse {
 		processColumnWithAlias();
 		InfoDisplayScreen infoDisplayScreen = new InfoDisplayScreen();
 		tables.entrySet().forEach(x -> {
-			System.out.println("KEY:"+x.getKey());
-			System.out.println("VALUE:"+x.getValue().toString());
 			if (x.getValue().getTableName().equals(tableName)) {
-				infoDisplayScreen.listColumnName = x.getValue().getColumns().stream().collect(Collectors.toList());
+				if (x.getValue().getColumns() != null) {
+					infoDisplayScreen.listColumnName = x.getValue().getColumns().stream().collect(Collectors.toList());
+				}
 			}
 		});
 		return infoDisplayScreen;
