@@ -91,12 +91,12 @@ public class CreateData {
 	}
 	
 	public void init(String type, ExecuteDBSQLServer dbServer, String schema, List<String> listTables, List<TableSQL> tables, 
-			Map<String, List<String>> keys) throws Exception {
+			Map<String, List<String>> keys, Map<String, TableSQL> fulltableInfo) throws Exception {
 		this.dbServer = dbServer;
 		SCHEMA_NAME = schema;
 		this.tables = tables;
 		this.keys = keys;
-		commonService.init(type, listTables, schema, dbServer);
+		commonService.init(type, listTables, schema, dbServer, fulltableInfo);
 		commonService.exeGetTableInfo(tables);
 	}
 	
@@ -1760,6 +1760,7 @@ public class CreateData {
 				}
 			}
 			
+			commonService.addColumnGetFromSelect(l, tableName);
 			commonService.setClientData(l, clientData, tableName, idxRow);
 			
 			// Add default value
