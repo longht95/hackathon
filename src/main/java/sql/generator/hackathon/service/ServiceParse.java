@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -14,10 +15,13 @@ import org.springframework.stereotype.Service;
 
 import net.sf.jsqlparser.JSQLParserException;
 import net.sf.jsqlparser.expression.Alias;
+import net.sf.jsqlparser.expression.AllComparisonExpression;
+import net.sf.jsqlparser.expression.AnyComparisonExpression;
 import net.sf.jsqlparser.expression.BinaryExpression;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.ExpressionVisitorAdapter;
 import net.sf.jsqlparser.expression.Function;
+import net.sf.jsqlparser.expression.LongValue;
 import net.sf.jsqlparser.expression.NotExpression;
 import net.sf.jsqlparser.expression.Parenthesis;
 import net.sf.jsqlparser.expression.RowConstructor;
@@ -495,6 +499,52 @@ public class ServiceParse {
 		}
 	}
 
+	private void processFunction(Expression expression, String currentAlias) {
+		BinaryExpression binaryExpression = (BinaryExpression) expression;
+		Function function = (Function) binaryExpression.getRightExpression();
+		Column column = (Column) binaryExpression.getLeftExpression();
+		Condition condition = null;
+		if (function.getName().equals("ALL")) {
+			long maxValue = function.getParameters().getExpressions().stream().mapToLong(i -> {
+				if (i instanceof LongValue) {
+					return ((LongValue) i).getValue();
+				}
+				return 0;
+			})
+					.max().getAsLong();
+			condition = Condition.builder().left(column.getFullyQualifiedName())
+					.expression(binaryExpression.getStringExpression()).function(function.getName())
+					.right(String.valueOf(maxValue)).build();
+		}
+
+		if (function.getName().equals("ANY")) {
+			List<String> expressionList = function.getParameters().getExpressions().stream().map(i -> i.toString())
+					.collect(Collectors.toList());
+			condition = Condition.builder().left(column.getFullyQualifiedName())
+					.expression(binaryExpression.getStringExpression()).function(function.getName())
+					.right(expressionList.get(0)).build();
+		}
+		
+		if (Objects.nonNull(condition)) {
+			listCondition.add(condition);
+		}
+	}
+	
+	private void processComparisonExpression(Expression expression, String currentAlias) throws JSQLParserException {
+		BinaryExpression binaryExpression = (BinaryExpression) expression;
+		Column column = (Column) binaryExpression.getLeftExpression();
+		Condition condition = null;
+		if (binaryExpression.getRightExpression() instanceof AllComparisonExpression) {
+			AllComparisonExpression allComparisonExpression = (AllComparisonExpression) binaryExpression.getRightExpression();
+			allComparisonExpression.getSubSelect();
+			processSelectBody(allComparisonExpression.getSubSelect().getSelectBody(), null);
+		}
+		if (binaryExpression.getRightExpression() instanceof AnyComparisonExpression) {
+			AnyComparisonExpression anyComparisonExpression = (AnyComparisonExpression) binaryExpression.getRightExpression();
+			processSelectBody(anyComparisonExpression.getSubSelect().getSelectBody(), null);
+		}
+	}
+	
 	private void processExpression(Expression expression, boolean isNot, FromItem alias) throws JSQLParserException {
 		String currentAlias;
 		if (alias instanceof Table) {
@@ -575,13 +625,19 @@ public class ServiceParse {
 						new ArrayList<>(Arrays.asList(leftColumn.toString(), selectItems.get(0).toString())));
 				state++;
 				processSelectBody(selectBody, isNot, null);
+			} else if (binary.getRightExpression() instanceof Function) {
+				processFunction(expression, currentAlias);
+			} else if (binary.getRightExpression() instanceof AllComparisonExpression
+					|| binary.getRightExpression() instanceof AnyComparisonExpression) {
+				processComparisonExpression(binary.getRightExpression(), currentAlias);
 			} else {
 				Column leftColumn = (Column) binary.getLeftExpression();
 				if (leftColumn.getTable() == null) {
 					leftColumn.setTable(new Table(currentAlias));
 				}
-				Condition condition = Condition.builder().left(leftColumn.toString())
-						.expression(isNot ? reverseExpression.get(binary.getStringExpression()) : binary.getStringExpression()).right(binary.getRightExpression().toString()).build();
+				Condition condition = Condition.builder().left(leftColumn.toString()).expression(
+						isNot ? reverseExpression.get(binary.getStringExpression()) : binary.getStringExpression())
+						.right(binary.getRightExpression().toString()).build();
 				listCondition.add(condition);
 			}
 		} else if (expression instanceof AndExpression) {
@@ -774,5 +830,7 @@ public class ServiceParse {
 				listCondition.add(condition);
 			}
 		}
+		
+		
 	}
 }
