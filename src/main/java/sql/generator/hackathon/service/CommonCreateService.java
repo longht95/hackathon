@@ -36,6 +36,8 @@ public class CommonCreateService {
 	
 	private Map<String, Integer> cntCompositeKeyInTable;
 	
+	private Map<String, TableSQL> fullInfoTable;
+	
 	private int DEFAULT_LENGTH = 5;
 	
 	// Load resource data example
@@ -44,13 +46,14 @@ public class CommonCreateService {
 		
 	
 	public void init(String type, List<String> listTable, String schema, 
-			ExecuteDBSQLServer executeDBServer) {
+			ExecuteDBSQLServer executeDBServer, Map<String, TableSQL> fullInfoTable) {
 		tableInfo = new HashMap<>();
 		mappingColInfo = new HashMap<>();
 		cntCompositeKeyInTable = new HashMap<>();
 		this.commonCreateObj = new CommonCreateObj(); 
 		if (type.equalsIgnoreCase("no database")) {
 			commonCreateObj.init(0);
+			this.fullInfoTable = fullInfoTable; 
 		} else {
 			createService.init(executeDBServer);
 			commonCreateObj.init(1, schema, listTable);
@@ -227,6 +230,34 @@ public class CommonCreateService {
 			for (ColumnInfo colInfo : clientTableData) {
 				curListColumn.add(colInfo);
 			}
+		}
+	}
+	
+	/**
+	 * Add column get from select
+	 */
+	public void addColumnGetFromSelect(List<ColumnInfo> columns, String tableName) {
+		if (commonCreateObj.getType() != 0) {
+			return;
+		}
+		Set<String> columnInSelect = fullInfoTable.get(tableName).getColumns();
+		Set<String> columnNeedAdd = new HashSet<>();
+		for (String colName : columnInSelect) {
+			boolean flgAdd = true;
+			for (ColumnInfo colInfo : columns) {
+				if (colName.equals(colInfo.getName())) {
+					flgAdd = false;
+					break;
+				}
+			}
+			if (flgAdd) {
+				columnNeedAdd.add(colName);
+			}
+		}
+		
+		for (String colName : columnNeedAdd) {
+			ColumnInfo colInfo = new ColumnInfo(colName, "", "varchar", "255");
+			columns.add(colInfo);
 		}
 	}
 	

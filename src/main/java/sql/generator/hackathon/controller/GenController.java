@@ -219,21 +219,15 @@ public class GenController {
 						objectGenate.infoDatabase.getPassword());
 			}
 			ParseObject parseObject = serviceParse.parseSelectStatement(objectGenate.queryInput);
-//			createService.setTableInfo(executeDBServer.getInforTable(objectGenate.infoDatabase.getSchema(), 
-//					serviceParse.getListTableByStatement(objectGenate.queryInput)));
-//			CommonCreateObj commonCreateObj = new CommonCreateObj(objectGenate.infoDatabase.getSchema(), objectGenate.queryInput);
-			
-//			CreateData createData = new CreateData(executeDBServer, createService, parseObject.getListTableSQL(), 
-//					parseObject.getMappingKey(), objectGenate.infoDatabase.getSchema());
-			
+			Map<String, TableSQL> fullTableInfo = serviceParse.getColumnInfo(objectGenate.queryInput);
 			if (type.equalsIgnoreCase("No database")) {
 				createData.init(type, null, objectGenate.infoDatabase.getSchema(), 
 						serviceParse.getListTableByStatement(objectGenate.getQueryInput()),
-						parseObject.getListTableSQL(), parseObject.getMappingKey());
+						parseObject.getListTableSQL(), parseObject.getMappingKey(), fullTableInfo);
 			}  else {
 				createData.init(type, executeDBServer, objectGenate.infoDatabase.getSchema(), 
 						serviceParse.getListTableByStatement(objectGenate.getQueryInput()),
-						parseObject.getListTableSQL(), parseObject.getMappingKey());
+						parseObject.getListTableSQL(), parseObject.getMappingKey(), null);
 			}
 			
 			
