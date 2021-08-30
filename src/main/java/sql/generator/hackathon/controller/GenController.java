@@ -244,6 +244,7 @@ public class GenController {
 			} else {
 				//list markcolor
 				List<String> listMarkColor = createObj.listMarkColor;
+				System.out.println(listMarkColor.toString());
 				HSSFWorkbook workbook = excelExporter.createEex(response, listMarkColor);
 		        header.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=data.xls");
 		        workbook.write(bos);
