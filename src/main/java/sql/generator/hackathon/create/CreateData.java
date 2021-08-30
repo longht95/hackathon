@@ -20,7 +20,6 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.Stack;
 
-import org.hibernate.event.spi.SaveOrUpdateEvent;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -35,6 +34,7 @@ import sql.generator.hackathon.model.TableSQL;
 import sql.generator.hackathon.service.CommonCreateService;
 import sql.generator.hackathon.service.CreateService;
 import sql.generator.hackathon.service.ExecuteDBSQLServer;
+import sql.generator.hackathon.service.ServerFaker;
 
 @Service
 public class CreateData {
@@ -64,6 +64,9 @@ public class CreateData {
 	
 	@Autowired
 	private CommonCreateService commonService;
+	
+	@Autowired
+	private ServerFaker fakerService;
 
 	// Save Key exists
 	private List<TableSQL> tables = new ArrayList<>();
@@ -1766,7 +1769,7 @@ public class CreateData {
 			// Add default value
 			for (ColumnInfo colInfo : l) {
 				if (colInfo.getVal().isEmpty()) {
-					colInfo.val = commonService.getDefaultValue(colInfo.getTypeName());
+					colInfo.val = fakerService.getDataByColumn(colInfo.getName());
 				}
 			}
 			
