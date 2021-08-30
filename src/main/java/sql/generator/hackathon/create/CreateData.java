@@ -77,6 +77,8 @@ public class CreateData {
 	// Key = tableName.colName
 	private Map<String, CreateDataObj> saveCalcObj;
 	
+	private Map<String, String> aliasNameTable;
+	
 	// Data current values
 	// TableName => List ColumnInfo
 	private Map<String, List<ColumnInfo>> tableData;
@@ -110,6 +112,8 @@ public class CreateData {
 		// alias.Name => <tableName.columnName, operator>
 		infoCol = new HashMap<>();
 
+		aliasNameTable = new HashMap<>();
+		
 		// Data current values
 		// TableName => List ColumnInfo
 		tableData = new HashMap<>();
@@ -204,8 +208,8 @@ public class CreateData {
 	
 
 	private void exeEachTable(TableSQL table) {
-
 		String tableName = table.tableName;
+		aliasNameTable.put(tableName, table.alias);
 		
 		// Init data for table
 		tableData.put(tableName, new ArrayList<>());
@@ -1763,7 +1767,8 @@ public class CreateData {
 				}
 			}
 			
-			commonService.addColumnGetFromSelect(l, tableName);
+			String aliasName = aliasNameTable.get(tableName);
+			commonService.addColumnGetFromSelect(l, tableName, aliasName);
 			commonService.setClientData(l, clientData, tableName, idxRow);
 			
 			// Add default value

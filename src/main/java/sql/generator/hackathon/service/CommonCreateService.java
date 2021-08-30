@@ -236,11 +236,20 @@ public class CommonCreateService {
 	/**
 	 * Add column get from select
 	 */
-	public void addColumnGetFromSelect(List<ColumnInfo> columns, String tableName) {
+	public void addColumnGetFromSelect(List<ColumnInfo> columns, String tableName, String aliasName) {
 		if (commonCreateObj.getType() != 0) {
 			return;
 		}
-		Set<String> columnInSelect = fullInfoTable.get(tableName).getColumns();
+
+		Set<String> columnInSelect;
+		if (fullInfoTable.get(tableName) != null) {
+			columnInSelect = fullInfoTable.get(tableName).getColumns();
+		} else if (fullInfoTable.get(aliasName) != null) {
+			columnInSelect = fullInfoTable.get(aliasName).getColumns();
+		} else {
+			return;
+		}
+		 
 		Set<String> columnNeedAdd = new HashSet<>();
 		for (String colName : columnInSelect) {
 			boolean flgAdd = true;
