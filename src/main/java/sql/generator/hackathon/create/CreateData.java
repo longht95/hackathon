@@ -939,7 +939,7 @@ public class CreateData {
 				validOfCol.add(lastValidV);
 			} else {
 				// When size = 1 => use equals(=)
-				if (validV == null) {
+				if (validV == null || validV.isEmpty()) {
 
 					// When not validValue for this column => free style this case.
 					// Maybe data type, min-len => push default key for this.
