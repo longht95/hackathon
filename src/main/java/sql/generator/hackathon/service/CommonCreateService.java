@@ -320,8 +320,13 @@ public class CommonCreateService {
 		Map<String, List<ColumnInfo>> res = new HashMap<>();
 		for (TableSQL table : tables) {
 			List<ColumnInfo> listColInfo = new ArrayList<>();
+			Set<String> listColumn = new HashSet<>();
 			for (Condition condition : table.getCondition()) {
 				String[] tableColName = getTableAndColName(condition.getLeft());
+				if (listColumn.contains(tableColName[1])) {
+					continue;
+				}
+				listColumn.add(tableColName[1]);
 				ColumnInfo colInfo = new ColumnInfo(tableColName[1], "", "varchar", "255");
 				listColInfo.add(colInfo);
 			}
