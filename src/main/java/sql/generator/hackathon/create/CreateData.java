@@ -6,7 +6,6 @@ import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
@@ -447,7 +446,6 @@ public class CreateData {
 						CreateDataObj createObj = new CreateDataObj();
 						saveCalcObj.put(key, createObj);
 						t = createObj.getValueInValidOfColumn();
-//						valueInValidOfColumn.put(key, t);
 					}
 					addValueToColWithNotInOperator(dataType, cur, tmpVal, t);
 					break;
@@ -538,13 +536,8 @@ public class CreateData {
 					Cond tmp = new Cond();
 					tmp.operator = c.operator;
 
-					// TODO
-					// Get datatype of this column
-					
 					if (c.operator.equals("<=")) {
 						// Decrease - 1
-//						values.add(new Cond(c.operator, c.))
-						
 						if (dataType.equals("number")) {
 							tmp.value = genKeyWithTypeNumber(false, c.value);
 						} else if (dataType.equals("date")) {
@@ -596,13 +589,8 @@ public class CreateData {
 				Cond tmp = new Cond();
 				tmp.operator = c.operator;
 				
-				// TODO
-				// Get datatype of this column
-				
 				if (c.operator.equals("<=")) {
 					// Decrease - 1
-//					values.add(new Cond(c.operator, c.))
-					
 					if (dataType.equals("number")) {
 						tmp.value = genKeyWithTypeNumber(false, c.value);
 					} else if (dataType.equals("date")) {
@@ -872,7 +860,6 @@ public class CreateData {
 				}
 			}
 
-			// Save ben luc read list object.
 			// Need Set<Cond>
 			// KEY ==> aliasTable.aliasColumn => alias
 			// VALUE COND {operator, value{KEY}}
@@ -948,7 +935,6 @@ public class CreateData {
 			}
 			
 			// Get valid value of column
-//			List<Cond> validV = validValuesForColumn.get(col);
 			List<Cond> validV = saveCalcObj.get(col).getValidValuesForColumn();
 			String lastValidV = saveCalcObj.get(col).getLastEndValidValue();
 			
@@ -985,7 +971,6 @@ public class CreateData {
 			
 			// Save in there!
 			// Use DFS confirm this case!
-			// BFS not performance!
 			Stack<NodeColumn> toExploder = new Stack<>();
 			Map<NodeColumn, NodeColumn> parentMap = new HashMap<>();
 			
@@ -1030,7 +1015,6 @@ public class CreateData {
 				NodeColumn cur = pathValidValue.get(i);
 				
 				// Mark color for column Info
-//				markColor.put(cur.tableColumnName, "MARK_COLOR_" + idxColor);
 				if (saveCalcObj.containsKey(cur.tableColumnName)) {
 					System.out.println(cur.tableColumnName + " - " + pathValidValue.get(i).val);
 					System.out.println();
@@ -1042,25 +1026,6 @@ public class CreateData {
 					createObj.setMarkColor("MARK_COLOR_" + idxColor);
 					saveCalcObj.put(cur.tableColumnName, createObj);
 				}
-//				lastEndValidValue.put(cur.tableColumnName, pathValidValue.get(i).val);
-				
-				// Add value for composite key
-//				if (cur.valCompositeKey != null && cur.valCompositeKey.size() > 0) {
-//					cur.valCompositeKey.entrySet().forEach(inner -> {
-//						if (saveCalcObj.containsKey(inner.getKey()) &&
-//								saveCalcObj.get(inner.getKey()).getLastEndValidValue().isEmpty()) {
-//							saveCalcObj.get(inner.getKey()).getValidValuesForColumn().add(new Cond("=", inner.getValue()));
-////							saveCalcObj.get(inner.getKey()).setLastEndValidValue(inner.getValue());
-////							lastEndValidValue.put(inner.getKey(), inner.getValue());
-//						}
-//						if (!saveCalcObj.containsKey(inner.getKey())) {
-//							CreateDataObj createObj = new CreateDataObj();
-//							createObj.getValidValuesForColumn().add(new Cond("=", inner.getValue()));
-////							createObj.setLastEndValidValue(inner.getValue());
-//							saveCalcObj.put(inner.getKey(), createObj);
-//						}
-//					});
-//				}
 				visitedMapping.add(cur.tableColumnName);
 			}
 			idxColor++;
@@ -1509,13 +1474,6 @@ public class CreateData {
 			String dataType, int len, boolean isKey) throws SQLException {
 		// When calculator not in mapping 
 		// This case will read last condition remain -> gendata
-//		private Map<String, List<Cond>> validValuesForColumn = new HashMap<>();
-		
-		// Key = tableName.colName => List data use operator (NOT IN, !=, <>)
-//		private Map<String, List<String>> valueInValidOfColumn
-//		int len = Integer.parseInt(colInfo.getTypeValue());
-//		String dataType = colInfo.getTypeName();
-		
 		if (validVal == null || validVal.isEmpty()) {
 			if (isKey) {
 				curValidVal.addAll(dbServer.genListUniqueVal(tableName, colInfo, "", ""));
@@ -1659,39 +1617,6 @@ public class CreateData {
 							flgGreater = true;
 						}
 					}
-					
-//					// Execute between
-//					if (operator.equals("<=")) {
-//						if (isKey) {
-//							curValidVal.addAll(dbServer.genListUniqueVal(tableName, colInfo, valGreater, valLess));
-//						} else {
-//							curValidVal.addAll(genAutoKey(valGreater, valLess, dataType, len));
-//						}
-//					} else {
-//						if (i < validVal.size() - 1) {
-//							Cond next = validVal.get(i + 1);
-//							if (next.operator.equals("<=")) {
-//								if (isKey) {
-//									curValidVal.addAll(dbServer.genListUniqueVal(tableName, colInfo, valGreater, ""));
-//									curValidVal.addAll(dbServer.genListUniqueVal(tableName, colInfo, "", valLess));
-//								} else {
-//									curValidVal.addAll(genAutoKey(valGreater, next.value, dataType, len));
-//									curValidVal.addAll(genAutoKey("", valLess, dataType, len));
-//								}
-//							} else {
-//								System.out.println("This case can't happen!");
-//								assert(false);
-//							}
-//							i++;
-//						}
-//					}
-//					
-//					
-//					valGreater = "";
-//					valLess = "";
-//					flgLess = false;
-//					flgGreater = false;
-//					cnt = 0;
 				}
 			}
 		}
@@ -1902,9 +1827,6 @@ public class CreateData {
 				boolean flgAdd = false;
 				// Key will gen value from DB
 				if (commonService.isCompositeKey(tableName)) {
-					
-					// TODO
-					// xem xet schemaName
 					Map<String, String> m = dbServer.genUniqueCol(SCHEMA_NAME, tableName, colInfo, curValidVal.get(i));
 					if (m.size() == 0) {
 						continue;
@@ -1916,7 +1838,6 @@ public class CreateData {
 						ColumnInfo columnInfo = new ColumnInfo(entry.getKey(), entry.getValue());
 						ColumnInfo colInner = commonService.getColumnInfo(tableName, commonService.getTableAndColName(entry.getKey())[1]);
 						
-//						createService.getDataTypeOfColumn(columnInfo);
 						columnInfo.setTypeName(colInner.getTypeName());
 						columnInfo.setTypeValue(colInner.getTypeValue());
 					}
@@ -2006,7 +1927,6 @@ public class CreateData {
 					validOfCol = calculatorValidValWithColumnCondition(validOfCol, dataType,
 							conditionInWhere, inValidValue);
 				}
-//				
 //				if (validValuesForColumn.get(nextCond.rightValue) != null) {
 //					if (lastEndValidValue.get(nextCond.rightValue) != null &&
 //							!lastEndValidValue.get(nextCond.rightValue).isEmpty()) {
@@ -2245,40 +2165,38 @@ public class CreateData {
 			List<String> listValue = e.getValue().getListValue();
 				
 			if (listValue.size() != 0) {
-				String val = listValue.get(0);
-				if (val != null && !val.isEmpty()) {
-					String dataType = "";
-					String typeValue = "";
-					boolean flgChange = false;
-					if (isNumber(val)) {
-						dataType = "number";
-						typeValue = "6";
-						flgChange = true;
-						colInfo.setTypeName(dataType);
-						colInfo.setTypeValue(typeValue);
-					} else if (isDate(val)) {
-						// Date
-						dataType = "date";
-						flgChange = true;
-						colInfo.setTypeName(dataType);
-					} else {
-						// varchar
-					}
-					
-					// Update data for column mapping
-					if (flgChange) {
-						List<Cond> c = columnMap.get(tableColName[0] + "." + tableColName[1]);
-						for (Cond t : c) {
-							String[] tableCol1 = commonService.getTableAndColName(t.value);
-							String[] tableCol2 = commonService.getTableAndColName(t.rightValue);
-							ColumnInfo col1 = commonService.getColumnInfo(tableCol1[0], tableCol1[1]);
-							ColumnInfo col2 = commonService.getColumnInfo(tableCol2[0], tableCol2[1]);
-							col1.setTypeName(dataType);
-							col1.setTypeValue(typeValue);
-							col2.setTypeName(dataType);
-							col2.setTypeValue(typeValue);
+				for (String val : listValue) {
+					if (val != null && !val.isEmpty()) {
+						String dataType = "";
+						String typeValue = "";
+						if (isNumber(val)) {
+							dataType = "number";
+							typeValue = "6";
+							colInfo.setTypeName(dataType);
+							colInfo.setTypeValue(typeValue);
+						} else if (isDate(val)) {
+							// Date
+							dataType = "date";
+							colInfo.setTypeName(dataType);
+						} else {
+							// varchar
 						}
 					}
+				}
+			}
+			
+			// Update data for column mapping
+			List<Cond> c = columnMap.get(tableColName[0] + "." + tableColName[1]);
+			if (c != null) {
+				for (Cond t : c) {
+					String[] tableCol1 = commonService.getTableAndColName(t.value);
+					String[] tableCol2 = commonService.getTableAndColName(t.rightValue);
+					ColumnInfo col1 = commonService.getColumnInfo(tableCol1[0], tableCol1[1]);
+					ColumnInfo col2 = commonService.getColumnInfo(tableCol2[0], tableCol2[1]);
+					col1.setTypeName("number");
+					col1.setTypeValue("6");
+					col2.setTypeName("number");
+					col2.setTypeValue("6");
 				}
 			}
 		});
