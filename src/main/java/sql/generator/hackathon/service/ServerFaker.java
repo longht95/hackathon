@@ -12,8 +12,8 @@ import com.github.javafaker.service.RandomService;
 public class ServerFaker {
 	public String getDataByColumn(String column) {
 		FakeValuesService fakeValuesService = new FakeValuesService(
-			      new Locale("ja-JP"), new RandomService());
-		Faker faker = new Faker(new Locale("ja-JP"));
+			      new Locale("en-us"), new RandomService());
+		Faker faker = new Faker(new Locale("en-us"));
 		if (column.toLowerCase().contains("address")) {
 			return faker.address().cityName() + faker.address().country();
 		}

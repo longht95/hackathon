@@ -213,14 +213,13 @@ public class ServiceParse {
 		if (plainSelect.getFromItem() instanceof Table) {
 			Table table = (Table) plainSelect.getFromItem();
 			tableNameORAlias = table.getAlias() != null ? table.getAlias().getName() : table.getName();
+			processSelectItem(plainSelect.getSelectItems(), tableNameORAlias);
 		} else {
 			if (plainSelect.getFromItem().getAlias() == null) {
 				throw new JSQLParserException();
 			}
 			tableNameORAlias = plainSelect.getFromItem().getAlias().getName();
 		}
-		
-		processSelectItem(plainSelect.getSelectItems(), tableNameORAlias);
 
 		processFrom(plainSelect.getFromItem(), alias);
 		List<Join> joins = plainSelect.getJoins();
