@@ -185,7 +185,7 @@ public class CreateData {
 		
 		// Execute reformat dataType for columnInfo
 		if (commonService.getCommonCreateObj().getType() == 0) {
-			exeReFormatDataType();
+			exeReFormatDataType(columnMap);
 		}
 		
 		// execute calculator for mapping key.
@@ -312,6 +312,11 @@ public class CreateData {
 			createObj.getListOperator().add(operator);
 			createObj.getListValue().add(val);
 			saveCalcObj.put(fullColName, createObj);
+		} else {
+			if (saveCalcObj.get(fullColName).getListOperator().contains(operator)) {
+				saveCalcObj.get(fullColName).getListOperator().add(operator);
+			}
+			saveCalcObj.get(fullColName).getListValue().add(val);
 		}
 		
 		// Add all condition.
@@ -1272,7 +1277,7 @@ public class CreateData {
 			String value = removeSpecifyCharacter("'", conditionInWhere.get(i).value);
 			
 			for (int j = 0; j < curValValid.size(); ++j) {
-				String curValue = removeSpecifyCharacter("'", curValValid.get(i));
+				String curValue = removeSpecifyCharacter("'", curValValid.get(j));
 				boolean flg = false;
 				switch (operator) {
 				case "=":
@@ -1327,7 +1332,7 @@ public class CreateData {
 			}
 			
 			curValValid = res;
-			res.clear();
+			res = new ArrayList<>();
 		}
 		
 		// Remove all invalid value
@@ -2233,36 +2238,45 @@ public class CreateData {
 	 * Reformat data type for columnInfo which operator >=, <=, >, <
 	 * @param colMapping
 	 */
-	private void exeReFormatDataType() {
-		List<String> operatorConfirm = Arrays.asList("IN", "NOT IN", ">=", ">", "<=", "<");
+	private void exeReFormatDataType(Map<String, List<Cond>> columnMap) {
 		saveCalcObj.entrySet().forEach(e -> {
 			String[] tableColName = commonService.getTableAndColName(e.getKey());
-			boolean flgOperator = false;
-			
-			// Check has use operator <, <=, >, >=
-			List<String> listOperator = e.getValue().getListOperator();
-			for (int i = 0; i < operatorConfirm.size(); ++i) {
-				if (listOperator.contains(operatorConfirm.get(i))) {
-					flgOperator = true;
-					break;
-				}
-			}
+			ColumnInfo colInfo = commonService.getColumnInfo(tableColName[0], tableColName[1]);
+			List<String> listValue = e.getValue().getListValue();
 				
-			if (flgOperator) {
-				ColumnInfo colInfo = commonService.getColumnInfo(tableColName[0], tableColName[1]);
-				List<String> listValue = e.getValue().getListValue();
-				
-				if (listValue.size() != 0) {
-					String val = listValue.get(0);
-					if (val != null && !val.isEmpty()) {
-						if (isNumber(val)) {
-							colInfo.setTypeName("number");
-							colInfo.setTypeValue("6");
-						} else if (isDate(val)) {
-							// Date
-							colInfo.setTypeName("date");
-						} else {
-							// varchar
+			if (listValue.size() != 0) {
+				String val = listValue.get(0);
+				if (val != null && !val.isEmpty()) {
+					String dataType = "";
+					String typeValue = "";
+					boolean flgChange = false;
+					if (isNumber(val)) {
+						dataType = "number";
+						typeValue = "6";
+						flgChange = true;
+						colInfo.setTypeName(dataType);
+						colInfo.setTypeValue(typeValue);
+					} else if (isDate(val)) {
+						// Date
+						dataType = "date";
+						flgChange = true;
+						colInfo.setTypeName(dataType);
+					} else {
+						// varchar
+					}
+					
+					// Update data for column mapping
+					if (flgChange) {
+						List<Cond> c = columnMap.get(tableColName[0] + "." + tableColName[1]);
+						for (Cond t : c) {
+							String[] tableCol1 = commonService.getTableAndColName(t.value);
+							String[] tableCol2 = commonService.getTableAndColName(t.rightValue);
+							ColumnInfo col1 = commonService.getColumnInfo(tableCol1[0], tableCol1[1]);
+							ColumnInfo col2 = commonService.getColumnInfo(tableCol2[0], tableCol2[1]);
+							col1.setTypeName(dataType);
+							col1.setTypeValue(typeValue);
+							col2.setTypeName(dataType);
+							col2.setTypeValue(typeValue);
 						}
 					}
 				}
