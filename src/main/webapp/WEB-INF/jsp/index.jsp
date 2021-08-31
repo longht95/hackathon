@@ -4,8 +4,13 @@
 <!DOCTYPE html>
 <html>
 <head>
+	<link rel="stylesheet" href="/css/codemirror.css">
 <script
 	src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+	<script
+	src="/js/codemirror.js"></script>
+	<script
+	src="/js/sql.js"></script>
 </head>
 <style>
 body {
@@ -23,16 +28,6 @@ main {
 	display: flex;
 	flex-direction: column;
 	border-right: 2px solid #d1d1d1;
-}
-
-.text-statement {
-	background: url(http://i.imgur.com/2cOaJ.png);
-	background-attachment: local;
-	background-repeat: no-repeat;
-	width: 100%;
-	padding-left: 27px;
-	box-sizing: border-box;
-	height: 100%;
 }
 
 textarea {
@@ -119,6 +114,10 @@ table tbody tr td {
     height: 28px;
 }
 
+.CodeMirror {
+	width:100%;
+	height:100%;
+}
 
 </style>
 <body>
@@ -146,7 +145,7 @@ table tbody tr td {
 					<input type="submit" value="Test Connection" id="testConnection" onclick="testConnection()" style="margin-left:2.5px; display:none;">
 				</div>
 			</div>
-			<div class="text-statement">
+			<div style="width: 100%;height:100%">
 				<textarea id="inputQuerySQL" rows="10" cols="40"></textarea>
 			</div>
 		</div>
@@ -182,6 +181,19 @@ table tbody tr td {
 		</div>
 	</main>
 	<script>
+	var editor
+	$(document).ready(function(){
+		var myTextarea = $("#inputQuerySQL")[0];
+		editor = CodeMirror.fromTextArea(myTextarea, {
+		    lineNumbers: true,
+		    mode : 'text/x-sql',
+		    lineWrapping: true,
+		    
+		  });
+		
+	});
+	
+	
 	var dataPicker = [];
 	
 	var stateId = 0;
@@ -485,7 +497,7 @@ table tbody tr td {
 		});
 		
 		$('#updateQuery').on("click", function(){
-			const queryInput = $('#inputQuerySQL').val();
+			const queryInput = editor.getValue();
 			$('table.table').find('thead').empty();
 			$('table.table').find('tbody').empty();
 			$.ajax({
@@ -533,6 +545,7 @@ table tbody tr td {
 			           console.log('table', dataSQL.listTable);
 			           console.log('query', dataSQL.query);
 			           $('textarea#inputQuerySQL').val(dataSQL.query);
+			           editor.getDoc().setValue(dataSQL.query);
 			           $("#selectBox").empty();
 			           $("#selectBox").append('<option value="None" disabled="disabled" selected="selected">Select table</option>');
 			           for (const tbl in dataSQL.listTable) {
@@ -642,7 +655,7 @@ table tbody tr td {
 			    }
 			};
 			const jsonData = {
-					queryInput : $('#inputQuerySQL').val(),
+					queryInput : editor.getValue(),
 					typeExport : $('#selectType :selected').text(),
 					dataPicker : dataPickers,
 					infoDatabase : infoDatabase,
