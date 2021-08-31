@@ -900,6 +900,7 @@ public class CreateData {
 								(tmp.operator.equals(operators[1]) && tmp.value.equals(c[1]) && 
 										tmp.operatorRight.equals(operators[0]) && tmp.rightValue.equals(c[0]))) {
 							flgAdd = false;
+							break;
 						} else {
 							flgAdd = true;
 						}
@@ -1330,7 +1331,7 @@ public class CreateData {
 		}
 		
 		// Remove all invalid value
-		if (valInValid != null && valInValid.isEmpty()) {
+		if (valInValid != null && !valInValid.isEmpty()) {
 			Queue<String> toExploder = new LinkedList<>();
 			for (int i = 0; i < curValValid.size(); ++i) {
 				toExploder.add(curValValid.get(i));
