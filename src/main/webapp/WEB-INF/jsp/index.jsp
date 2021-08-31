@@ -167,8 +167,8 @@ table tbody tr td {
 				</tbody>
 			</table>
 			<h4>DATA PICK</h4>
-				<div id="block-data-picker">
-			</div>
+			<input type="submit" id="clearAll" value="Clear All" onclick="clearAllDataPicker()">
+			<div id="block-data-picker"></div>
 			<h4>EXPORT TYPES</h4>
 			<div class="box-generate">
 				<select id="selectType"
@@ -187,6 +187,10 @@ table tbody tr td {
 	var stateId = 0;
 	
 	var stateIdPicker = 0;
+	
+	function clearAllDataPicker() {
+		$('#block-data-picker').empty();
+	}
 	
 	$('#select-database').on('change', function() {
 		if ($(this).val() == 'No database') {
