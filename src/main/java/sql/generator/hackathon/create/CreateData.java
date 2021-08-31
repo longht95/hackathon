@@ -181,7 +181,7 @@ public class CreateData {
 		// Get column Mapping (Key1 -> Key2, Key2 -> Key) in keys
 		Map<String, Set<String>> colMapping = getMappingColumn();
 		// Get all mapping of 1 column (Key1 -> key2,key3,key4)
-		Map<String, Set<Cond>> columnMap  = getAllMappingColum(colMapping);
+		Map<String, List<Cond>> columnMap  = getAllMappingColum(colMapping);
 		
 		// Execute reformat dataType for columnInfo
 		if (commonService.getCommonCreateObj().getType() == 0) {
@@ -837,15 +837,15 @@ public class CreateData {
 	 * Get all mapping for each column With each column will find all related
 	 * column. Put data to columnMap variable
 	 */
-	private Map<String, Set<Cond>> getAllMappingColum(Map<String, Set<String>> columnMapping) {
-		Map<String, Set<Cond>> columnMap = new HashMap<>();
+	private Map<String, List<Cond>> getAllMappingColum(Map<String, Set<String>> columnMapping) {
+		Map<String, List<Cond>> columnMap = new HashMap<>();
 		for (Map.Entry<String, Set<String>> e : columnMapping.entrySet()) {
 			Set<String[]> mappings = new HashSet<>();
 			String curKey = e.getKey();
 			String prevCol = curKey;
+			Set<String> visited = new HashSet<>();
 			for (String val : e.getValue()) {
 				Queue<String> toExploder = new LinkedList<>();
-				Set<String> visited = new HashSet<>();
 				toExploder.add(val);
 				visited.add(curKey);
 				
@@ -871,24 +871,46 @@ public class CreateData {
 			// Need Set<Cond>
 			// KEY ==> aliasTable.aliasColumn => alias
 			// VALUE COND {operator, value{KEY}}
-			Set<Cond> s = new HashSet<Cond>();
+			List<Cond> s = new ArrayList<>();
 
 			for (String[] c : mappings) {
 				String[] operators = infoCol.get(c[0] + "-" + c[1]);
 				if (saveCalcObj.containsKey(c[0])) {
 					saveCalcObj.get(c[0]).getListOperator().add(operators[0]);
 				} else {
-					System.out.println("--------- Error ---------");
+					CreateDataObj createObj = new CreateDataObj();
+					createObj.getListOperator().add(operators[0]);
+					saveCalcObj.put(c[0], createObj);
 				}
 				
 				if (saveCalcObj.containsKey(c[1])) {
-					saveCalcObj.get(c[0]).getListOperator().add(operators[1]);
+					saveCalcObj.get(c[1]).getListOperator().add(operators[1]);
 				} else {
-					System.out.println("--------- Error ---------");
+					CreateDataObj createObj = new CreateDataObj();
+					createObj.getListOperator().add(operators[1]);
+					saveCalcObj.put(c[1], createObj);
 				}
 				
-				Cond cond = new Cond(operators[0], c[0], operators[1], c[1]);
-				s.add(cond);
+				boolean flgAdd = false;
+				// Check have contains
+				if (s.size() > 0) {
+					for (Cond tmp : s) {
+						if ((tmp.operator.equals(operators[0]) && tmp.value.equals(c[0]) && 
+								tmp.operatorRight.equals(operators[1]) && tmp.rightValue.equals(c[1])) || 
+								(tmp.operator.equals(operators[1]) && tmp.value.equals(c[1]) && 
+										tmp.operatorRight.equals(operators[0]) && tmp.rightValue.equals(c[0]))) {
+							flgAdd = false;
+						} else {
+							flgAdd = true;
+						}
+					}
+				} else {
+					flgAdd = true;
+				}
+				if (flgAdd) {
+					Cond cond = new Cond(operators[0], c[0], operators[1], c[1]);
+					s.add(cond);
+				}
 			}
 			columnMap.put(e.getKey(), s);
 		}
@@ -901,7 +923,7 @@ public class CreateData {
 	 * @return push value to dataTable
 	 * @throws SQLException 
 	 */
-	private void exeCalcForMappingKey(Map<String, Set<Cond>> columnMap) throws SQLException {
+	private void exeCalcForMappingKey(Map<String, List<Cond>> columnMap) throws SQLException {
 		// table.colName => all column mapping of current table.colName
 		// Map<String, Set<Cond>> columnMap;
 		
@@ -909,7 +931,7 @@ public class CreateData {
 		
 		// table.colName => condition valid
 		// Map<String, List<Cond>> columnMap;
-		for (Map.Entry<String, Set<Cond>> e : columnMap.entrySet()) {
+		for (Map.Entry<String, List<Cond>> e : columnMap.entrySet()) {
 			String col = e.getKey();
 			String tableName = commonService.getTableAndColName(col)[0];
 			String colName = commonService.getTableAndColName(col)[1];
@@ -1004,6 +1026,8 @@ public class CreateData {
 				// Mark color for column Info
 //				markColor.put(cur.tableColumnName, "MARK_COLOR_" + idxColor);
 				if (saveCalcObj.containsKey(cur.tableColumnName)) {
+					System.out.println(cur.tableColumnName + " - " + pathValidValue.get(i).val);
+					System.out.println();
 					saveCalcObj.get(cur.tableColumnName).setLastEndValidValue(pathValidValue.get(i).val);
 					saveCalcObj.get(cur.tableColumnName).setMarkColor("MARK_COLOR_" + idxColor);
 				} else {
@@ -1015,20 +1039,22 @@ public class CreateData {
 //				lastEndValidValue.put(cur.tableColumnName, pathValidValue.get(i).val);
 				
 				// Add value for composite key
-				if (cur.valCompositeKey != null && cur.valCompositeKey.size() > 0) {
-					cur.valCompositeKey.entrySet().forEach(inner -> {
-						if (saveCalcObj.containsKey(inner.getKey()) &&
-								saveCalcObj.get(inner.getKey()).getLastEndValidValue().isEmpty()) {
-							saveCalcObj.get(inner.getKey()).setLastEndValidValue(inner.getValue());
-//							lastEndValidValue.put(inner.getKey(), inner.getValue());
-						}
-						if (!saveCalcObj.containsKey(inner.getKey())) {
-							CreateDataObj createObj = new CreateDataObj();
-							createObj.setLastEndValidValue(inner.getValue());
-							saveCalcObj.put(inner.getKey(), createObj);
-						}
-					});
-				}
+//				if (cur.valCompositeKey != null && cur.valCompositeKey.size() > 0) {
+//					cur.valCompositeKey.entrySet().forEach(inner -> {
+//						if (saveCalcObj.containsKey(inner.getKey()) &&
+//								saveCalcObj.get(inner.getKey()).getLastEndValidValue().isEmpty()) {
+//							saveCalcObj.get(inner.getKey()).getValidValuesForColumn().add(new Cond("=", inner.getValue()));
+////							saveCalcObj.get(inner.getKey()).setLastEndValidValue(inner.getValue());
+////							lastEndValidValue.put(inner.getKey(), inner.getValue());
+//						}
+//						if (!saveCalcObj.containsKey(inner.getKey())) {
+//							CreateDataObj createObj = new CreateDataObj();
+//							createObj.getValidValuesForColumn().add(new Cond("=", inner.getValue()));
+////							createObj.setLastEndValidValue(inner.getValue());
+//							saveCalcObj.put(inner.getKey(), createObj);
+//						}
+//					});
+//				}
 				visitedMapping.add(cur.tableColumnName);
 			}
 			idxColor++;
@@ -1304,7 +1330,7 @@ public class CreateData {
 		}
 		
 		// Remove all invalid value
-		if (valInValid != null) {
+		if (valInValid != null && valInValid.isEmpty()) {
 			Queue<String> toExploder = new LinkedList<>();
 			for (int i = 0; i < curValValid.size(); ++i) {
 				toExploder.add(curValValid.get(i));
@@ -1724,7 +1750,7 @@ public class CreateData {
 			// confirm KEY no value
 			ColumnInfo colNoVal = null;
 						
-			if (data != null) {
+			if (data != null && !data.isEmpty()) {
 				for (ColumnInfo colInfo : l) {
 					for (ColumnInfo d : data) {
 						if (colInfo.getName().equals(d.getName())) {
@@ -1911,7 +1937,7 @@ public class CreateData {
 	 * @throws SQLException 
 	 */
 	private NodeColumn processCalKeyMap(Stack<NodeColumn> toExploder, Map<NodeColumn, NodeColumn> parentMap,
-			Set<Cond> colMapping, List<String> validOfCol, Map<Integer, Cond> loopSearch, 
+			List<Cond> colMapping, List<String> validOfCol, Map<Integer, Cond> loopSearch, 
 			String dataType) throws SQLException {
 		NodeColumn nodeGoal = null;
 		
@@ -2227,14 +2253,16 @@ public class CreateData {
 				
 				if (listValue.size() != 0) {
 					String val = listValue.get(0);
-					if (isNumber(val)) {
-						colInfo.setTypeName("number");
-						colInfo.setTypeValue("6");
-					} else if (isDate(val)) {
-						// Date
-						colInfo.setTypeName("date");
-					} else {
-						// varchar
+					if (val != null && !val.isEmpty()) {
+						if (isNumber(val)) {
+							colInfo.setTypeName("number");
+							colInfo.setTypeValue("6");
+						} else if (isDate(val)) {
+							// Date
+							colInfo.setTypeName("date");
+						} else {
+							// varchar
+						}
 					}
 				}
 			}
