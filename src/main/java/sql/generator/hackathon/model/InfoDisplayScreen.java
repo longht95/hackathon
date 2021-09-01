@@ -3,6 +3,7 @@ package sql.generator.hackathon.model;
 import java.util.List;
 
 public class InfoDisplayScreen {
+	public String tableName;
 	public List<List<String>> listData;
 	public List<String> listColumnName;
 	
@@ -18,4 +19,11 @@ public class InfoDisplayScreen {
 	public void setListColumnName(List<String> listColumnName) {
 		this.listColumnName = listColumnName;
 	}
+	public String getTableName() {
+		return tableName;
+	}
+	public void setTableName(String tableName) {
+		this.tableName = tableName;
+	}
+	
 }

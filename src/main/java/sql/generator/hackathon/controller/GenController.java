@@ -150,15 +150,15 @@ public class GenController {
 
 	@GetMapping(value = "/updateQuery")
 	public @ResponseBody String updateQuery(@RequestParam String query) throws JsonProcessingException {
-		ViewQuery viewQuery = new ViewQuery();
+		List<InfoDisplayScreen> listInfo = null;
 		try {
-			viewQuery = ViewQuery.builder().listTable(serviceParse.getListTableByStatement(query)).query(query).build();
+			listInfo = serviceParse.getColumnInfoView(query);
 
 		} catch (JSQLParserException e) {
-			viewQuery.setMess("Statement is not valid");
+//			viewQuery.setMess("Statement is not valid");
 		}
 		ObjectMapper mapper = new ObjectMapper();
-		return mapper.writeValueAsString(viewQuery);
+		return mapper.writeValueAsString(listInfo);
 	}
 
 	@GetMapping(value = "/selectTable")
@@ -168,7 +168,7 @@ public class GenController {
 		ObjectMapper mapper = new ObjectMapper();
 		mapper.enable(SerializationFeature.INDENT_OUTPUT);
 		if (tableSelected.equals("No database")) {
-			return mapper.writeValueAsString(serviceParse.getColumnInfoView(query, tableName));
+			return mapper.writeValueAsString(serviceParse.getColumnInfoView(query));
 		} else {
 			boolean isConnect = executeDBServer.connectDB(tableSelected, url, schema, user, pass);
 			
@@ -204,7 +204,6 @@ public class GenController {
 
 	@PostMapping(value = "/generate")
 	public ResponseEntity<InputStreamResource> generate(@RequestBody ObjectGenate objectGenate) throws Exception {
-		System.out.println("DTO"+objectGenate.toString());
 		Map<String, List<List<ColumnInfo>>> dataPick = new HashMap<>();
 		objectGenate.dataPicker.forEach(x -> {
 			dataPick.put(x.getTableName(), x.getListColumnInfo());

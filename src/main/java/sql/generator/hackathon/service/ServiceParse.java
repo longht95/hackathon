@@ -106,7 +106,7 @@ public class ServiceParse {
 		return tables;
 	}
 	
-	public InfoDisplayScreen getColumnInfoView(String query, String tableName) throws JSQLParserException {
+	public List<InfoDisplayScreen> getColumnInfoView(String query) throws JSQLParserException {
 		Select select = (Select) CCJSqlParserUtil.parse(query);
 		listColumnInfo = new HashMap<>();
 		tables = new HashMap<>();
@@ -115,15 +115,17 @@ public class ServiceParse {
 		SelectBody selectBody = select.getSelectBody();
 		processSelectBody(selectBody, null);
 		processColumnWithAlias();
-		InfoDisplayScreen infoDisplayScreen = new InfoDisplayScreen();
+		List<InfoDisplayScreen> listInfo = new ArrayList<>();
+		
 		tables.entrySet().forEach(x -> {
-			if (x.getValue().getTableName().equals(tableName)) {
-				if (x.getValue().getColumns() != null) {
-					infoDisplayScreen.listColumnName = x.getValue().getColumns().stream().collect(Collectors.toList());
-				}
+			InfoDisplayScreen infoDisplayScreen = new InfoDisplayScreen();
+			infoDisplayScreen.tableName = tables.get(x.getKey()).getTableName();
+			if (x.getValue().getColumns() != null) {
+				infoDisplayScreen.listColumnName = x.getValue().getColumns().stream().collect(Collectors.toList());
 			}
+			listInfo.add(infoDisplayScreen);
 		});
-		return infoDisplayScreen;
+		return listInfo;
 	}
 	
 	private void processColumnWithAlias() {
