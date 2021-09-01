@@ -134,11 +134,15 @@ public class ExecuteDBSQLServer {
 	
 	//------------------------------------------------------------------------------
 	// get object (column, data) to show screen
-	public InfoDisplayScreen getDataDisplay(String schemaName, String tableName) throws Exception {
+	public List<InfoDisplayScreen> getDataDisplay(String schemaName, List<String> tableNameLst) throws Exception {
+		List<InfoDisplayScreen> infoDisplayScreenLst = new ArrayList<InfoDisplayScreen>();
 		InfoDisplayScreen infoDisplayScreen = new InfoDisplayScreen();
-		infoDisplayScreen.setListColumnName(this.getListColumn(schemaName, tableName));
-		infoDisplayScreen.setListData(this.getListData(tableName));
-		return infoDisplayScreen;
+		for (String tableName : tableNameLst) {
+			infoDisplayScreen.setListColumnName(this.getListColumn(schemaName, tableName));
+			infoDisplayScreen.setListData(this.getListData(tableName));
+			infoDisplayScreenLst.add(infoDisplayScreen);
+		}
+		return infoDisplayScreenLst;
 	}
 
 	//get list column to show screen
@@ -421,7 +425,7 @@ public class ExecuteDBSQLServer {
 				char[] ch = new char[length];
 				// random char from 65 -> 122
 				for (int i = 0; i < length; i++) {
-					random = new Random().nextInt(57) + 65;
+					random = new Random().nextInt(25) + 97;
 				// random = new Random().nextInt(9) + 48;
 					ch[i] = (char) (random);
 				}
