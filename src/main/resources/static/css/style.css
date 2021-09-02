@@ -237,3 +237,16 @@ tbody tr:nth-of-type(odd) {
 .content-download img {
 	cursor: pointer;
 }
+
+.flowchart-example-container {
+	width: 100%;
+	height: calc(100vh - 30px);
+	background: white;
+}
+#box-table-info-content {
+	display:none;	
+}
+
+.flowchart-operator-outputs .flowchart-operator-connector-label {
+	color: #FFF;
+}

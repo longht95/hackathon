@@ -1,6 +1,9 @@
 var editor;
 var inforTable = [];
 var tableDataSet;
+var $flowchart;
+var $container;
+var operatorList = [];
 $(document).ready(function() {
 	var myTextarea = $("#inputQuerySQL")[0];
 	editor = CodeMirror.fromTextArea(myTextarea, {
@@ -23,6 +26,30 @@ $(document).ready(function() {
 			}
 
 		});
+	});
+
+
+	$flowchart = $('#flowchartworkspace');
+	$container = $flowchart.parent();
+
+	$flowchart.flowchart({
+		defaultSelectedLinkColor: '#000055',
+		grid: 10,
+		multipleLinksOnInput: true,
+		multipleLinksOnOutput: true
+	});
+
+	$flowchart.flowchart({
+		onOperatorCreate: function(operationId, operatorData) {
+			const operatorAdd = {
+				operationId: operationId,
+				tableName: operatorData.properties.title,
+				listInput: [operatorData.properties.inputs.input_1.label],
+				listOutput: [operatorData.properties.outputs.output_1.label],
+			}
+			operatorList.push(operatorAdd);
+			return true;
+		}
 	});
 });
 function updateDataSet(nameTable) {
@@ -155,6 +182,10 @@ function switchNavigation(id) {
 	$('#' + stateNav).show();
 	$('.icon-nav').removeClass('active');
 	$('#' + id + '-nav').addClass('active');
+	
+	$('.content-right-layout').hide();
+	$('#'+id+'-content').show();
+	console.log('idddd',id);
 
 }
 function openModalDownload() {
@@ -165,5 +196,151 @@ function openModalDownload() {
 function closeModal() {
 	var modal = document.getElementById("myModal");
 	modal.style.display = "none";
+}
 
+var operationId = 1;
+var sizeTop = 20;
+var sizeLeft = 20;
+function flowChart(data) {
+	let listTableSQL = data.listTableSQL;
+
+	for (const [key, value] of Object.entries(data.mappingKey)) {
+		let arrValue = value[0].split(".");
+		let arrValue2 = value[1].split(".");
+
+		let operatorFilter = operatorList.find(item => item.tableName == arrValue[0]);
+
+		let outputTo;
+
+		let operatorIdInput;
+
+		if (operatorFilter) {
+			let dataOperator = $flowchart.flowchart('getOperatorData', operatorFilter.operationId);
+			operatorIdInput = operatorFilter.operationId;
+			let filterData;
+			for (const [keyInput, valueInput] of Object.entries(dataOperator.properties.inputs)) {
+				if (valueInput.label == arrValue[1]) {
+					filterData = keyInput;
+					break;
+				}
+			}
+			console.log('is check1', filterData);
+			if (filterData) {
+				let outputSplit = filterData.split("_");
+				outputTo = "output_"+outputSplit[1];
+				
+			} else {
+				//add them input
+
+				let idNext = Object.entries(dataOperator.properties.inputs).length + 1;
+				outputTo = 'output_' + idNext;
+				dataOperator.properties.inputs['input_' + idNext] = { label: arrValue[1] };
+				dataOperator.properties.outputs['output_' + idNext] = { label: arrValue[1] };
+				$flowchart.flowchart('setOperatorData', operatorFilter.operationId, dataOperator);
+				console.log('add them input1');
+				console.log('check', dataOperator.properties.inputs);
+			}
+
+		} else {
+			let operatorId = 'operator' + operationId;
+			operatorIdInput = operatorId;
+			outputTo = 'output_1';
+			var operatorData = {
+				top: sizeTop,
+				left: sizeLeft,
+				properties: {
+					title: arrValue[0],
+					inputs: {
+						input_1: {
+							label: arrValue[1],
+						}
+					},
+					outputs: {
+						output_1: {
+							label: arrValue[1],
+						}
+					}
+				}
+			};
+			sizeTop+=30;
+			sizeLeft+=220;
+			$flowchart.flowchart('createOperator', operatorId, operatorData);
+			operationId++;
+		}
+
+
+
+		let operatorFilter2 = operatorList.find(item => item.tableName == arrValue2[0]);
+
+		let inputTo;
+
+		let operatorIdOutput;
+		if (operatorFilter2) {
+			let dataOperator = $flowchart.flowchart('getOperatorData', operatorFilter2.operationId);
+			operatorIdOutput = operatorFilter2.operationId;
+			let filterData;
+			for (const [keyInput, valueInput] of Object.entries(dataOperator.properties.inputs)) {
+				console.log('State', arrValue2[0]);
+				console.log('test', valueInput.label);
+				console.log('test1', arrValue2[1]);
+				if (valueInput.label == arrValue2[1]) {
+					filterData = keyInput;
+					break;
+				}
+			}
+			console.log('is check2', filterData);
+			if (filterData) {
+				inputTo = filterData;
+			} else {
+				//add them input
+				let idNext = Object.entries(dataOperator.properties.inputs).length + 1;
+				inputTo = 'input_' + idNext;
+				dataOperator.properties.inputs['input_' + idNext] = { label: arrValue2[1] };
+				dataOperator.properties.outputs['output_' + idNext] = { label: arrValue2[1] };
+
+				$flowchart.flowchart('setOperatorData', operatorFilter2.operationId, dataOperator);
+
+				console.log('add them input2');
+				console.log('check', dataOperator.properties.inputs);
+			}
+			console.log('filterData', filterData);
+			console.log('dataOperator 2', dataOperator);
+		} else {
+			let operatorId = 'operator' + operationId;
+			inputTo = 'input_1';
+			operatorIdOutput = operatorId;
+			var operatorData = {
+				top: sizeTop,
+				left: sizeLeft,
+				properties: {
+					title: arrValue2[0],
+					inputs: {
+						input_1: {
+							label: arrValue2[1],
+						}
+					},
+					outputs: {
+						output_1: {
+							label: arrValue2[1],
+						}
+					}
+				}
+			};
+			sizeTop+=30;
+			sizeLeft+=220;
+			$flowchart.flowchart('createOperator', operatorId, operatorData);
+			operationId++;
+		}
+
+		const link = {
+			fromOperator: operatorIdInput,
+			fromConnector: outputTo,
+			toOperator: operatorIdOutput,
+			toConnector: inputTo,
+		}
+
+		console.log('link', link);
+
+		$flowchart.flowchart('addLink', link);
+	}
 }

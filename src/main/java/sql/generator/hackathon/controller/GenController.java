@@ -36,6 +36,7 @@ import net.sf.jsqlparser.JSQLParserException;
 import sql.generator.hackathon.create.CreateData;
 import sql.generator.hackathon.model.ColumnInfo;
 import sql.generator.hackathon.model.CreateObject;
+import sql.generator.hackathon.model.FlowDataQuery;
 import sql.generator.hackathon.model.InfoDisplayScreen;
 import sql.generator.hackathon.model.ObjectGenate;
 import sql.generator.hackathon.model.ParseObject;
@@ -150,15 +151,15 @@ public class GenController {
 
 	@GetMapping(value = "/updateQuery")
 	public @ResponseBody String updateQuery(@RequestParam String query) throws JsonProcessingException {
-		List<InfoDisplayScreen> listInfo = null;
+		FlowDataQuery response = new FlowDataQuery();
 		try {
-			listInfo = serviceParse.getColumnInfoView(query);
-
+			response.listInfo = serviceParse.getColumnInfoView(query);
+			response.flows = serviceParse.parseSelectStatement(query);
 		} catch (JSQLParserException e) {
-//			viewQuery.setMess("Statement is not valid");
+			response.message = "Query is unvalid";
 		}
 		ObjectMapper mapper = new ObjectMapper();
-		return mapper.writeValueAsString(listInfo);
+		return mapper.writeValueAsString(response);
 	}
 
 	@GetMapping(value = "/selectTable")

@@ -4,12 +4,13 @@
 <!DOCTYPE html>
 <html>
 <head>
+	<title>Data Generator</title>
 	<link rel="stylesheet" href="/css/codemirror.css">
 	<link rel="stylesheet" href="/css/style.css">
-	<link rel="stylesheet"
-		href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.2.1/themes/default/style.min.css" />
-	<script
-		src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+	<link rel="stylesheet" href="/css/jquery.flowchart.css">
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+	<script src="/js/jquery.flowchart.js"></script>
 	<script src="/js/codemirror.js"></script>
 	<script src="/js/sql.js"></script>
 	<script src="/js/datagenerator.js"></script>
@@ -77,12 +78,17 @@
 
 		</div>
 		<div class="right-layout">
-			<h4 style="margin-top:0px;">DATA SET</h4>
-			<div class="box-action-table">
-				<input type="submit" id="addColumn" value="Add column" onclick="addColumnDataSet()">
-				<input type="submit" value="Add row" onclick="addRowDataSet()">
+			<div class="content-right-layout" id="box-table-info-content">
+				<h4 style="margin-top: 0px;">DATA SET</h4>
+				<div class="box-action-table">
+					<input type="submit" id="addColumn" value="Add column"
+						onclick="addColumnDataSet()"> <input type="submit"
+						value="Add row" onclick="addRowDataSet()">
+				</div>
+				<div id="tableDataSet"></div>
 			</div>
-			<div id="tableDataSet">
+			<div class="content-right-layout" id="box-sql-content">
+				<div class="flowchart-example-container" id="flowchartworkspace"></div>
 			</div>
 		</div>
 		
@@ -352,9 +358,11 @@
 					},
 					contentType : "application/json",
 					dataType : 'json',
-			       success : function(data) {
-			    	   if (data.mess == null) {
-			    		   inforTable = data;
+			       success : function(dataResponse) {
+			    	   if (dataResponse.mess == null) {
+			    		   flowChart(dataResponse.flows);
+			    		   let data = dataResponse.listInfo;
+			    		   inforTable = dataResponse.listInfo;
 			    		   alert("Update success");
 				           for (let i = 0 ; i < data.length ; i++) {
 				        	   let ul = document.createElement('ul');
