@@ -62,7 +62,9 @@ public class ExecuteDBSQLServer {
 	
 	//disconnect database
 	public void disconnectDB() throws SQLException {
-		connect.close();
+		if (connect != null) {
+			connect.close();
+		}
 	}
 	
 	//------------------------------------------------------------------------------

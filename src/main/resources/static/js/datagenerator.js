@@ -230,15 +230,11 @@ function flowChart(data) {
 				outputTo = "output_"+outputSplit[1];
 				
 			} else {
-				//add them input
-
 				let idNext = Object.entries(dataOperator.properties.inputs).length + 1;
 				outputTo = 'output_' + idNext;
 				dataOperator.properties.inputs['input_' + idNext] = { label: arrValue[1] };
-				dataOperator.properties.outputs['output_' + idNext] = { label: arrValue[1] };
+				dataOperator.properties.outputs['output_' + idNext] = { label: '1' };
 				$flowchart.flowchart('setOperatorData', operatorFilter.operationId, dataOperator);
-				console.log('add them input1');
-				console.log('check', dataOperator.properties.inputs);
 			}
 
 		} else {
@@ -257,7 +253,7 @@ function flowChart(data) {
 					},
 					outputs: {
 						output_1: {
-							label: arrValue[1],
+							label: '1',
 						}
 					}
 				}
@@ -267,8 +263,6 @@ function flowChart(data) {
 			$flowchart.flowchart('createOperator', operatorId, operatorData);
 			operationId++;
 		}
-
-
 
 		let operatorFilter2 = operatorList.find(item => item.tableName == arrValue2[0]);
 
@@ -296,15 +290,10 @@ function flowChart(data) {
 				let idNext = Object.entries(dataOperator.properties.inputs).length + 1;
 				inputTo = 'input_' + idNext;
 				dataOperator.properties.inputs['input_' + idNext] = { label: arrValue2[1] };
-				dataOperator.properties.outputs['output_' + idNext] = { label: arrValue2[1] };
+				dataOperator.properties.outputs['output_' + idNext] = { label: '1' };
 
 				$flowchart.flowchart('setOperatorData', operatorFilter2.operationId, dataOperator);
-
-				console.log('add them input2');
-				console.log('check', dataOperator.properties.inputs);
 			}
-			console.log('filterData', filterData);
-			console.log('dataOperator 2', dataOperator);
 		} else {
 			let operatorId = 'operator' + operationId;
 			inputTo = 'input_1';
@@ -321,7 +310,7 @@ function flowChart(data) {
 					},
 					outputs: {
 						output_1: {
-							label: arrValue2[1],
+							label: '1',
 						}
 					}
 				}
