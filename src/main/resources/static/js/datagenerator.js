@@ -265,9 +265,9 @@ function flowChart(data) {
 			tableNameOperator2 = arrValue2[0];
 		}
 
-		let operatorFilter = operatorList.find(item => item.tableName == arrValue[0]);
+		let operatorFilter = operatorList.find(item => item.tableName == tableNameOperator1);
 
-		let operatorFilter2 = operatorList.find(item => item.tableName == arrValue2[0]);
+		let operatorFilter2 = operatorList.find(item => item.tableName == tableNameOperator2);
 
 		let isNoRelation = !operatorFilter && !operatorFilter2 && operatorList.length > 0;
 
