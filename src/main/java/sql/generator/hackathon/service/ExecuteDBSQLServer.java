@@ -181,6 +181,9 @@ public class ExecuteDBSQLServer {
 		while (resultSet.next()) {
 			rowData = new ArrayList<String>();
 			for (int i = 0; i< resultSet.getMetaData().getColumnCount(); i++) {
+				if(i == 0) {
+					rowData.add("false");
+				}
 				rowData.add(resultSet.getString(i + 1));
 			}
 			listData.add(rowData);
