@@ -28,6 +28,7 @@ import sql.generator.hackathon.model.Cond;
 import sql.generator.hackathon.model.Condition;
 import sql.generator.hackathon.model.CreateDataObj;
 import sql.generator.hackathon.model.CreateObject;
+import sql.generator.hackathon.model.InforTableReferFK;
 import sql.generator.hackathon.model.NodeColumn;
 import sql.generator.hackathon.model.TableSQL;
 import sql.generator.hackathon.service.CommonCreateService;
@@ -81,6 +82,8 @@ public class CreateData {
 	// Data current values
 	// TableName => List ColumnInfo
 	private Map<String, List<ColumnInfo>> tableData;
+	
+	private Map<String, InforTableReferFK> foreignKeyNotExistsInmainTable;
 
 	// tableName1.colName1 - tableName2.colName2 => [operator1, operator2] 
 	private Map<String, String[]> infoCol;
@@ -117,12 +120,14 @@ public class CreateData {
 		// TableName => List ColumnInfo
 		tableData = new HashMap<>();
 		
+		foreignKeyNotExistsInmainTable = new HashMap<>();
+		
 		// markcolor
 		idxColor = 1;
 	}
 	
 	public CreateObject multipleCreate(Map<String, List<List<ColumnInfo>>> dataClient, 
-			int row, boolean type) throws SQLException {
+			int row, boolean type) throws Exception {
 		Map<String, List<List<ColumnInfo>>> response = new HashMap<>();
 		CreateObject createObj = new CreateObject();
 		// Insert multiple row
@@ -140,6 +145,9 @@ public class CreateData {
 				t.add(m.getValue());
 			}
 		}
+		
+		processWithForeignKey(response);
+		
 		createObj.listData = response;
 		
 		// Process add listMarkColor
@@ -150,10 +158,10 @@ public class CreateData {
 	
 	/**
 	 * Execute create data after parse object
-	 * @throws SQLException 
+	 * @throws Exception 
 	 */
 	public Map<String, List<ColumnInfo>> create(Map<String, List<List<ColumnInfo>>> dataClient,
-			boolean type, int idxRow) throws SQLException {
+			boolean type, int idxRow) throws Exception {
 		
 		init();
 		
@@ -1656,7 +1664,7 @@ public class CreateData {
 	
 	
 	private Map<String, List<ColumnInfo>> processInsert(Map<String, List<List<ColumnInfo>>> clientData,
-			int idxRow) throws SQLException {
+			int idxRow) throws Exception {
 		Map<String, List<ColumnInfo>> res = new HashMap<>();
 		Map<String, List<ColumnInfo>> tableInfo = commonService.getTableInfo();
 		for (Map.Entry<String, List<ColumnInfo>> e : tableInfo.entrySet()) {
@@ -1666,7 +1674,7 @@ public class CreateData {
 			// Init
 			for (ColumnInfo colInfo : e.getValue()) {
 				if (!hasColumn.contains(colInfo.getName())) {
-					l.add(new ColumnInfo(colInfo.getName(), "", colInfo.getTypeName(),
+					l.add(new ColumnInfo(removeSpecifyCharacter("'", colInfo.getName()), "", colInfo.getTypeName(),
 							colInfo.getTypeValue(), colInfo.getIsNull(), colInfo.getIsPrimarykey(),
 							colInfo.getIsForeignKey(), colInfo.getUnique()));
 					hasColumn.add(colInfo.getName());
@@ -1732,6 +1740,16 @@ public class CreateData {
 			for (ColumnInfo colInfo : l) {
 				if (colInfo.getVal().isEmpty()) {
 					colInfo.val = fakerService.getDataByColumn(colInfo.getName());
+				}
+			}
+			
+			// Check foreign key has exists
+			for (ColumnInfo colInfo : l) {
+				if (colInfo.getIsForeignKey()) {
+					InforTableReferFK foreingKeyInfo = dbServer.checkInforFK(commonService.getCommonCreateObj().getSchema(), removeSpecifyCharacter("'", tableName), colInfo);
+					if (!foreingKeyInfo.isHasExist()) {
+						foreignKeyNotExistsInmainTable.put(foreingKeyInfo.getTableReferFKName(), foreingKeyInfo);
+					}
 				}
 			}
 			
@@ -2198,6 +2216,46 @@ public class CreateData {
 					col2.setTypeName("number");
 					col2.setTypeValue("6");
 				}
+			}
+		});
+	}
+	
+	/**
+	 * Add value for main table when foreign key not exists
+	 * @param reponseData
+	 */
+	private void processWithForeignKey(Map<String, List<List<ColumnInfo>>> reponseData) {
+		foreignKeyNotExistsInmainTable.entrySet().forEach(e -> {
+			String tableRefer = e.getKey();
+			List<ColumnInfo> columnsRefer = e.getValue().getColumnInfoLst();
+			if (reponseData.containsKey(tableRefer)) {
+				Map<String, String> mapVal = new HashMap<>();
+				for (ColumnInfo colInfo : columnsRefer) {
+					ColumnInfo currentInfo = commonService.getColumnInfo(tableRefer, colInfo.getName());
+					if (currentInfo.getIsPrimarykey()) {
+						mapVal.put(colInfo.getName(), colInfo.getVal());
+					}
+				}
+				List<List<ColumnInfo>> t = reponseData.get(tableRefer);
+				boolean hasExists = true;
+				for (List<ColumnInfo> colsInfo : t) {
+					int cnt = 0;
+					for (ColumnInfo innerInfo : colsInfo) {
+						if (innerInfo.getIsPrimarykey() && mapVal.get(innerInfo.getName()).equals(innerInfo.getVal())) {
+							cnt++;
+						}
+					}
+					if (cnt == mapVal.size()) {
+						hasExists = false;
+					}
+				}
+				if (hasExists) {
+					t.add(columnsRefer);
+				}
+			} else {
+				List<List<ColumnInfo>> t = new ArrayList<>();
+				t.add(columnsRefer);
+				reponseData.put(tableRefer, t);
 			}
 		});
 	}
