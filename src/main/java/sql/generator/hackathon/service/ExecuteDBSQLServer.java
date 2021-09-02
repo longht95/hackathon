@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 import sql.generator.hackathon.create.CreateData;
 import sql.generator.hackathon.model.ColumnInfo;
 import sql.generator.hackathon.model.InfoDisplayScreen;
+import sql.generator.hackathon.model.InforTableReferFK;
 import sql.generator.hackathon.model.ObjForeignKeyInfo;
 
 @Service
@@ -185,7 +186,7 @@ public class ExecuteDBSQLServer {
 	}
 
 	//------------------------------------------------------------------------------
-	// check value is unique or not
+	// check value exist in table or not
 	public boolean isUniqueValue(String tableName, ColumnInfo columnInfo, String value) throws SQLException {
 		Statement stmt = connect.createStatement();
 		StringBuilder SQL = new StringBuilder();
@@ -293,8 +294,8 @@ public class ExecuteDBSQLServer {
 	public Map<String, String> genUniqueCol(String schema, String tableName, ColumnInfo columnInfo, String value) throws SQLException {
 		Map<String, String> mapUnique = new HashMap<String, String>();
 
-		// get FOREIGN KEY
-		List<ObjForeignKeyInfo> lstObjForeignKeyInfo = getColForeignKey(schema, tableName);
+		// get infor FOREIGN KEY
+		List<ObjForeignKeyInfo> lstObjForeignKeyInfo = getInforColForeignKey(schema, tableName);
 		
 		String valForeignKey;
 		// get value FOREIGN KEY
@@ -367,7 +368,7 @@ public class ExecuteDBSQLServer {
 	}
 	
 	// get column foreign key
-	private List<ObjForeignKeyInfo> getColForeignKey(String schema, String tableName) throws SQLException {
+	private List<ObjForeignKeyInfo> getInforColForeignKey(String schema, String tableName) throws SQLException {
 		List<ObjForeignKeyInfo> lstObjForeignKeyInfo = new ArrayList<ObjForeignKeyInfo>();
 		ObjForeignKeyInfo objForeignKeyInfo;
 		PreparedStatement p = connect.prepareStatement("SELECT\r\n" + 
@@ -425,8 +426,8 @@ public class ExecuteDBSQLServer {
 				char[] ch = new char[length];
 				// random char from 65 -> 122
 				for (int i = 0; i < length; i++) {
+					// random A -> Z
 					random = new Random().nextInt(25) + 97;
-				// random = new Random().nextInt(9) + 48;
 					ch[i] = (char) (random);
 				}
 				result = String.valueOf(ch);
@@ -455,4 +456,88 @@ public class ExecuteDBSQLServer {
 	}
 	
 	//------------------------------------------------------------------------------
+	//check value FK is unique, if no return infor table refer of FK (table, column, value)
+	public InforTableReferFK checkInforFK(String schema, String tableName, ColumnInfo columnInfo) throws Exception {
+		InforTableReferFK inforTableReferFK = new InforTableReferFK();
+		//check value exist or not yet
+		if(isUniqueValue(tableName, columnInfo, columnInfo.getVal())) {
+			inforTableReferFK.setHasExist(false);
+			
+			// get infor FOREIGN KEY
+			ObjForeignKeyInfo objForeignKeyInfo = getTableReferFK(schema, tableName, columnInfo);
+			inforTableReferFK.setTableReferFKName(objForeignKeyInfo.getReferencedTableName());
+			
+			// get column of table refer
+			List<String> colTableReferList = getListColumn(schema, objForeignKeyInfo.getReferencedTableName());
+			List<String> rowData = getValueTableReferFK(objForeignKeyInfo.getReferencedTableName());
+			List<ColumnInfo> columnInfoLst = new ArrayList<ColumnInfo>();
+			ColumnInfo columnInfoReturn;
+			for (int i = 0; i < colTableReferList.size(); i++) {
+				// add value FK for column refer
+				if(colTableReferList.get(i).equals(objForeignKeyInfo.getReferencedColumnName())) {
+					columnInfoReturn = new ColumnInfo();
+					columnInfoReturn.setName(colTableReferList.get(i));
+					columnInfoReturn.setVal(columnInfo.getVal());
+					columnInfoLst.add(columnInfoReturn);
+				}else {
+					// add value for other column (diff FK)
+					columnInfoReturn = new ColumnInfo();
+					columnInfoReturn.setName(colTableReferList.get(i));
+					columnInfoReturn.setVal(rowData.get(i));
+					columnInfoLst.add(columnInfoReturn);
+				}
+			}
+			inforTableReferFK.setColumnInfoLst(columnInfoLst);
+			return inforTableReferFK;
+		}
+		inforTableReferFK.setHasExist(true);
+		return inforTableReferFK;
+	}
+	
+	private ObjForeignKeyInfo getTableReferFK(String schema, String tableName, ColumnInfo columnInfo) throws SQLException {
+		ObjForeignKeyInfo objForeignKeyInfo = new ObjForeignKeyInfo();
+		PreparedStatement p = connect.prepareStatement("SELECT\r\n" + 
+//				"   TABLE_NAME,\r\n" + 
+//				"	COLUMN_NAME,\r\n" + 
+				"	REFERENCED_TABLE_NAME,\r\n" + 
+				"	REFERENCED_COLUMN_NAME\r\n" + 
+				"FROM\r\n" + 
+				"    INFORMATION_SCHEMA.KEY_COLUMN_USAGE\r\n" + 
+				"WHERE\r\n" + 
+				"	 REFERENCED_TABLE_SCHEMA = ?\r\n" + 
+				"    AND TABLE_NAME = ?\\r\\n" +
+				"    AND COLUMN_NAME = ?");
+		p.setString(1, schema);
+		p.setString(2, tableName);
+		p.setString(3, columnInfo.getName());
+		ResultSet resultSet = p.executeQuery();
+		while (resultSet.next()) {
+//			objForeignKeyInfo.setTableName(resultSet.getString(1));
+//			objForeignKeyInfo.setColumnName(resultSet.getString(2));
+			objForeignKeyInfo.setReferencedTableName(resultSet.getString(1));
+			objForeignKeyInfo.setReferencedColumnName(resultSet.getString(2));
+		}
+		resultSet.close();
+		return objForeignKeyInfo;
+	}
+	
+	private List<String> getValueTableReferFK(String tableReferFKName) throws SQLException {
+//		List<List<String>> listData = new ArrayList<List<String>>();
+		List<String> rowData = new ArrayList<String>();
+		Statement stmt = connect.createStatement();
+		StringBuilder SQL = new StringBuilder();
+		SQL.append("SELECT * FROM ");
+		SQL.append(tableReferFKName);
+		SQL.append(" LIMIT 1");
+		ResultSet resultSet = stmt.executeQuery(SQL.toString());
+		
+		while (resultSet.next()) {
+//			rowData = new ArrayList<String>();
+			for (int i = 0; i< resultSet.getMetaData().getColumnCount(); i++) {
+				rowData.add(resultSet.getString(i + 1));
+			}
+		}
+		resultSet.close();
+		return rowData;
+	}
 }
