@@ -61,7 +61,8 @@ function updateDataSet(nameTable) {
 		let listDataUpdate = [];
 		for (let j = 0; j < listDataCell.length; j++) {
 			if (j == 0) {
-				listDataUpdate.push($(listDataCell[0]).find('input').is(':checked'));
+				let isChecked = $(listDataCell[0]).find('input').is(':checked') ? "true" : "false";
+				listDataUpdate.push(isChecked);
 			} else {
 				listDataUpdate.push(listDataCell[j].innerHTML);
 			}
@@ -119,7 +120,8 @@ function showTable(table) {
 				if (cellIndex == 0) {
 					let checkbox = document.createElement('input');
 					checkbox.type = 'checkbox';
-					checkbox.checked = tableTarget.listData[dataIndex][cellIndex];
+					let isCheck = tableTarget.listData[dataIndex][cellIndex] == "true";
+					checkbox.checked = isCheck;
 					tdBodyTag.appendChild(checkbox);
 				} else {
 					tdBodyTag.appendChild(document.createTextNode(tableTarget.listData[dataIndex][cellIndex]));
@@ -207,6 +209,25 @@ function flowChart(data) {
 	for (const [key, value] of Object.entries(data.mappingKey)) {
 		let arrValue = value[0].split(".");
 		let arrValue2 = value[1].split(".");
+		let findTable1 = listTableSQL.find(item => item.alias == arrValue[0]);
+		
+		let tableNameOperator1;
+		
+		let tableNameOperator2;
+		
+		if (findTable1) {
+			tableNameOperator1 = findTable1.tableName;
+		} else {
+			tableNameOperator1 = arrValue[0];
+		}
+		
+		let findTable2 = listTableSQL.find(item => item.alias == arrValue2[0]);
+		
+		if (findTable2) {
+			tableNameOperator2 = findTable2.tableName;
+		} else {
+			tableNameOperator2 = arrValue2[0];
+		}
 
 		let operatorFilter = operatorList.find(item => item.tableName == arrValue[0]);
 
@@ -245,7 +266,7 @@ function flowChart(data) {
 				top: sizeTop,
 				left: sizeLeft,
 				properties: {
-					title: arrValue[0],
+					title: tableNameOperator1,
 					inputs: {
 						input_1: {
 							label: arrValue[1],
@@ -302,7 +323,7 @@ function flowChart(data) {
 				top: sizeTop,
 				left: sizeLeft,
 				properties: {
-					title: arrValue2[0],
+					title: tableNameOperator2,
 					inputs: {
 						input_1: {
 							label: arrValue2[1],

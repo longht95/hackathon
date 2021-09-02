@@ -476,7 +476,7 @@
 				for (const data in listData) {
 					let listCell = listData[data];
 					let listColumnInfo = [];
-					if (listCell && listCell[0] && listCell[0] == true){
+					if (listCell && listCell[0] && listCell[0] == "true"){
 						for (const cell in listCell) {
 							if (cell != 0) {
 								const columnInfo = {

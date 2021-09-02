@@ -15,7 +15,7 @@ main {
 	height: 100vh;
 	display: flex;
 	flex-direction: column;
-	border-right: 2px solid #d1d1d1;
+	border-right: 1px solid #dedee4;
 }
 
 textarea {
