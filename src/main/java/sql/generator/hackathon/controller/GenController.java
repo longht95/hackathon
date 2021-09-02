@@ -5,9 +5,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.sql.SQLSyntaxErrorException;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,26 +20,21 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 
 import net.sf.jsqlparser.JSQLParserException;
 import sql.generator.hackathon.create.CreateData;
 import sql.generator.hackathon.model.ColumnInfo;
 import sql.generator.hackathon.model.CreateObject;
 import sql.generator.hackathon.model.FlowDataQuery;
-import sql.generator.hackathon.model.InfoDisplayScreen;
 import sql.generator.hackathon.model.ObjectGenate;
 import sql.generator.hackathon.model.ParseObject;
 import sql.generator.hackathon.model.TableSQL;
 import sql.generator.hackathon.model.ViewQuery;
-import sql.generator.hackathon.service.CommonCreateService;
 import sql.generator.hackathon.service.ExcelExporter;
 import sql.generator.hackathon.service.ExecuteDBSQLServer;
 import sql.generator.hackathon.service.ServiceDatabase;
@@ -50,7 +42,6 @@ import sql.generator.hackathon.service.ServiceParse;
 
 @Controller
 public class GenController {
-	// Save the upload file to this folder
 
 	@Autowired
 	ServiceDatabase serviceDatabase;
@@ -62,76 +53,10 @@ public class GenController {
 	private ServiceParse serviceParse;
 	
 	@Autowired
-	private CommonCreateService commonCreateService;
-	
-	@Autowired
 	private CreateData createData;
 	
 	@Autowired
 	private ExcelExporter excelExporter;
-	
-	public String url;
-	public String schema;
-	public String user;
-	public String pass;
-	public String tableSelected;
-
-	@RequestMapping(value = "/zxczxc")
-	public String index123() throws Exception {
-//		serviceDatabase.showTables();
-//		executeDBServer.connectDB(null, "test", "root", "");
-
-		List<String> lstTableName = Arrays.asList("users", "class");
-		Map<String, List<ColumnInfo>> inforTable = executeDBServer.getInforTable("admindb", lstTableName);
-		for (Map.Entry<String, List<ColumnInfo>> entry : inforTable.entrySet()) {
-			System.out.println("Key: " + entry.getKey());
-			List<ColumnInfo> lstColInfo = entry.getValue();
-			for (ColumnInfo columnInfo : lstColInfo) {
-				System.out.println("		name: " + columnInfo.getName());
-				System.out.println("		typeName: " + columnInfo.getTypeName());
-				System.out.println("		typeValue: " + columnInfo.getTypeValue());
-				System.out.println("		isNull: " + columnInfo.getIsNull());
-				System.out.println("		isPrimarykey: " + columnInfo.getIsPrimarykey());
-				System.out.println("		isForeignKey: " + columnInfo.getIsForeignKey());
-				System.out.println("		unique: " + columnInfo.getUnique());
-				System.out.println("----------------------------------");
-			}
-		}
-
-//		InfoDisplayScreen infoDisplayScreen = executeDBServer.getDataDisplay("admindb", "users");
-//		System.out.println("infoDisplayScreen: " + infoDisplayScreen);
-
-		ColumnInfo columnInfo4 = new ColumnInfo();
-		columnInfo4.setName("user_name");
-		columnInfo4.setTypeName("varchar");
-		System.out.println(executeDBServer.isUniqueValue("class", columnInfo4, "test3"));
-		ColumnInfo columnInfo = new ColumnInfo();
-		columnInfo.setName("user_name");
-		columnInfo.setTypeName("varchar");
-		Map<String, String> mapUnique = executeDBServer.genUniqueCol("admindb", "class", columnInfo, "test3");
-		ColumnInfo columnInfo1 = new ColumnInfo();
-		columnInfo1.setName("id");
-		columnInfo1.setTypeName("bigint");
-		Map<String, String> mapUnique1 = executeDBServer.genUniqueCol("admindb", "users", columnInfo1, "test3");
-		ColumnInfo columnInfo2 = new ColumnInfo();
-		columnInfo2.setName("email");
-		columnInfo2.setTypeName("varchar");
-		ColumnInfo columnInfo3 = new ColumnInfo();
-		columnInfo3.setName("age");
-		columnInfo3.setTypeName("int");
-		List<String> aaa = executeDBServer.genListUniqueVal("users", columnInfo3, null, "30");
-
-		executeDBServer.disconnectDB();
-
-		return "index";
-
-	}
-
-	@RequestMapping(value = "/input")
-	public String input() throws Exception {
-		serviceDatabase.showTables();
-		return "input";
-	}
 
 	@GetMapping(value = "/")
 	public String index() {
