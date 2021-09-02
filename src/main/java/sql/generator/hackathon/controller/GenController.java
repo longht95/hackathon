@@ -150,44 +150,25 @@ public class GenController {
 	}
 
 	@GetMapping(value = "/updateQuery")
-	public @ResponseBody String updateQuery(@RequestParam String query) throws JsonProcessingException {
+	public @ResponseBody String updateQuery(@RequestParam String query, @RequestParam String url, @RequestParam String schema,
+			@RequestParam String user, @RequestParam String pass, @RequestParam String typeConnection) throws Exception {
 		FlowDataQuery response = new FlowDataQuery();
 		try {
-			response.listInfo = serviceParse.getColumnInfoView(query);
+			if ("No database".equals(typeConnection)) {
+				response.listInfo = serviceParse.getColumnInfoView(query);
+			} else {
+				executeDBServer.connectDB(typeConnection, url, schema, user, pass);
+				List<String> listTable = serviceParse.getListTableByStatement(query);
+				response.listInfo = executeDBServer.getDataDisplay(schema, listTable);
+			}
 			response.flows = serviceParse.parseSelectStatement(query);
 		} catch (JSQLParserException e) {
 			response.message = "Query is unvalid";
+		} finally {
+			executeDBServer.disconnectDB();
 		}
 		ObjectMapper mapper = new ObjectMapper();
 		return mapper.writeValueAsString(response);
-	}
-
-	@GetMapping(value = "/selectTable")
-	public @ResponseBody String selectTable(@RequestParam String tableName, @RequestParam String url,
-			@RequestParam String schema, @RequestParam String user, @RequestParam String pass,
-			@RequestParam String tableSelected, @RequestParam String query) throws Exception {
-		ObjectMapper mapper = new ObjectMapper();
-		mapper.enable(SerializationFeature.INDENT_OUTPUT);
-		if (tableSelected.equals("No database")) {
-			return mapper.writeValueAsString(serviceParse.getColumnInfoView(query));
-		} else {
-			boolean isConnect = executeDBServer.connectDB(tableSelected, url, schema, user, pass);
-			
-			if (isConnect) {
-				try {
-					InfoDisplayScreen infoDisplayScreen = executeDBServer.getDataDisplay(schema, tableName);
-					return mapper.writeValueAsString(infoDisplayScreen);
-				}
-				catch (SQLSyntaxErrorException e) {
-					return mapper.writeValueAsString("Table not exit");
-				} finally {
-					System.out.println("DISSSSSSSSSSS");
-					executeDBServer.disconnectDB();
-				}
-			}
-			return mapper.writeValueAsString("Connect error");
-		}
-
 	}
 
 	@GetMapping(value = "/testConnection")

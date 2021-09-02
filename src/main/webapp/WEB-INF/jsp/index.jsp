@@ -348,13 +348,23 @@
 		$('#updateQuery').on("click", function(){
 			$('.list-table-item').empty();
 			const queryInput = editor.getValue();
+			let url = $('#url').val();
+			let schema = $('#schema').val();
+			let user = $('#user').val();
+			let pass = $('#pass').val();
+			let tableSelected = $('#select-database :selected').val();
 			$('table.table').find('thead').empty();
 			$('table.table').find('tbody').empty();
 			$.ajax({
 			       url : '/updateQuery',
 			       type : 'GET',
 			       data : {
-						"query" : queryInput
+						"query" : queryInput,
+						"url" : url,
+						"schema" : schema,
+						"user" : user,
+						"pass" :pass,
+						"typeConnection" : tableSelected,
 					},
 					contentType : "application/json",
 					dataType : 'json',
