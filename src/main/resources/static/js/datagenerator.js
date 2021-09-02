@@ -32,28 +32,53 @@ $(document).ready(function() {
 	$flowchart = $('#flowchartworkspace');
 	$container = $flowchart.parent();
 
+	$flowchart.panzoom();
+
+	var cx = $flowchart.width() / 2;
+	var cy = $flowchart.height() / 2;
+	$flowchart.panzoom('pan', -cx + $container.width() / 2, -cy + $container.height() / 2);
+	var possibleZooms = [0.5, 0.75, 1, 2, 3];
+	var currentZoom = 2;
+	$container.on('mousewheel.focal', function(e) {
+		e.preventDefault();
+		var delta = (e.delta || e.originalEvent.wheelDelta) || e.originalEvent.detail;
+		var zoomOut = delta ? delta < 0 : e.originalEvent.deltaY > 0;
+		currentZoom = Math.max(0, Math.min(possibleZooms.length - 1, (currentZoom + (zoomOut * 2 - 1))));
+		$flowchart.flowchart('setPositionRatio', possibleZooms[currentZoom]);
+		$flowchart.panzoom('zoom', possibleZooms[currentZoom], {
+			animate: false,
+			focal: e
+		});
+	});
 	$flowchart.flowchart({
 		defaultSelectedLinkColor: '#000055',
 		grid: 10,
 		multipleLinksOnInput: true,
-		multipleLinksOnOutput: true
+		multipleLinksOnOutput: true,
 	});
+
+
 
 	$flowchart.flowchart({
 		onOperatorCreate: function(operationId, operatorData) {
+			console.log('onCreate', operationId);
 			const operatorAdd = {
 				operationId: operationId,
 				tableName: operatorData.properties.title,
 				listInput: [operatorData.properties.inputs.input_1.label],
 				listOutput: [operatorData.properties.outputs.output_1.label],
 			}
-			operatorList.push(operatorAdd);
+			let isExist = operatorList.find(item => item.operationId == operationId);
+			if (!isExist) {
+				operatorList.push(operatorAdd);
+			}
 			return true;
 		}
 	});
 });
 function updateDataSet(nameTable) {
 	let tableTarget = inforTable.find(item => item.tableName == nameTable);
+	if (!tableTarget) return;
 	let listDataTable = $('#tableDataSet table.table').find('tbody tr');
 	let listDataInforUpdate = [];
 	for (let i = 0; i < listDataTable.length; i++) {
@@ -184,10 +209,10 @@ function switchNavigation(id) {
 	$('#' + stateNav).show();
 	$('.icon-nav').removeClass('active');
 	$('#' + id + '-nav').addClass('active');
-	
+
 	$('.content-right-layout').hide();
-	$('#'+id+'-content').show();
-	console.log('idddd',id);
+	$('#' + id + '-content').show();
+	console.log('idddd', id);
 
 }
 function openModalDownload() {
@@ -203,26 +228,37 @@ function closeModal() {
 var operationId = 1;
 var sizeTop = 20;
 var sizeLeft = 20;
+var stateOperation = 1;
+
 function flowChart(data) {
 	let listTableSQL = data.listTableSQL;
 
+	sizeTop = 20;
+	sizeLeft = 20;
+
+	for (const operator of operatorList) {
+		//console.log('of', operator);
+		$flowchart.flowchart('deleteOperator', operator.operationId);
+	}
+	operatorList.length = 0;
+	stateOperation = 1;
 	for (const [key, value] of Object.entries(data.mappingKey)) {
 		let arrValue = value[0].split(".");
 		let arrValue2 = value[1].split(".");
 		let findTable1 = listTableSQL.find(item => item.alias == arrValue[0]);
-		
+
 		let tableNameOperator1;
-		
+
 		let tableNameOperator2;
-		
+
 		if (findTable1) {
 			tableNameOperator1 = findTable1.tableName;
 		} else {
 			tableNameOperator1 = arrValue[0];
 		}
-		
+
 		let findTable2 = listTableSQL.find(item => item.alias == arrValue2[0]);
-		
+
 		if (findTable2) {
 			tableNameOperator2 = findTable2.tableName;
 		} else {
@@ -230,6 +266,18 @@ function flowChart(data) {
 		}
 
 		let operatorFilter = operatorList.find(item => item.tableName == arrValue[0]);
+
+		let operatorFilter2 = operatorList.find(item => item.tableName == arrValue2[0]);
+
+		let isNoRelation = !operatorFilter && !operatorFilter2 && operatorList.length > 0;
+
+		if (isNoRelation) {
+			sizeTop = 150 * stateOperation;
+			sizeLeft = 20;
+			stateOperation++;
+		}
+
+		console.log('isNoRelation', isNoRelation);
 
 		let outputTo;
 
@@ -248,8 +296,8 @@ function flowChart(data) {
 			console.log('is check1', filterData);
 			if (filterData) {
 				let outputSplit = filterData.split("_");
-				outputTo = "output_"+outputSplit[1];
-				
+				outputTo = "output_" + outputSplit[1];
+
 			} else {
 				let idNext = Object.entries(dataOperator.properties.inputs).length + 1;
 				outputTo = 'output_' + idNext;
@@ -279,13 +327,13 @@ function flowChart(data) {
 					}
 				}
 			};
-			sizeTop+=30;
-			sizeLeft+=220;
+			sizeTop += 30;
+			sizeLeft += 220;
 			$flowchart.flowchart('createOperator', operatorId, operatorData);
 			operationId++;
 		}
 
-		let operatorFilter2 = operatorList.find(item => item.tableName == arrValue2[0]);
+
 
 		let inputTo;
 
@@ -336,8 +384,8 @@ function flowChart(data) {
 					}
 				}
 			};
-			sizeTop+=30;
-			sizeLeft+=220;
+			sizeTop += 30;
+			sizeLeft += 220;
 			$flowchart.flowchart('createOperator', operatorId, operatorData);
 			operationId++;
 		}
