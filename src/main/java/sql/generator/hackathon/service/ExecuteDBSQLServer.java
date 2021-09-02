@@ -139,6 +139,7 @@ public class ExecuteDBSQLServer {
 		List<InfoDisplayScreen> infoDisplayScreenLst = new ArrayList<InfoDisplayScreen>();
 		InfoDisplayScreen infoDisplayScreen = new InfoDisplayScreen();
 		for (String tableName : tableNameLst) {
+			infoDisplayScreen.setTableName(tableName);
 			infoDisplayScreen.setListColumnName(this.getListColumn(schemaName, tableName));
 			infoDisplayScreen.setListData(this.getListData(tableName));
 			infoDisplayScreenLst.add(infoDisplayScreen);
