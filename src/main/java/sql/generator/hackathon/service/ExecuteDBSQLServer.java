@@ -139,8 +139,9 @@ public class ExecuteDBSQLServer {
 	// get object (column, data) to show screen
 	public List<InfoDisplayScreen> getDataDisplay(String schemaName, List<String> tableNameLst) throws Exception {
 		List<InfoDisplayScreen> infoDisplayScreenLst = new ArrayList<InfoDisplayScreen>();
-		InfoDisplayScreen infoDisplayScreen = new InfoDisplayScreen();
+		InfoDisplayScreen infoDisplayScreen;
 		for (String tableName : tableNameLst) {
+			infoDisplayScreen = new InfoDisplayScreen();
 			infoDisplayScreen.setTableName(tableName);
 			infoDisplayScreen.setListColumnName(this.getListColumn(schemaName, tableName));
 			infoDisplayScreen.setListData(this.getListData(tableName));
@@ -180,6 +181,9 @@ public class ExecuteDBSQLServer {
 		while (resultSet.next()) {
 			rowData = new ArrayList<String>();
 			for (int i = 0; i< resultSet.getMetaData().getColumnCount(); i++) {
+				if(i == 0) {
+					rowData.add("false");
+				}
 				rowData.add(resultSet.getString(i + 1));
 			}
 			listData.add(rowData);
