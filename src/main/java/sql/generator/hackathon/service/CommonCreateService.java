@@ -330,7 +330,27 @@ public class CommonCreateService {
 				ColumnInfo colInfo = new ColumnInfo(tableColName[1], "", "varchar", "255");
 				listColInfo.add(colInfo);
 			}
-			res.put(table.getTableName(), listColInfo);
+			if (res.containsKey(table.getTableName())) {
+				List<ColumnInfo> columnsCanAdd = new ArrayList<>();
+				List<ColumnInfo> currentColumns = res.get(table.getTableName());
+				for (ColumnInfo c : listColInfo) {
+					boolean flg = true;
+					for (ColumnInfo current : currentColumns) {
+						if (current.getName().equals(c.getName())) {
+							flg = false;
+							break;
+						}
+					}
+					if (flg) {
+						columnsCanAdd.add(c);
+					}
+				}
+				for (ColumnInfo c : columnsCanAdd) {
+					currentColumns.add(c);
+				}
+			} else {
+				res.put(table.getTableName(), listColInfo);
+			}
 		}
 		return res;
 	}

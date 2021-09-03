@@ -842,6 +842,7 @@ public class CreateData {
 		Map<String, List<Cond>> columnMap = new HashMap<>();
 		for (Map.Entry<String, Set<String>> e : columnMapping.entrySet()) {
 			Set<String[]> mappings = new HashSet<>();
+			Map<String, String> parentMap = new HashMap<>();
 			String curKey = e.getKey();
 			String prevCol = curKey;
 			Set<String> visited = new HashSet<>();
@@ -849,18 +850,19 @@ public class CreateData {
 				Queue<String> toExploder = new LinkedList<>();
 				toExploder.add(val);
 				visited.add(curKey);
+				parentMap.put(val, prevCol);
 				
 				while (!toExploder.isEmpty()) {
 					String cur = toExploder.remove();
 					if (visited.contains(cur)) {
 						continue;
 					}
-					visited.add(val);
-					mappings.add(new String[] {cur, prevCol});
+					visited.add(cur);	
+					mappings.add(new String[] {cur, parentMap.get(cur)});
 					if (columnMapping.containsKey(cur)) {
 						for (String t : columnMapping.get(cur)) {
 							if (!t.equals(curKey)) {
-								prevCol = cur;
+								parentMap.put(t, cur);
 								toExploder.add(t);
 							}
 						}
@@ -875,6 +877,9 @@ public class CreateData {
 
 			for (String[] c : mappings) {
 				String[] operators = infoCol.get(c[0] + "-" + c[1]);
+				if (operators == null) {
+					continue;
+				}
 				if (saveCalcObj.containsKey(c[0])) {
 					saveCalcObj.get(c[0]).getListOperator().add(operators[0]);
 				} else {
