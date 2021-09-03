@@ -661,7 +661,7 @@ public class ServiceParse {
 				processFunction(expression, currentAlias);
 			} else if (binary.getRightExpression() instanceof AllComparisonExpression
 					|| binary.getRightExpression() instanceof AnyComparisonExpression) {
-				processComparisonExpression(binary.getRightExpression(), currentAlias);
+				processComparisonExpression(binary, currentAlias);
 			} else {
 				Column leftColumn = (Column) binary.getLeftExpression();
 				if (leftColumn.getTable() == null) {
