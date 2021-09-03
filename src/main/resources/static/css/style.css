@@ -128,7 +128,8 @@ tbody tr:nth-of-type(odd) {
     flex-direction: column;
 }
 .box-input-sql {
-	height: 100%;
+	height: calc(100vh - 110px);
+	
 }
 .icon-nav {
 	width:100%;

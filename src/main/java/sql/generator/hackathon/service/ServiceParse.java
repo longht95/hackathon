@@ -116,7 +116,6 @@ public class ServiceParse {
 		processSelectBody(selectBody, null);
 		processColumnWithAlias();
 		List<InfoDisplayScreen> listInfo = new ArrayList<>();
-		
 		tables.entrySet().forEach(x -> {
 			InfoDisplayScreen infoDisplayScreen = new InfoDisplayScreen();
 			infoDisplayScreen.tableName = tables.get(x.getKey()).getTableName();
@@ -222,7 +221,6 @@ public class ServiceParse {
 			}
 			tableNameORAlias = plainSelect.getFromItem().getAlias().getName();
 		}
-
 		processFrom(plainSelect.getFromItem(), alias);
 		List<Join> joins = plainSelect.getJoins();
 		if (joins != null && !joins.isEmpty()) {
@@ -515,7 +513,6 @@ public class ServiceParse {
 		if (tbl == null) {
 			tbl = TableSQL.builder().tableName(table.getName()).alias(alias).condition(new ArrayList<>()).build();
 		}
-		System.out.println("PROCESS TABLE : " + tbl.toString());
 		tables.put(tbl.getAlias(), tbl);
 	}
 
@@ -663,14 +660,16 @@ public class ServiceParse {
 					|| binary.getRightExpression() instanceof AnyComparisonExpression) {
 				processComparisonExpression(binary, currentAlias);
 			} else {
-				Column leftColumn = (Column) binary.getLeftExpression();
-				if (leftColumn.getTable() == null) {
-					leftColumn.setTable(new Table(currentAlias));
+				if (binary.getLeftExpression() instanceof Column) {
+					Column leftColumn = (Column) binary.getLeftExpression();
+					if (leftColumn.getTable() == null) {
+						leftColumn.setTable(new Table(currentAlias));
+					}
+					Condition condition = Condition.builder().left(leftColumn.toString()).expression(
+							isNot ? reverseExpression.get(binary.getStringExpression()) : binary.getStringExpression())
+							.right(binary.getRightExpression().toString()).build();
+					listCondition.add(condition);
 				}
-				Condition condition = Condition.builder().left(leftColumn.toString()).expression(
-						isNot ? reverseExpression.get(binary.getStringExpression()) : binary.getStringExpression())
-						.right(binary.getRightExpression().toString()).build();
-				listCondition.add(condition);
 			}
 		} else if (expression instanceof AndExpression) {
 			AndExpression andExpression = (AndExpression) expression;
