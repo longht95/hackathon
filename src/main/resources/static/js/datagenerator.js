@@ -111,6 +111,8 @@ function updateDataSet(nameTable) {
 	console.log('listColumnUpdate', listColumnUpdate);
 }
 function showTable(table) {
+	$('.list-table-item > ul > li').removeClass('active-li');
+	$(table).addClass('active-li');
 	let nameTable = table.innerHTML;
 	if (tableDataSet && tableDataSet == nameTable) {
 		return;

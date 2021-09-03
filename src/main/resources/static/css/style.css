@@ -250,3 +250,6 @@ tbody tr:nth-of-type(odd) {
 .flowchart-operator-outputs .flowchart-operator-connector-label {
 	color: #FFF;
 }
+.active-li {
+	font-weight: 600;
+}
