@@ -189,7 +189,7 @@ public class ServiceParse {
 
 						String aliasOrTableName = Optional.ofNullable(column.getTable()).orElse(new Table(alias)).getName();
 
-						Set<String> listColumn = listColumnAlias.getOrDefault(aliasOrTableName, new HashSet<String>());
+						Set<String> listColumn = listColumnAlias.getOrDefault(aliasOrTableName, new HashSet<>());
 
 						listColumn.add(column.getColumnName());
 
@@ -240,8 +240,24 @@ public class ServiceParse {
 
 	}
 
+	private void processUsingJoin(Column column, Join join, FromItem fromItem) {
+		String aliasLeft = fromItem.getAlias() != null ? fromItem.getAlias().getName() : fromItem.toString();
+		String aliasRight = join.getRightItem().getAlias() != null ? join.getRightItem().getAlias().getName() : join.getRightItem().toString();
+		Set<String> listLeft = listColumnAlias.get(aliasLeft);
+		if (listLeft == null) {
+			listLeft = new HashSet<>();
+		}
+		listLeft.add(column.getColumnName());
+		listColumnAlias.put(aliasLeft, listLeft);
+		Set<String> listRight = listColumnAlias.get(aliasRight);
+		if (listRight == null) {
+			listRight = new HashSet<>();
+		}
+		listRight.add(column.getColumnName());
+		listColumnAlias.put(aliasRight, listRight);
+	}
+	
 	private void processJoinColumn(Join join, FromItem fromItem, List<SelectItem> selectItems) throws JSQLParserException {
-
 		if (join.getRightItem() instanceof SubSelect) {
 			SubSelect subSelect = (SubSelect) join.getRightItem();
 			processExpression(join.getOnExpression(), fromItem);
@@ -250,6 +266,10 @@ public class ServiceParse {
 		} else {
 			processExpression(join.getOnExpression(), fromItem);
 			processTable(join.getRightItem());
+			if (join.getUsingColumns() != null && !join.getUsingColumns().isEmpty()) {
+				processUsingJoin(join.getUsingColumns().get(0), join, fromItem);
+			}
+			
 			String tableNameORAlias = join.getRightItem().getAlias() != null ? join.getRightItem().getAlias().getName() : join.getRightItem().toString();
 			if (selectItems != null && !selectItems.isEmpty()) {
 				listColumnAlias.put(tableNameORAlias.replace(" ", ""),selectItems.stream().map(x -> x.toString()).collect(Collectors.toSet()));
@@ -257,11 +277,21 @@ public class ServiceParse {
 		}
 	}
 	
-	private void processExpression(Expression expression, FromItem fromItem) {
+	private void processExpression(Expression expression, FromItem fromItem) throws JSQLParserException {
 		if (expression != null) {
+			if (expression instanceof NotExpression) {
+				NotExpression not = (NotExpression) expression;
+				processExpression(not.getExpression(), null);
+			}
+			if (expression instanceof ExistsExpression) {
+				ExistsExpression ex = (ExistsExpression) expression;
+				SubSelect sub = (SubSelect) ex.getRightExpression();
+				processSelectBody(sub.getSelectBody(), null);
+			}
 			expression.accept(new ExpressionVisitorAdapter() {
 				@Override
 				protected void visitBinaryExpression(BinaryExpression expr) {
+					
 					if (expr.getLeftExpression() instanceof Column) {
 
 						Column column = (Column) expr.getLeftExpression();
@@ -485,6 +515,7 @@ public class ServiceParse {
 		if (tbl == null) {
 			tbl = TableSQL.builder().tableName(table.getName()).alias(alias).condition(new ArrayList<>()).build();
 		}
+		System.out.println("PROCESS TABLE : " + tbl.toString());
 		tables.put(tbl.getAlias(), tbl);
 	}
 
