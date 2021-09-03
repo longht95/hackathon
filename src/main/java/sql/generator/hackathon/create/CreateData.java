@@ -2193,12 +2193,12 @@ public class CreateData {
 					if (val != null && !val.isEmpty()) {
 						String dataType = "";
 						String typeValue = "";
-						if (isNumber(val)) {
+						if (isNumber(removeSpecifyCharacter("'", val))) {
 							dataType = "number";
 							typeValue = "6";
 							colInfo.setTypeName(dataType);
 							colInfo.setTypeValue(typeValue);
-						} else if (isDate(val)) {
+						} else if (isDate(removeSpecifyCharacter("'", val))) {
 							// Date
 							dataType = "date";
 							colInfo.setTypeName(dataType);
