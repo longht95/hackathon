@@ -7,6 +7,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -474,8 +475,12 @@ public class ExecuteDBSQLServer {
 			ObjForeignKeyInfo objForeignKeyInfo = getTableReferFK(schema, tableName, columnInfo);
 			inforTableReferFK.setTableReferFKName(objForeignKeyInfo.getReferencedTableName());
 			
+			// convert tableName -> List to do param for getInforTable()
+			List<String> tableNameLst = Arrays.asList(objForeignKeyInfo.getReferencedTableName());
+			
 			// get column of table refer
-			List<String> colTableReferList = getListColumn(schema, objForeignKeyInfo.getReferencedTableName());
+			Map<String, List<ColumnInfo>> infoTableRefer = getInforTable(schema, tableNameLst);
+			List<ColumnInfo> colTableReferList = infoTableRefer.get(objForeignKeyInfo.getReferencedTableName());
 			List<String> rowData = getValueTableReferFK(objForeignKeyInfo.getReferencedTableName());
 			List<ColumnInfo> columnInfoLst = new ArrayList<ColumnInfo>();
 			ColumnInfo columnInfoReturn;
@@ -483,13 +488,13 @@ public class ExecuteDBSQLServer {
 				// add value FK for column refer
 				if(colTableReferList.get(i).equals(objForeignKeyInfo.getReferencedColumnName())) {
 					columnInfoReturn = new ColumnInfo();
-					columnInfoReturn.setName(colTableReferList.get(i));
+					columnInfoReturn.setName(colTableReferList.get(i).getName());
 					columnInfoReturn.setVal(columnInfo.getVal());
 					columnInfoLst.add(columnInfoReturn);
 				}else {
 					// add value for other column (diff FK)
 					columnInfoReturn = new ColumnInfo();
-					columnInfoReturn.setName(colTableReferList.get(i));
+					columnInfoReturn.setName(colTableReferList.get(i).getName());
 					columnInfoReturn.setVal(rowData.get(i));
 					columnInfoLst.add(columnInfoReturn);
 				}
