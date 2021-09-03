@@ -483,21 +483,16 @@ public class ExecuteDBSQLServer {
 			List<ColumnInfo> colTableReferList = infoTableRefer.get(objForeignKeyInfo.getReferencedTableName());
 			List<String> rowData = getValueTableReferFK(objForeignKeyInfo.getReferencedTableName());
 			List<ColumnInfo> columnInfoLst = new ArrayList<ColumnInfo>();
-			ColumnInfo columnInfoReturn;
 			for (int i = 0; i < colTableReferList.size(); i++) {
-				// add value FK for column refer
-				if(colTableReferList.get(i).equals(objForeignKeyInfo.getReferencedColumnName())) {
-					columnInfoReturn = new ColumnInfo();
-					columnInfoReturn.setName(colTableReferList.get(i).getName());
-					columnInfoReturn.setVal(columnInfo.getVal());
-					columnInfoLst.add(columnInfoReturn);
+				if(colTableReferList.get(i).getName().equals(objForeignKeyInfo.getReferencedColumnName())) {
+					// add value FK for column refer
+					colTableReferList.get(i).color = columnInfo.color;
+					colTableReferList.get(i).setVal(columnInfo.getVal());
 				}else {
 					// add value for other column (diff FK)
-					columnInfoReturn = new ColumnInfo();
-					columnInfoReturn.setName(colTableReferList.get(i).getName());
-					columnInfoReturn.setVal(rowData.get(i));
-					columnInfoLst.add(columnInfoReturn);
+					colTableReferList.get(i).setVal(rowData.get(i));
 				}
+				columnInfoLst.add(colTableReferList.get(i));
 			}
 			inforTableReferFK.setColumnInfoLst(columnInfoLst);
 			return inforTableReferFK;
