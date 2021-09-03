@@ -10,7 +10,7 @@ import com.github.javafaker.service.RandomService;
 
 @Service
 public class ServerFaker {
-	public String getDataByColumn(String column) {
+	public String getDataByColumn(String column, String dataType) {
 		FakeValuesService fakeValuesService = new FakeValuesService(
 			      new Locale("en-us"), new RandomService());
 		Faker faker = new Faker(new Locale("en-us"));
