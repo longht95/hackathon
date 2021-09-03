@@ -1739,7 +1739,8 @@ public class CreateData {
 			// Add default value
 			for (ColumnInfo colInfo : l) {
 				if (colInfo.getVal().isEmpty()) {
-					colInfo.val = fakerService.getDataByColumn(colInfo.getName());
+					String dataType = colInfo.getTypeName().equals("date") ? "date" : ""; 
+					colInfo.val = fakerService.getDataByColumn(colInfo.getName(), dataType);	
 				}
 			}
 			
