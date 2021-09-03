@@ -1,5 +1,6 @@
 package sql.generator.hackathon.service;
 
+import java.util.Calendar;
 import java.util.Locale;
 
 import org.springframework.stereotype.Service;
@@ -14,6 +15,19 @@ public class ServerFaker {
 		FakeValuesService fakeValuesService = new FakeValuesService(
 			      new Locale("en-us"), new RandomService());
 		Faker faker = new Faker(new Locale("en-us"));
+		if (!dataType.isEmpty()) {
+			Calendar end = Calendar.getInstance();
+			end.add(Calendar.YEAR, 1);
+			return faker.date().between(Calendar.getInstance().getTime(), end.getTime()).toString();
+		}
+		if (column.toLowerCase().contains("birthday")) {
+			return faker.date().birthday().toString();
+		}
+		if (column.toLowerCase().contains("date")) {
+			Calendar end = Calendar.getInstance();
+			end.add(Calendar.YEAR, 1);
+			return faker.date().between(Calendar.getInstance().getTime(), end.getTime()).toString();
+		}
 		if (column.toLowerCase().contains("address")) {
 			return faker.address().cityName() + faker.address().country();
 		}

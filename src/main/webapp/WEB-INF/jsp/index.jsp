@@ -134,6 +134,7 @@
 		
 		$('#updateQuery').on("click", function(){
 			$('.list-table-item').empty();
+			tableDataSet = undefined;
 			const queryInput = editor.getValue();
 			let url = $('#url').val();
 			let schema = $('#schema').val();
@@ -170,7 +171,7 @@
 				        	   let ulNode = document.createElement('ul');
 				        	   ulNode.setAttribute('class', 'node-child')
 				        	   let listColumn = data[i].listColumnName
-				        	   for(let j = 0 ; j < listColumn.length ; j++) {
+				        	   for(const j in listColumn) {
 				        		   let node = document.createElement('li');
 				        		   node.innerHTML = listColumn[j];
 				        		   ulNode.appendChild(node);
