@@ -512,7 +512,7 @@ public class ExecuteDBSQLServer {
 				"    INFORMATION_SCHEMA.KEY_COLUMN_USAGE\r\n" + 
 				"WHERE\r\n" + 
 				"	 REFERENCED_TABLE_SCHEMA = ?\r\n" + 
-				"    AND TABLE_NAME = ?\\r\\n" +
+				"    AND TABLE_NAME = ?\r\n" +
 				"    AND COLUMN_NAME = ?");
 		p.setString(1, schema);
 		p.setString(2, tableName);
