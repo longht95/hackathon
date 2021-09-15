@@ -29,6 +29,8 @@ public class ExecInAndNotInService {
 	}
 	
 	
+	
+	
 	/**
 	 * Execute get values expect values not in
 	 * @param valuesIn
@@ -44,6 +46,13 @@ public class ExecInAndNotInService {
 			valuesNotIn = Collections.<String>emptyList();
 		}
 		return processCalcLastValue2(currentValues, valuesNotIn);
+	}
+	
+	public List<String> processNotIn(List<String> currentValues, String valueNotIn) {
+		if (currentValues == null) {
+			return new ArrayList<String>();
+		}
+		return currentValues.stream().filter(x -> !x.contains(valueNotIn)).collect(Collectors.toList());
 	}
 	
 	/**

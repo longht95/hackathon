@@ -8,8 +8,10 @@ import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 
+import sql.generator.hackathon.model.ColumnInfo;
 import sql.generator.hackathon.model.createdata.ColumnCondition;
 import sql.generator.hackathon.model.createdata.constant.Constant;
+import sql.generator.hackathon.service.createdata.CommonService;
 
 public class ExecOperatorsService {
 
@@ -24,10 +26,15 @@ public class ExecOperatorsService {
 	 * @param conditions (Key -> tablesName-aliasName-colName)
 	 * @return
 	 */
-	public Map<String, List<String>> calcLastValue(Map<String, List<ColumnCondition>> mapCondition) {
+	public Map<String, List<String>> calcLastValue(Map<String, List<ColumnCondition>> mapCondition,
+			Map<String, ColumnInfo> informTable) {
+		HashMap<String, List<String>> res = new HashMap<>();
 		mapCondition.entrySet().forEach(x -> {
 			String tableColName = x.getKey();
 			List<ColumnCondition> conditions = x.getValue();
+			String dataType = CommonService.getCommonDataType(informTable.get(tableColName).getTypeName());
+			int length = CommonService.convertLength(informTable.get(tableColName).getTypeValue());
+			res.put(tableColName, processCalcValue(conditions, dataType, length));
 		});
 		return new HashMap<>();
 	}
@@ -48,7 +55,15 @@ public class ExecOperatorsService {
 	}
 	
 	
-	private List<String> processCalcValue(List<ColumnCondition> conditions) {
+	/**
+	 * Calculator last value from list condition for 1 column
+	 * @param conditions
+	 * @param dataType
+	 * @param length
+	 * @return
+	 */
+	private List<String> processCalcValue(List<ColumnCondition> conditions, String dataType
+			, int length) {
 		List<String> lastValue = new ArrayList<>();
 		
 		boolean flgEquals = false;
@@ -70,17 +85,31 @@ public class ExecOperatorsService {
 				}
 				break;
 			case Constant.EXPRESSION_GREATER_EQUALS: // Just use dataType number, date
+				if (checkOtherChar(dataType)) {
+					
+				}
 				break;
 			case Constant.EXPRESSION_LESS_EQUALS: // Just use dataType number, date
+				if (checkOtherChar(dataType)) {
+					
+				}
 				break;
 			case Constant.EXPRESSION_GREATER: // Just use dataType number, date
+				if (checkOtherChar(dataType)) {
+					
+				}
 				break;
 			case Constant.EXPRESSION_LESS: // Just use dataType number, date
+				if (checkOtherChar(dataType)) {
+					
+				}
 				break;
 			case Constant.EXPRESSION_NOT_IN:
+				lastValue = execInAndNotInService.processNotIn(lastValue, values);
 				break;
 			case Constant.EXPRESSION_DIFF_1:
 			case Constant.EXPRESSION_DIFF_2:
+				lastValue = execInAndNotInService.processNotIn(lastValue, values.get(0));
 				break;
 			default:
 				// Other expression?
@@ -95,5 +124,14 @@ public class ExecOperatorsService {
 		}
 		
 		return lastValue;
+	}
+	
+	/**
+	 * Confirm execute with dataType is number or date
+	 * @param dataType
+	 * @return
+	 */
+	private boolean checkOtherChar(String dataType) {
+		return dataType.equals("number") || dataType.equals("date");
 	}
 }

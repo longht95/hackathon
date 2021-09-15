@@ -18,8 +18,6 @@ public class Constant {
 		priorityOperators.put("<>", 10);
 	}
 	
-	public static final char DEFAULT_CHAR = 'A';
-	
 	public static final String EXPRESSION_EQUALS = "=";
 	public static final String EXPRESSION_IN = "IN";
 	public static final String EXPRESSION_LIKE = "LIKE";
@@ -30,4 +28,8 @@ public class Constant {
 	public static final String EXPRESSION_NOT_IN = "NOT IN";
 	public static final String EXPRESSION_DIFF_1 = "!=";
 	public static final String EXPRESSION_DIFF_2 = "<>";
+
+	public static final char DEFAULT_CHAR = 'A';
+	
+	public static final int DEFAULT_LENGTH = 9;
 }
