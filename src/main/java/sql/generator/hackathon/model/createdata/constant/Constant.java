@@ -18,7 +18,7 @@ public class Constant {
 		priorityOperators.put("<>", 10);
 	}
 	
-	public static final String DEFAULT_CHAR_IN_LIKE = "A";
+	public static final char DEFAULT_CHAR = 'A';
 	
 	public static final String EXPRESSION_EQUALS = "=";
 	public static final String EXPRESSION_IN = "IN";

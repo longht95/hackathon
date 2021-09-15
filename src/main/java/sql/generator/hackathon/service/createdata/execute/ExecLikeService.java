@@ -3,7 +3,6 @@ package sql.generator.hackathon.service.createdata.execute;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import sql.generator.hackathon.model.createdata.constant.Constant;
 
@@ -22,12 +21,48 @@ public class ExecLikeService {
 			System.out.println("Error operators in LIKE condition");
 			return new ArrayList<>();
 		}
-		
-		String[] arr = value.split("");
-		return new ArrayList<>();
+		List<String> res = new ArrayList<>();
+		char[] chrArr = value.toCharArray();
+		StringBuilder sb = new StringBuilder();
+		for (char chr : chrArr) {
+			
+			switch (chr) {
+			case '%':
+				// TODO
+				break;
+			case '_':
+				res = processCreateValueForUnderLine(res, sb.toString());
+				break;
+			default:
+				sb.append(chr);
+				break;
+			}
+		}
+		return res;
 	}
 	
-	private void processCreateValueForUnderLine(List<String> currentValue) {
-		
+	/**
+	 * 
+	 * @param currentValue
+	 * @param c
+	 */
+	private List<String> processCreateValueForUnderLine(List<String> currentValue, String prevValue) {
+		List<String> res = new ArrayList<>();
+		if (currentValue.isEmpty()) {
+			res.addAll(processCreate26Char(prevValue));
+			return res;
+		}
+		currentValue.stream().forEach(x -> {
+			res.addAll(processCreate26Char(x));
+		});
+		return res;
+	}
+	
+	private List<String> processCreate26Char(String value) {
+		List<String> res = new ArrayList<>();
+		for (int i = 0; i < 26; ++i) {
+			res.add(value + String.valueOf((char) (Constant.DEFAULT_CHAR + i)));
+		}
+		return res;
 	}
 }

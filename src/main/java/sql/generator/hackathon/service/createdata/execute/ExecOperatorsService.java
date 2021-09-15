@@ -15,6 +15,9 @@ public class ExecOperatorsService {
 	@Autowired
 	private ExecInAndNotInService execInAndNotInService;
 	
+	@Autowired
+	private ExecLikeService execLikeService;
+	
 	/**
 	 * Get last values from list conditions for each column
 	 * @param conditions (Key -> tablesName-aliasName-colName)
@@ -42,9 +45,12 @@ public class ExecOperatorsService {
 				break;
 			case Constant.EXPRESSION_IN:
 				flgIn = true;
-				execInAndNotInService.processExpressionIn(lastValue, values);
+				lastValue.addAll(execInAndNotInService.processExpressionIn(lastValue, values));
 				break;
 			case Constant.EXPRESSION_LIKE:
+				if (!flgIn) {
+					lastValue.addAll(execLikeService.processLike(values.get(0)));
+				}
 				break;
 			case Constant.EXPRESSION_GREATER_EQUALS: // Just use dataType number, date
 				break;
