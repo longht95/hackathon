@@ -1,6 +1,7 @@
 package sql.generator.hackathon.service.createdata.execute;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +32,22 @@ public class ExecOperatorsService {
 		return new HashMap<>();
 	}
 	
+	/**
+	 * Define compare priority for operators
+	 * @param conditions
+	 * @return
+	 */
+	public Comparator<ColumnCondition> processComparatorPriority() {
+		Comparator<ColumnCondition> comparator = new Comparator<ColumnCondition>() {
+			@Override
+			public int compare(ColumnCondition o1, ColumnCondition o2) {
+				return Constant.priorityOperators.get(o1.getExpression()) - Constant.priorityOperators.get(o2.getExpression()); 
+			}
+		};
+		return comparator;
+	}
+	
+	
 	private List<String> processCalcValue(List<ColumnCondition> conditions) {
 		List<String> lastValue = new ArrayList<>();
 		
@@ -49,7 +66,7 @@ public class ExecOperatorsService {
 				break;
 			case Constant.EXPRESSION_LIKE:
 				if (!flgIn) {
-					lastValue.addAll(execLikeService.processLike(values.get(0)));
+					lastValue.addAll(execLikeService.processLike(values.get(0)));	
 				}
 				break;
 			case Constant.EXPRESSION_GREATER_EQUALS: // Just use dataType number, date
@@ -63,7 +80,6 @@ public class ExecOperatorsService {
 			case Constant.EXPRESSION_NOT_IN:
 				break;
 			case Constant.EXPRESSION_DIFF_1:
-				break;
 			case Constant.EXPRESSION_DIFF_2:
 				break;
 			default:
