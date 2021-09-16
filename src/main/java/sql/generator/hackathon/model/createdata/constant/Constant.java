@@ -32,4 +32,7 @@ public class Constant {
 	public static final char DEFAULT_CHAR = 'A';
 	
 	public static final int DEFAULT_LENGTH = 9;
+	
+	// DATE TIME
+	public static final String DEFAULT_FORMAT_DATE = "yyyy-MM-dd";
 }
