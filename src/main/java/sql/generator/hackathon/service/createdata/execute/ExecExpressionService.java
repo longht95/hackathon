@@ -1,5 +1,6 @@
 package sql.generator.hackathon.service.createdata.execute;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -18,7 +19,7 @@ import sql.generator.hackathon.model.createdata.constant.Constant;
 import sql.generator.hackathon.service.ExecuteDBSQLServer;
 import sql.generator.hackathon.service.createdata.CommonService;
 
-public class ExecOperatorsService {
+public class ExecExpressionService {
 
 	@Autowired
 	private ExecInAndNotInService execInAndNotInService;
@@ -34,15 +35,20 @@ public class ExecOperatorsService {
 	 * @param conditions (Key -> tablesName-aliasName-colName)
 	 * @return
 	 */
-	public Map<String, List<String>> calcLastValue(Map<String, List<ColumnCondition>> mapCondition,
-			Map<String, ColumnInfo> informTable) {
+	public Map<String, List<String>> calcLastValue(Map<String, List<ColumnCondition>> mapCondition) throws SQLException{
 		HashMap<String, List<String>> res = new HashMap<>();
 		mapCondition.entrySet().forEach(x -> {
 			String tableColName = x.getKey();
+			String[] tableColNameArr = CommonService.StringToArrWithRegex(Constant.STR_LINK, tableColName);
 			List<ColumnCondition> conditions = x.getValue();
-			String dataType = CommonService.getCommonDataType(informTable.get(tableColName).getTypeName());
-			int length = CommonService.convertLength(informTable.get(tableColName).getTypeValue());
-			res.put(tableColName, processCalcValue(conditions, dataType, length));
+			ColumnInfo columnInfo = CommonService.getColumnInfo(tableColNameArr[0], tableColNameArr[2]);
+			String dataType = CommonService.getCommonDataType(columnInfo.getTypeName());
+			int length = CommonService.convertLength(columnInfo.getTypeValue());
+			try {
+				res.put(tableColName, processCalcValue(conditions, tableColNameArr[0], columnInfo, dataType, length));
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
 		});
 		return res;
 	}
@@ -69,9 +75,10 @@ public class ExecOperatorsService {
 	 * @param dataType
 	 * @param length
 	 * @return
+	 * @throws SQLException 
 	 */
-	private List<String> processCalcValue(List<ColumnCondition> conditions, String dataType
-			, int length) {
+	private List<String> processCalcValue(List<ColumnCondition> conditions, String tableName,
+			ColumnInfo columnInfo, String dataType, int length) throws SQLException {
 		List<String> lastValue = new ArrayList<>();
 		
 		List<ColumnCondition> conditionCompare = new ArrayList<>();
@@ -139,8 +146,8 @@ public class ExecOperatorsService {
 		
 		// Excute calculator compare expression
 		if (!conditionCompare.isEmpty()) {
-			List<String> valuesCompare = calcCompareExpression(conditionCompare);
-			processCalcLastValueWithValuesCompare(lastValue, valuesInValid, valuesCompare);
+			List<String> valuesCompare = calcCompareExpression(conditionCompare, tableName, columnInfo, dataType, length);
+			lastValue = processCalcLastValueWithValuesCompare(lastValue, valuesInValid, valuesCompare);
 		}
 		
 		// Execute remove value invalid
@@ -162,9 +169,12 @@ public class ExecOperatorsService {
 	
 	/**
 	 * Execute calculator for compare expression
+	 * @throws SQLException 
 	 */
-	private List<String> calcCompareExpression(List<ColumnCondition> conditionsCompare) {
+	private List<String> calcCompareExpression(List<ColumnCondition> conditionsCompare,
+			String tableName, ColumnInfo columnInfo, String dataType, int length) throws SQLException {
 		List<String> res = new ArrayList<>();
+		boolean isKey = columnInfo.isKey();
 		String valLess = "";
 		String valGreater = "";
 		int len = conditionsCompare.size();
@@ -196,24 +206,24 @@ public class ExecOperatorsService {
 						valGreater = "";
 					} else {
 						// Valid
-//						if (isKey) {
-//							res.addAll(dbServer.genListUniqueVal(tableName, colInfo, valGreater, valLess));
-//						} else {
-//							res.addAll(genAutoKey(valGreater, valLess, dataType, len));
-//						}
+						if (isKey) {
+							res.addAll(dbService.genListUniqueVal(tableName, columnInfo, valGreater, valLess));
+						} else {
+							res.addAll(CommonService.processGenValue(dataType, length, valGreater, valLess));
+						}
 						valLess = "";
 						valGreater = "";
 						cnt = 0;
 					}
 				} else {
 					if (prevC.getExpression().equals("<=")) {
-//						if (isKey) {
-//							res.addAll(dbServer.genListUniqueVal(tableName, colInfo, valGreater, ""));
-//							res.addAll(dbServer.genListUniqueVal(tableName, colInfo, "", valLess));
-//						} else {
-//							res.addAll(genAutoKey(valGreater, "", dataType, len));
-//							res.addAll(genAutoKey("", valLess, dataType, len));
-//						}
+						if (isKey) {
+							res.addAll(dbService.genListUniqueVal(tableName, columnInfo, valGreater, ""));
+							res.addAll(dbService.genListUniqueVal(tableName, columnInfo, "", valLess));
+						} else {
+							res.addAll(CommonService.processGenValue(dataType, length, valGreater, ""));
+							res.addAll(CommonService.processGenValue(dataType, length, "", valLess));
+						}
 						valLess = "";
 						valGreater = "";
 						cnt = 0;
@@ -228,11 +238,11 @@ public class ExecOperatorsService {
 		
 		// Remain
 		if (len % 2 == 1) {
-//			if (isKey) {
-//				res.addAll(dbServer.genListUniqueVal(tableName, colInfo, valGreater, valLess));
-//			} else {
-//				res.addAll(genAutoKey(valGreater, valLess, dataType, len));
-//			}
+			if (isKey) {
+				res.addAll(dbService.genListUniqueVal(tableName, columnInfo, valGreater, valLess));
+			} else {
+				res.addAll(CommonService.processGenValue(dataType, length, valGreater, valLess));
+			}
 		}
 		return res;
 	}

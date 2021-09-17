@@ -29,10 +29,19 @@ public class Constant {
 	public static final String EXPRESSION_DIFF_1 = "!=";
 	public static final String EXPRESSION_DIFF_2 = "<>";
 
+	// Character
 	public static final char DEFAULT_CHAR = 'A';
+	public static final char CHAR_Z = 'Z';
 	
+	// Integer
 	public static final int DEFAULT_LENGTH = 9;
+	public static final int DEFAULT_NUMBER = 1;
+	
+	// String regex
+	public static final String STR_LINK = "-"; 
 	
 	// DATE TIME
 	public static final String DEFAULT_FORMAT_DATE = "yyyy-MM-dd";
+	
+	public static final int LIMIT_GEN_VALUE = 10000;
 }
