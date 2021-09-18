@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import sql.generator.hackathon.model.ColumnInfo;
+import sql.generator.hackathon.model.ObjectMappingTable;
 import sql.generator.hackathon.model.createdata.ColumnCondition;
 import sql.generator.hackathon.model.createdata.constant.Constant;
 import sql.generator.hackathon.service.ExecuteDBSQLServer;
@@ -35,20 +36,25 @@ public class ExecExpressionService {
 	 * @param conditions (Key -> tablesName-aliasName-colName)
 	 * @return
 	 */
-	public Map<String, List<String>> calcLastValue(Map<String, List<ColumnCondition>> mapCondition) throws SQLException{
+	public Map<String, List<String>> calcLastValue(Map<String, List<ObjectMappingTable>> mappingTables) throws SQLException{
 		HashMap<String, List<String>> res = new HashMap<>();
-		mapCondition.entrySet().forEach(x -> {
-			String tableColName = x.getKey();
-			String[] tableColNameArr = CommonService.StringToArrWithRegex(Constant.STR_LINK, tableColName);
-			List<ColumnCondition> conditions = x.getValue();
-			ColumnInfo columnInfo = CommonService.getColumnInfo(tableColNameArr[0], tableColNameArr[2]);
-			String dataType = CommonService.getCommonDataType(columnInfo.getTypeName());
-			int length = CommonService.convertLength(columnInfo.getTypeValue());
-			try {
-				res.put(tableColName, processCalcValue(conditions, tableColNameArr[0], columnInfo, dataType, length));
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
+		mappingTables.entrySet().forEach(x -> {
+			String tableAliasName = x.getKey();
+			String[] tableAliasNameArr = CommonService.StringToArrWithRegex(Constant.STR_LINK, tableAliasName);
+			x.getValue().stream().forEach(y -> {
+				List<ColumnCondition> conditions = y.getColumnsCondition();
+				String columnName = y.getColumnName();
+				
+				String tableAliasColumnName = tableAliasName + Constant.STR_LINK + columnName;
+				ColumnInfo columnInfo = CommonService.getColumnInfo(tableAliasNameArr[0], columnName);
+				String dataType = CommonService.getCommonDataType(columnInfo.getTypeName());
+				int length = CommonService.convertLength(columnInfo.getTypeValue());
+				try {
+					res.put(tableAliasColumnName, processCalcValue(conditions, tableAliasNameArr[0], columnInfo, dataType, length));
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			});
 		});
 		return res;
 	}
@@ -62,7 +68,7 @@ public class ExecExpressionService {
 		Comparator<ColumnCondition> comparator = new Comparator<ColumnCondition>() {
 			@Override
 			public int compare(ColumnCondition o1, ColumnCondition o2) {
-				return Constant.priorityOperators.get(o1.getExpression()) - Constant.priorityOperators.get(o2.getExpression()); 
+				return Constant.priorityOperators.get(o1.getExpression()) - Constant.priorityOperators.get(o2.getExpression());
 			}
 		};
 		return comparator;
@@ -184,12 +190,12 @@ public class ExecExpressionService {
 			String expression = x.getExpression();
 			String value = x.getValues().get(0);
 			switch (expression) {
-			case "<=":
+			case Constant.EXPRESSION_LESS_EQUALS:
 				if (valLess.isEmpty()) {
 					valLess = value;
 				}
 				break;
-			case ">=":
+			case Constant.EXPRESSION_GREATER_EQUALS:
 				if (valGreater.isEmpty()) {
 					valGreater = value;
 				}
@@ -199,8 +205,8 @@ public class ExecExpressionService {
 			cnt++;			
 			if (cnt == 2) {
 				ColumnCondition prevC = conditionsCompare.get(i - 1);
-				if (expression.equals("<=")) {
-					if (prevC.getExpression().equals("<=")) {
+				if (expression.equals(Constant.EXPRESSION_LESS_EQUALS)) {
+					if (prevC.getExpression().equals(Constant.EXPRESSION_LESS_EQUALS)) {
 						valLess = prevC.getValues().get(0);
 						cnt = 1;
 						valGreater = "";
@@ -216,7 +222,7 @@ public class ExecExpressionService {
 						cnt = 0;
 					}
 				} else {
-					if (prevC.getExpression().equals("<=")) {
+					if (prevC.getExpression().equals(Constant.EXPRESSION_LESS_EQUALS)) {
 						if (isKey) {
 							res.addAll(dbService.genListUniqueVal(tableName, columnInfo, valGreater, ""));
 							res.addAll(dbService.genListUniqueVal(tableName, columnInfo, "", valLess));
@@ -299,7 +305,7 @@ public class ExecExpressionService {
 		boolean flgGreater = false;
 		if (dataType.equals("number")) {
 			int v = CommonService.convertStringToInt(value);
-			if (expression.equals(">")) {
+			if (expression.equals(Constant.EXPRESSION_GREATER)) {
 				flgGreater = true;
 				v += 1;
 			} else {
@@ -314,7 +320,7 @@ public class ExecExpressionService {
 			String format = CommonService.readFormatDate(value);
 			Calendar c = Calendar.getInstance();
 			c.setTime(v);
-			if (expression.equals(">")) {
+			if (expression.equals(Constant.EXPRESSION_GREATER)) {
 				flgGreater = true;
 				c.add(Calendar.DATE, 1);
 			} else {
@@ -325,9 +331,9 @@ public class ExecExpressionService {
 			lastValue = CommonService.convertDateToString(format, c.getTime());
 		}
 		if (flgLess) {
-			res.setExpression("<=");
+			res.setExpression(Constant.EXPRESSION_LESS_EQUALS);
 		} else if (flgGreater) {
-			res.setExpression(">=");
+			res.setExpression(Constant.EXPRESSION_GREATER_EQUALS);
 		}
 		res.setValues(new ArrayList<>(Arrays.asList(lastValue)));
 		return res;

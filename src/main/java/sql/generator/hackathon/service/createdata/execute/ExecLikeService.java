@@ -60,7 +60,7 @@ public class ExecLikeService {
 	
 	private List<String> processCreate26Char(String value) {
 		List<String> res = new ArrayList<>();
-		for (int i = 0; i < 26; ++i) {
+		for (int i = 0; i < Constant.LENGTH_UNICODE_CHARACTER; ++i) {
 			res.add(value + String.valueOf((char) (Constant.DEFAULT_CHAR + i)));
 		}
 		return res;

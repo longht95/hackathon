@@ -12,7 +12,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Builder
 public class ColumnCondition {
-
 	private String expression;
 	private List<String> values;
 }
