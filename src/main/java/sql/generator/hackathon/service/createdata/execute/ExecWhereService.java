@@ -153,6 +153,7 @@ public class ExecWhereService {
 			InnerReturnObjectWhere innerReturnObjectWhere = new InnerReturnObjectWhere();
 			innerReturnObjectWhere.setValidValueForColumn(listValidValue);
 			innerReturnObjectWhere.setLastValue(lastValue);
+			innerReturnObjectWhere.setMarkColor(Constant.KEY_MARK_COLOR + Constant.STR_UNDERLINE + Constant.DEFAULT_NUM_MARK_COLOR);
 			valueMappingTableAliasColumn.put(tableAliasColumnName, innerReturnObjectWhere);
 		});
 		

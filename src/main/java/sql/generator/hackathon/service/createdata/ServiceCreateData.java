@@ -12,6 +12,7 @@ import sql.generator.hackathon.model.ParseObject;
 import sql.generator.hackathon.model.createdata.ReturnObjectFrom;
 import sql.generator.hackathon.model.createdata.ReturnObjectWhere;
 import sql.generator.hackathon.service.ExecuteDBSQLServer;
+import sql.generator.hackathon.service.createdata.execute.ExecClientService;
 import sql.generator.hackathon.service.createdata.execute.ExecFromService;
 import sql.generator.hackathon.service.createdata.execute.ExecWhereService;
 
@@ -22,6 +23,9 @@ public class ServiceCreateData {
 	
 	@Autowired
 	private ExecFromService execFromService;
+	
+	@Autowired
+	private ExecClientService execClientService;
 	
 	public static ExecuteDBSQLServer dbService = new ExecuteDBSQLServer();
 	
@@ -45,6 +49,8 @@ public class ServiceCreateData {
 			
 			ReturnObjectWhere objWhere = execWhereService.processWhere(parseObject);
 			ReturnObjectFrom objFrom = execFromService.processFrom(parseObject, objWhere);
+			
+			execClientService.init(parseObject);
 		} catch (Exception e) {
 		} finally {
 			// Close connection

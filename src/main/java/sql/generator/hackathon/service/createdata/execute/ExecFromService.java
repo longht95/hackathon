@@ -282,12 +282,12 @@ public class ExecFromService {
 						returnObjFrom.getMappingTableAliasColumn().containsKey(cur.getTableAliasColumnName())) {
 					returnObjFrom.getMappingTableAliasColumn().get(cur.getTableAliasColumnName()).setLastValue(cur.val);
 					returnObjFrom.getMappingTableAliasColumn().get(cur.getTableAliasColumnName())
-						.setMarkColor(Constant.KEY_MARK_COLOR + ServiceCreateData.indexColor);
+						.setMarkColor(Constant.KEY_MARK_COLOR + Constant.STR_UNDERLINE + ServiceCreateData.indexColor);
 				} else {
 					Map<String, InnerReturnObjectFrom> mappingTableAliasColumn = new HashMap<>();
 					InnerReturnObjectFrom innerReturnObjectFrom = new InnerReturnObjectFrom();
 					innerReturnObjectFrom.setLastValue(cur.val);
-					innerReturnObjectFrom.setMarkColor(Constant.KEY_MARK_COLOR + ServiceCreateData.indexColor);
+					innerReturnObjectFrom.setMarkColor(Constant.KEY_MARK_COLOR + Constant.STR_UNDERLINE + ServiceCreateData.indexColor);
 					mappingTableAliasColumn.put(cur.getTableAliasColumnName(), innerReturnObjectFrom);
 					returnObjFrom.setMappingTableAliasColumn(mappingTableAliasColumn);
 				}

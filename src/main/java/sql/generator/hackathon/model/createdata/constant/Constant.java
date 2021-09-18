@@ -46,6 +46,7 @@ public class Constant {
 	
 	// String regex
 	public static final String STR_DOT = ".";
+	public static final String STR_UNDERLINE = "_";
 	
 	public static final String STR_TYPE_CHAR = "char";
 	public static final String STR_TYPE_NUMBER = "number";
@@ -55,8 +56,9 @@ public class Constant {
 	
 	public static final String STR_KEYS = "KEY";
 	
-	public static final String KEY_MARK_COLOR = "MARK_COLOR_";
+	public static final String KEY_MARK_COLOR = "MARK_COLOR";
 
+	public static final String DEFAULT_NUM_MARK_COLOR = "47";
 	
 	// DATE TIME
 	public static final String DEFAULT_FORMAT_DATE = "yyyy-MM-dd";

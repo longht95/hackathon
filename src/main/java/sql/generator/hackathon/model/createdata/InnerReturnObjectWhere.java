@@ -16,4 +16,5 @@ public class InnerReturnObjectWhere {
 	private List<String> validValueForColumn;
 	private List<String> inValidValueForColumn;
 	private String lastValue;
+	private String markColor;
 }
