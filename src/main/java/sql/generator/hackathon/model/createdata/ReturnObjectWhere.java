@@ -1,6 +1,5 @@
-package sql.generator.hackathon.model;
+package sql.generator.hackathon.model.createdata;
 
-import java.util.List;
 import java.util.Map;
 
 import lombok.AllArgsConstructor;
@@ -13,5 +12,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ReturnObjectWhere {
-	private Map<String, List<String>> lastValueOfColumn;
+	// Key = tableName.aliasName.columnName
+	private Map<String, InnerReturnObjectWhere> valueMappingTableAliasColumn;
 }

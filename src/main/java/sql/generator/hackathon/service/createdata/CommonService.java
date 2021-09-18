@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -24,7 +25,7 @@ import sql.generator.hackathon.model.createdata.constant.Constant;
 
 public class CommonService {
 
-	private static ObjectCommonCreate objCommon;
+	public static ObjectCommonCreate objCommon;
 
 	public static void init(ObjectGenate objectGenate, ParseObject parseObject) throws Exception {
 		objCommon = new ObjectCommonCreate();
@@ -54,6 +55,26 @@ public class CommonService {
 		return res.get(0);
 	}
 	
+	/**
+	 * Check is Composite key in table
+	 * @param tableName
+	 * @return
+	 */
+	public static boolean isCompositeKey(String tableName) {
+		boolean res = false;
+		for (Entry<String, List<ColumnInfo>> x : objCommon.getTableInfo().entrySet()) {
+			String innerTableName = x.getKey();
+			if (innerTableName.equals(tableName)) {
+				List<ColumnInfo> columnInfo = x.getValue();
+				long cnt = columnInfo.stream().filter(y -> y.isKey()).count();
+				if (cnt > 1) {
+					res = true;
+					break;
+				}
+			}
+		};
+		return res;
+	}
 	
 	/**
 	 * Get table info for NoConnection
@@ -66,12 +87,12 @@ public class CommonService {
 			List<ColumnInfo> listColInfo = new ArrayList<>();
 			Set<String> listColumn = new HashSet<>();
 			for (Condition condition : table.getCondition()) {
-				String[] tableColName = getArrInCondition(condition.getLeft());
-				if (listColumn.contains(tableColName[1])) {
+				String[] tableColName = getArrInColumns(condition.getLeft());
+				if (listColumn.contains(tableColName[2])) {
 					continue;
 				}
-				listColumn.add(tableColName[1]);
-				ColumnInfo colInfo = new ColumnInfo(tableColName[1], "", Constant.STR_TYPE_CHAR, String.valueOf(Constant.DEFAULT_LENGTH_TYPE_CHAR));
+				listColumn.add(tableColName[2]);
+				ColumnInfo colInfo = new ColumnInfo(tableColName[2], "", Constant.STR_TYPE_CHAR, String.valueOf(Constant.DEFAULT_LENGTH_TYPE_CHAR));
 				listColInfo.add(colInfo);
 			}
 			if (res.containsKey(table.getTableName())) {
@@ -102,15 +123,15 @@ public class CommonService {
 	/**
 	 * Get table name and column name
 	 * 
-	 * @param column table.colName || colName
-	 * @return String[2], String[0] = tableName, String[1] = columnName
+	 * @param input 
+	 * @return String[3], String[0] = tableName, String[1] = aliasName ,String[2] = columnName
 	 */
-	public static String[] getArrInCondition(String input) {
-		String[] res = new String[2];
+	public static String[] getArrInColumns(String input) {
+		String[] res = new String[3];
 		if (input.indexOf(Constant.STR_DOT) != -1) {
 			res = input.split("\\" + Constant.STR_DOT);
 		} else {
-			res[1] = input;
+			res[2] = input;
 		}
 		return res;
 	}
@@ -121,7 +142,6 @@ public class CommonService {
 	 */
 	public static List<String> processGenValue(String dataType, int len, String valGreater, String valLess) {
 		List<String> res = new ArrayList<>();
-		
 		boolean hasLess = !valLess.isEmpty();
 		
 		// Calculator increase or decrease?
@@ -151,14 +171,12 @@ public class CommonService {
 				}
 			} else if (dataType.equals(Constant.STR_TYPE_NUMBER)) {
 				newVal = CommonService.processGenValueTypeNumber(isIncrement, curVal);
-				
 				Integer t2 = CommonService.convertStringToInt(newVal);
 				
 				// When greater len stop!
 				if (newVal.length() > len || t2 < 0) {
 					break;
 				}
-				
 				if (hasLess && isIncrement) {
 					Integer t1 = CommonService.convertStringToInt(valLess);
 					
@@ -312,7 +330,7 @@ public class CommonService {
 	 * @param curVal current value
 	 * @return String new value after (++, --)
 	 */
-	public static String processGenValueTypeDate(boolean isIncrease, String curVal) {
+	private static String processGenValueTypeDate(boolean isIncrease, String curVal) {
 		Date curD;
 		Calendar c = Calendar.getInstance();
 		SimpleDateFormat sdf = new SimpleDateFormat(Constant.DEFAULT_FORMAT_DATE);
@@ -339,7 +357,7 @@ public class CommonService {
 	 * @param curVal current value
 	 * @return String new value after (++, --)
 	 */
-	public static String processGenValueTypeNumber(boolean isIncrease, String curVal) {
+	private static String processGenValueTypeNumber(boolean isIncrease, String curVal) {
 		String val = "";
 		try {
 			Integer i = Integer.parseInt(curVal);
@@ -361,7 +379,7 @@ public class CommonService {
 	 * @param curVal current value
 	 * @return String new value after (++, --)
 	 */
-	public static String processGenValueTypeChar(boolean isIncrement, String curVal) {
+	private static String processGenValueTypeChar(boolean isIncrement, String curVal) {
 		char[] chr = new char[26];
 		for (int i = 0; i < 26; ++i) {
 			chr[i] = (char) (Constant.DEFAULT_CHAR + i); 

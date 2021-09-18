@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import sql.generator.hackathon.model.ColumnInfo;
 import sql.generator.hackathon.model.ObjectMappingTable;
 import sql.generator.hackathon.model.createdata.ColumnCondition;
+import sql.generator.hackathon.model.createdata.ExpressionObject;
 import sql.generator.hackathon.model.createdata.constant.Constant;
 import sql.generator.hackathon.service.ExecuteDBSQLServer;
 import sql.generator.hackathon.service.createdata.CommonService;
@@ -36,8 +37,8 @@ public class ExecExpressionService {
 	 * @param conditions (Key -> tablesName.aliasName.colName)
 	 * @return
 	 */
-	public Map<String, List<String>> calcLastValue(Map<String, List<ObjectMappingTable>> mappingTables) throws SQLException{
-		HashMap<String, List<String>> res = new HashMap<>();
+	public Map<String, ExpressionObject> calcLastValue(Map<String, List<ObjectMappingTable>> mappingTables) throws SQLException{
+		HashMap<String, ExpressionObject> res = new HashMap<>();
 		mappingTables.entrySet().forEach(x -> {
 			String tableAliasName = x.getKey();
 			String[] tableAliasNameArr = CommonService.StringToArrWithRegex(Constant.STR_DOT, tableAliasName);
@@ -50,7 +51,8 @@ public class ExecExpressionService {
 				String dataType = CommonService.getCommonDataType(columnInfo.getTypeName());
 				int length = CommonService.convertLength(columnInfo.getTypeValue());
 				try {
-					res.put(tableAliasColumnName, processCalcValue(conditions, tableAliasNameArr[0], columnInfo, dataType, length));
+					ExpressionObject expressionObj = processCalcValue(conditions, tableAliasNameArr[0], columnInfo, dataType, length);
+					res.put(tableAliasColumnName, expressionObj);
 				} catch (SQLException e) {
 					e.printStackTrace();
 				}
@@ -83,10 +85,11 @@ public class ExecExpressionService {
 	 * @return
 	 * @throws SQLException 
 	 */
-	private List<String> processCalcValue(List<ColumnCondition> conditions, String tableName,
+	private ExpressionObject processCalcValue(List<ColumnCondition> conditions, String tableName,
 			ColumnInfo columnInfo, String dataType, int length) throws SQLException {
-		List<String> lastValue = new ArrayList<>();
+		ExpressionObject res = new ExpressionObject();
 		
+		List<String> listValidValue = new ArrayList<>();
 		List<ColumnCondition> conditionCompare = new ArrayList<>();
 		List<String> valuesInValid = new ArrayList<>();
 		
@@ -101,11 +104,11 @@ public class ExecExpressionService {
 				break;
 			case Constant.EXPRESSION_IN:
 				flgIn = true;
-				lastValue.addAll(execInAndNotInService.processExpressionIn(lastValue, values));
+				listValidValue.addAll(execInAndNotInService.processExpressionIn(listValidValue, values));
 				break;
 			case Constant.EXPRESSION_LIKE:
 				if (!flgIn) {
-					lastValue.addAll(execLikeService.processLike(values.get(0)));	
+					listValidValue.addAll(execLikeService.processLike(values.get(0)));	
 				}
 				break;
 			case Constant.EXPRESSION_GREATER_EQUALS: // Just use dataType number, date
@@ -144,7 +147,7 @@ public class ExecExpressionService {
 			
 			// Stop when use expression equals
 			if (flgEquals) {
-				lastValue.add(x.getValues().get(0));
+				res.setLastValue(values.get(0));
 				break;
 			}
 		}
@@ -153,15 +156,16 @@ public class ExecExpressionService {
 		// Excute calculator compare expression
 		if (!conditionCompare.isEmpty()) {
 			List<String> valuesCompare = calcCompareExpression(conditionCompare, tableName, columnInfo, dataType, length);
-			lastValue = processCalcLastValueWithValuesCompare(lastValue, valuesInValid, valuesCompare);
+			listValidValue = processCalcLastValueWithValuesCompare(listValidValue, valuesInValid, valuesCompare);
 		}
 		
 		// Execute remove value invalid
 		if (!valuesInValid.isEmpty()) {
-			lastValue = execInAndNotInService.processNotIn(lastValue, valuesInValid);
+			listValidValue = execInAndNotInService.processNotIn(listValidValue, valuesInValid);
 		}
+		res.setListValidValue(listValidValue);
 		
-		return lastValue;
+		return res;
 	}
 	
 	/**

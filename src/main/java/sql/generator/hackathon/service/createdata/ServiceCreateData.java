@@ -9,7 +9,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import sql.generator.hackathon.model.ColumnInfo;
 import sql.generator.hackathon.model.ObjectGenate;
 import sql.generator.hackathon.model.ParseObject;
+import sql.generator.hackathon.model.createdata.ReturnObjectFrom;
+import sql.generator.hackathon.model.createdata.ReturnObjectWhere;
 import sql.generator.hackathon.service.ExecuteDBSQLServer;
+import sql.generator.hackathon.service.createdata.execute.ExecFromService;
 import sql.generator.hackathon.service.createdata.execute.ExecWhereService;
 
 public class ServiceCreateData {
@@ -17,7 +20,12 @@ public class ServiceCreateData {
 	@Autowired
 	private ExecWhereService execWhereService;
 	
+	@Autowired
+	private ExecFromService execFromService;
+	
 	public static ExecuteDBSQLServer dbService = new ExecuteDBSQLServer();
+	
+	public static int indexColor = 0;
 	
 	/**
 	 * Call first
@@ -35,7 +43,8 @@ public class ServiceCreateData {
 			openConnection(objectGenate);
 			CommonService.init(objectGenate, parseObject);
 			
-			execWhereService.processWhere(parseObject);
+			ReturnObjectWhere objWhere = execWhereService.processWhere(parseObject);
+			ReturnObjectFrom objFrom = execFromService.processFrom(parseObject, objWhere);
 		} catch (Exception e) {
 		} finally {
 			// Close connection
