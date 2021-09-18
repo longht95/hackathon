@@ -28,7 +28,7 @@ public class Constant {
 	public static final String EXPRESSION_NOT_IN = "NOT IN";
 	public static final String EXPRESSION_DIFF_1 = "!=";
 	public static final String EXPRESSION_DIFF_2 = "<>";
-
+	
 	// Character
 	public static final char DEFAULT_CHAR = 'A';
 	public static final char CHAR_Z = 'Z';
@@ -37,13 +37,23 @@ public class Constant {
 	public static final int DEFAULT_LENGTH = 9;
 	public static final int DEFAULT_NUMBER = 1;
 	
+	public static final int LIMIT_GEN_VALUE = 10000;
+	
 	public static final int LENGTH_UNICODE_CHARACTER = 26;
 	
+	public static final int DEFAULT_LENGTH_TYPE_CHAR = 255; 
+	
+	
 	// String regex
-	public static final String STR_LINK = "-"; 
+	public static final String STR_DOT = ".";
+	
+	public static final String STR_TYPE_CHAR = "char";
+	public static final String STR_TYPE_NUMBER = "number";
+	public static final String STR_TYPE_DATE = "date";
+	
+	public static final String NO_CONNECTION = "0";
+
 	
 	// DATE TIME
 	public static final String DEFAULT_FORMAT_DATE = "yyyy-MM-dd";
-	
-	public static final int LIMIT_GEN_VALUE = 10000;
 }

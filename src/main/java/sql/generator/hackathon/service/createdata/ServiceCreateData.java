@@ -17,7 +17,7 @@ public class ServiceCreateData {
 	@Autowired
 	private ExecWhereService execWhereService;
 	
-	public ExecuteDBSQLServer dbService = new ExecuteDBSQLServer();
+	public static ExecuteDBSQLServer dbService = new ExecuteDBSQLServer();
 	
 	/**
 	 * Call first
@@ -33,12 +33,15 @@ public class ServiceCreateData {
 		try {
 			// Open connection
 			openConnection(objectGenate);
+			CommonService.init(objectGenate, parseObject);
 			
 			execWhereService.processWhere(parseObject);
 		} catch (Exception e) {
 		} finally {
 			// Close connection
-			dbService.disconnectDB();
+			if (dbService != null) {
+				dbService.disconnectDB();
+			}
 		}
 	}
 	

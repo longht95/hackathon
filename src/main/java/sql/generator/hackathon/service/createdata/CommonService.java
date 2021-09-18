@@ -7,18 +7,40 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import sql.generator.hackathon.model.ColumnInfo;
+import sql.generator.hackathon.model.Condition;
 import sql.generator.hackathon.model.ObjectCommonCreate;
+import sql.generator.hackathon.model.ObjectGenate;
+import sql.generator.hackathon.model.ParseObject;
+import sql.generator.hackathon.model.TableSQL;
 import sql.generator.hackathon.model.createdata.constant.Constant;
 
 public class CommonService {
 
 	private static ObjectCommonCreate objCommon;
-	{
-		// init
+
+	public static void init(ObjectGenate objectGenate, ParseObject parseObject) throws Exception {
+		objCommon = new ObjectCommonCreate();
+		String typeConnection = objectGenate.getInfoDatabase().getType();
+		objCommon.setObjectGenate(objectGenate);
+		objCommon.setListTableName(getListTableName(parseObject.getListTableSQL()));
+		
+		Map<String, List<ColumnInfo>> tableInfo;
+		if (typeConnection.equals(Constant.NO_CONNECTION)) {
+			tableInfo = getInfoTableWithoutConnect(parseObject.getListTableSQL());
+		} else {
+			tableInfo = ServiceCreateData.dbService
+					.getInforTable(objCommon.getObjectGenate().getInfoDatabase().getSchema(), 
+							objCommon.getListTableName());
+		}
+		objCommon.setTableInfo(tableInfo);
 	}
 	
 	public static ColumnInfo getColumnInfo(String tableName, String columnName) {
@@ -31,6 +53,68 @@ public class CommonService {
 		}
 		return res.get(0);
 	}
+	
+	
+	/**
+	 * Get table info for NoConnection
+	 * @param tables
+	 * @return
+	 */
+	private static Map<String, List<ColumnInfo>> getInfoTableWithoutConnect(List<TableSQL> tables) {
+		Map<String, List<ColumnInfo>> res = new HashMap<>();
+		for (TableSQL table : tables) {
+			List<ColumnInfo> listColInfo = new ArrayList<>();
+			Set<String> listColumn = new HashSet<>();
+			for (Condition condition : table.getCondition()) {
+				String[] tableColName = getArrInCondition(condition.getLeft());
+				if (listColumn.contains(tableColName[1])) {
+					continue;
+				}
+				listColumn.add(tableColName[1]);
+				ColumnInfo colInfo = new ColumnInfo(tableColName[1], "", Constant.STR_TYPE_CHAR, String.valueOf(Constant.DEFAULT_LENGTH_TYPE_CHAR));
+				listColInfo.add(colInfo);
+			}
+			if (res.containsKey(table.getTableName())) {
+				List<ColumnInfo> columnsCanAdd = new ArrayList<>();
+				List<ColumnInfo> currentColumns = res.get(table.getTableName());
+				for (ColumnInfo c : listColInfo) {
+					boolean flg = true;
+					for (ColumnInfo current : currentColumns) {
+						if (current.getName().equals(c.getName())) {
+							flg = false;
+							break;
+						}
+					}
+					if (flg) {
+						columnsCanAdd.add(c);
+					}
+				}
+				for (ColumnInfo c : columnsCanAdd) {
+					currentColumns.add(c);
+				}
+			} else {
+				res.put(table.getTableName(), listColInfo);
+			}
+		}
+		return res;
+	}
+	
+	/**
+	 * Get table name and column name
+	 * 
+	 * @param column table.colName || colName
+	 * @return String[2], String[0] = tableName, String[1] = columnName
+	 */
+	public static String[] getArrInCondition(String input) {
+		String[] res = new String[2];
+		if (input.indexOf(Constant.STR_DOT) != -1) {
+			res = input.split("\\" + Constant.STR_DOT);
+		} else {
+			res[1] = input;
+		}
+		return res;
+	}
+	
 	
 	/**
 	 * Process Gen value
@@ -54,7 +138,7 @@ public class CommonService {
 		for (int i = 1; i <= Constant.LIMIT_GEN_VALUE; ++i) {
 			res.add(curVal);
 			String newVal = "";
-			if (dataType.equals("date")) {
+			if (dataType.equals(Constant.STR_TYPE_DATE)) {
 				newVal = CommonService.processGenValueTypeDate(isIncrement, curVal);
 				if (hasLess && isIncrement) {
 					Date t1 = CommonService.convertStringToDate(valLess);
@@ -65,7 +149,7 @@ public class CommonService {
 						break;
 					}
 				}
-			} else if (dataType.equals("number")) {
+			} else if (dataType.equals(Constant.STR_TYPE_NUMBER)) {
 				newVal = CommonService.processGenValueTypeNumber(isIncrement, curVal);
 				
 				Integer t2 = CommonService.convertStringToInt(newVal);
@@ -83,7 +167,7 @@ public class CommonService {
 						break;
 					}
 				}
-			} else if (dataType.equals("char")) {
+			} else if (dataType.equals(Constant.STR_TYPE_CHAR)) {
 				newVal = CommonService.processGenValueTypeChar(isIncrement, curVal);
 				// When greater len stop!
 				if (newVal.length() > len) {
@@ -173,6 +257,7 @@ public class CommonService {
 		SimpleDateFormat sdf = new SimpleDateFormat(format);
 		return sdf.format(input);
 	}
+	
 	/**
 	 * Convert string to int
 	 */
@@ -197,8 +282,8 @@ public class CommonService {
 		return Constant.DEFAULT_FORMAT_DATE;
 	}
 
-	public static String[] StringToArrWithRegex(String regex, String tableColName) {
-		return tableColName.split(regex);
+	public static String[] StringToArrWithRegex(String regex, String input) {
+		return input.split(regex);
 	}
 	
 	/**
@@ -207,16 +292,16 @@ public class CommonService {
 	 * @return
 	 */
 	public static String processGenValueWithLength(String dataType, int len) {
-		if (dataType.equals("date")) {
-			DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd");  
+		if (dataType.equals(Constant.STR_TYPE_DATE)) {
+			DateTimeFormatter dtf = DateTimeFormatter.ofPattern(Constant.DEFAULT_FORMAT_DATE);  
 			LocalDateTime now = LocalDateTime.now();  
 			return dtf.format(now);  
 		}
 		
 		StringBuilder res = new StringBuilder();
-		if (dataType.equals("number")) {
+		if (dataType.equals(Constant.STR_TYPE_NUMBER)) {
 			res.append(Constant.DEFAULT_NUMBER);
-		} else if (dataType.equals("char")) {
+		} else if (dataType.equals(Constant.STR_TYPE_CHAR)) {
 			res.append(Constant.DEFAULT_CHAR);
 		}
 		return res.toString();
@@ -230,7 +315,7 @@ public class CommonService {
 	public static String processGenValueTypeDate(boolean isIncrease, String curVal) {
 		Date curD;
 		Calendar c = Calendar.getInstance();
-		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+		SimpleDateFormat sdf = new SimpleDateFormat(Constant.DEFAULT_FORMAT_DATE);
 		try {
 			curD = sdf.parse(curVal);
 			c.setTime(curD);
@@ -363,5 +448,15 @@ public class CommonService {
 			sb.append("" + c);
 		}
 		return sb.toString();
+	}
+	
+	/**
+	 * Get list tableName
+	 * @param tables
+	 * @return
+	 */
+	private static List<String> getListTableName(List<TableSQL> tables) {
+		Set<String> res = tables.stream().map(x -> x.tableName).collect(Collectors.toSet());
+		return res.stream().collect(Collectors.toList());
 	}
 }

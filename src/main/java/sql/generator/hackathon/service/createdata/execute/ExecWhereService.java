@@ -45,7 +45,7 @@ public class ExecWhereService {
 		tables.stream().forEach(x -> {
 			String tableName = x.getTableName();
 			String aliasName = x.getAlias();
-			String tableAliasName = tableName + Constant.STR_LINK + aliasName;
+			String tableAliasName = tableName + Constant.STR_DOT + aliasName;
 			Set<String> columns = x.getColumns();
 			List<Condition> conditions = x.getCondition();
 			conditions.stream().forEach(cond -> {

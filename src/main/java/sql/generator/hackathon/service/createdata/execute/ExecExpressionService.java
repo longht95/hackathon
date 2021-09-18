@@ -33,19 +33,19 @@ public class ExecExpressionService {
 	
 	/**
 	 * Get last values from list conditions for each column
-	 * @param conditions (Key -> tablesName-aliasName-colName)
+	 * @param conditions (Key -> tablesName.aliasName.colName)
 	 * @return
 	 */
 	public Map<String, List<String>> calcLastValue(Map<String, List<ObjectMappingTable>> mappingTables) throws SQLException{
 		HashMap<String, List<String>> res = new HashMap<>();
 		mappingTables.entrySet().forEach(x -> {
 			String tableAliasName = x.getKey();
-			String[] tableAliasNameArr = CommonService.StringToArrWithRegex(Constant.STR_LINK, tableAliasName);
+			String[] tableAliasNameArr = CommonService.StringToArrWithRegex(Constant.STR_DOT, tableAliasName);
 			x.getValue().stream().forEach(y -> {
 				List<ColumnCondition> conditions = y.getColumnsCondition();
 				String columnName = y.getColumnName();
 				
-				String tableAliasColumnName = tableAliasName + Constant.STR_LINK + columnName;
+				String tableAliasColumnName = tableAliasName + Constant.STR_DOT + columnName;
 				ColumnInfo columnInfo = CommonService.getColumnInfo(tableAliasNameArr[0], columnName);
 				String dataType = CommonService.getCommonDataType(columnInfo.getTypeName());
 				int length = CommonService.convertLength(columnInfo.getTypeValue());

@@ -13,6 +13,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Builder
 public class ObjectCommonCreate {
+	private ObjectGenate objectGenate;
+	private List<String> listTableName;
 	private Map<String, List<ColumnInfo>> tableInfo;
-	
 }
