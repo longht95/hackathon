@@ -233,15 +233,19 @@ var sizeLeft = 20;
 var stateOperation = 1;
 
 function flowChart(data) {
+	for (const operator of operatorList) {
+		//console.log('of', operator);
+		$flowchart.flowchart('deleteOperator', operator.operationId);
+	}
+	if (!data || !data.mappingKey) {
+		return;
+	}
 	let listTableSQL = data.listTableSQL;
 
 	sizeTop = 20;
 	sizeLeft = 20;
 
-	for (const operator of operatorList) {
-		//console.log('of', operator);
-		$flowchart.flowchart('deleteOperator', operator.operationId);
-	}
+	
 	operatorList.length = 0;
 	stateOperation = 1;
 	for (const [key, value] of Object.entries(data.mappingKey)) {
