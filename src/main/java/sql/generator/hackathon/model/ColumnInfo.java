@@ -1,6 +1,7 @@
 package sql.generator.hackathon.model;
 
 public class ColumnInfo {
+	public String tableAlias;
 	public String name;
 	public String val;
 	public String typeName;
@@ -98,5 +99,21 @@ public class ColumnInfo {
 
 	public void setVal(String val) {
 		this.val = val;
+	}
+	
+	public String getColor() {
+		return color;
+	}
+
+	public void setColor(String color) {
+		this.color = color;
+	}
+	
+	public String getTableAlias() {
+		return color;
+	}
+
+	public void setTableAlias(String tableAlias) {
+		this.tableAlias = tableAlias;
 	}
 }

@@ -217,7 +217,7 @@ public class ExecFromService {
 		Set<String> visitedMapping = new HashSet<>();
 		// Map<String, List<Cond>> mapColumn = calcLastMapping();
 		
-		// table.colName => condition valid
+		// table.aliasName.colName => condition valid
 		// Map<String, List<Cond>> columnMap;
 		for (Map.Entry<String, List<Cond>> e : columnMap.entrySet()) {
 			String tableAliasColumnName = e.getKey();

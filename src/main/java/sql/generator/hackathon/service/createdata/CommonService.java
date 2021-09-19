@@ -1,5 +1,6 @@
 package sql.generator.hackathon.service.createdata;
 
+import java.sql.SQLException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
@@ -93,6 +94,7 @@ public class CommonService {
 				}
 				listColumn.add(tableColName[2]);
 				ColumnInfo colInfo = new ColumnInfo(tableColName[2], "", Constant.STR_TYPE_CHAR, String.valueOf(Constant.DEFAULT_LENGTH_TYPE_CHAR));
+				colInfo.tableAlias = tableColName[0];
 				listColInfo.add(colInfo);
 			}
 			if (res.containsKey(table.getTableName())) {
@@ -129,13 +131,36 @@ public class CommonService {
 	public static String[] getArrInColumns(String input) {
 		String[] res = new String[3];
 		if (input.indexOf(Constant.STR_DOT) != -1) {
-			res = input.split("\\" + Constant.STR_DOT);
+			String[] tmp = input.split("\\" + Constant.STR_DOT);
+			if (tmp.length != 3) {
+				res[0] = tmp[0];
+				res[2] = tmp[1];
+			} else {
+				res = tmp;
+			}
 		} else {
 			res[2] = input;
 		}
 		return res;
 	}
 	
+	
+	/**
+	 * Remove all specify character in string origin
+	 * 
+	 * @param specifyStr String of specify character to remove.
+	 * @param origin
+	 * @return String without character in specifyStr.
+	 */
+	public static String removeSpecifyCharacter(String specifyStr, String origin) {
+		StringBuilder sb = new StringBuilder();
+		for (int i = 0; i < origin.length(); ++i) {
+			if (!specifyStr.contains("" + origin.charAt(i))) {
+				sb.append(origin.charAt(i));
+			}
+		}
+		return sb.toString();
+	}
 	
 	/**
 	 * Process Gen value
