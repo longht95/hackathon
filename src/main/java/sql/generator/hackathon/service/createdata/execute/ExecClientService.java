@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import net.sf.jsqlparser.JSQLParserException;
 import sql.generator.hackathon.model.ColumnInfo;
@@ -17,6 +18,7 @@ import sql.generator.hackathon.model.createdata.constant.Constant;
 import sql.generator.hackathon.service.ServiceParse;
 import sql.generator.hackathon.service.createdata.CommonService;
 
+@Service
 public class ExecClientService {
 
 	@Autowired
@@ -55,7 +57,7 @@ public class ExecClientService {
 			}
 		}
 		
-		if (CommonService.objCommon.getObjectGenate().getInfoDatabase().getType().equals(Constant.NO_CONNECTION)) {
+		if (CommonService.objCommon.getObjectGenate().getInfoDatabase().getType().equalsIgnoreCase(Constant.STR_NO_CONNECTION)) {
 			Set<ColumnInfo> clientTableData = new HashSet<>();
 			for (ColumnInfo c : client) {
 				boolean flg = true;
@@ -79,7 +81,7 @@ public class ExecClientService {
 	 * Add column get from select
 	 */
 	public void addColumnGetFromSelect(List<ColumnInfo> columns, String tableName, String aliasName) {
-		if (!CommonService.objCommon.getObjectGenate().getInfoDatabase().getType().equals(Constant.NO_CONNECTION)) {
+		if (!CommonService.objCommon.getObjectGenate().getInfoDatabase().getType().equalsIgnoreCase(Constant.STR_NO_CONNECTION)) {
 			return;
 		}
 

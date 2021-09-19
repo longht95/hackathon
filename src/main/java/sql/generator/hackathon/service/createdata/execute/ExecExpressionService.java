@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import sql.generator.hackathon.model.ColumnInfo;
 import sql.generator.hackathon.model.ObjectMappingTable;
@@ -21,6 +22,7 @@ import sql.generator.hackathon.model.createdata.constant.Constant;
 import sql.generator.hackathon.service.ExecuteDBSQLServer;
 import sql.generator.hackathon.service.createdata.CommonService;
 
+@Service
 public class ExecExpressionService {
 
 	@Autowired
@@ -39,15 +41,18 @@ public class ExecExpressionService {
 	 */
 	public Map<String, ExpressionObject> calcLastValue(Map<String, List<ObjectMappingTable>> mappingTables) throws SQLException{
 		HashMap<String, ExpressionObject> res = new HashMap<>();
-		mappingTables.entrySet().forEach(x -> {
+		if (mappingTables == null) {
+			return res;
+		}
+		for (Map.Entry<String, List<ObjectMappingTable>> x : mappingTables.entrySet()) {
 			String tableAliasName = x.getKey();
 			String[] tableAliasNameArr = CommonService.StringToArrWithRegex(Constant.STR_DOT, tableAliasName);
-			x.getValue().stream().forEach(y -> {
+			for (ObjectMappingTable y : x.getValue()) {
 				List<ColumnCondition> conditions = y.getColumnsCondition();
 				String columnName = y.getColumnName();
-				
-				String tableAliasColumnName = tableAliasName + Constant.STR_DOT + columnName;
-				ColumnInfo columnInfo = CommonService.getColumnInfo(tableAliasNameArr[0], columnName);
+				String[] arrColumnName = CommonService.StringToArrWithRegex(Constant.STR_DOT, columnName);
+				String tableAliasColumnName = CommonService.getTableAliasColumnName(tableAliasName + Constant.STR_DOT + columnName);
+				ColumnInfo columnInfo = CommonService.getColumnInfo(tableAliasNameArr[0], arrColumnName[arrColumnName.length - 1]);
 				String dataType = CommonService.getCommonDataType(columnInfo.getTypeName());
 				int length = CommonService.convertLength(columnInfo.getTypeValue());
 				try {
@@ -56,8 +61,8 @@ public class ExecExpressionService {
 				} catch (SQLException e) {
 					e.printStackTrace();
 				}
-			});
-		});
+			}
+		}
 		return res;
 	}
 	

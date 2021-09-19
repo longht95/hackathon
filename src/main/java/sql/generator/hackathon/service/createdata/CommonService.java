@@ -35,7 +35,7 @@ public class CommonService {
 		objCommon.setListTableName(getListTableName(parseObject.getListTableSQL()));
 		
 		Map<String, List<ColumnInfo>> tableInfo;
-		if (typeConnection.equals(Constant.NO_CONNECTION)) {
+		if (typeConnection.equalsIgnoreCase(Constant.STR_NO_CONNECTION)) {
 			tableInfo = getInfoTableWithoutConnect(parseObject.getListTableSQL());
 		} else {
 			tableInfo = ServiceCreateData.dbService
@@ -326,7 +326,31 @@ public class CommonService {
 	}
 
 	public static String[] StringToArrWithRegex(String regex, String input) {
-		return input.split(regex);
+		return input.split("\\" + regex);
+	}
+	
+	public static String getTableAliasColumnName(String input) {
+		String[] arr = StringToArrWithRegex(Constant.STR_DOT, input);
+		Set<String> existsName = new HashSet<>();
+		StringBuilder res = new StringBuilder();
+		for (String c : arr) {
+			if (!existsName.contains(c)) {
+				if (res.length() != 0) {
+					res.append(Constant.STR_DOT);
+				}
+				res.append(c);;
+			}
+			existsName.add(c);
+		}
+		return res.toString();
+	}
+	
+	public static String getTableAliasName(String input) {
+		String[] arr = StringToArrWithRegex(Constant.STR_DOT, input);
+		if (arr[0].equals(arr[1])) {
+			return arr[0];
+		}
+		return input;
 	}
 	
 	/**

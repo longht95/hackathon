@@ -142,7 +142,7 @@ public class CreateService {
 			if (value.indexOf("'") >= 0) {
 				res = value;
 			} else {
-				if (val.isEmpty()) {
+				if (val == null || val.isEmpty()) {
 					// Get current date
 					DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd");  
 					LocalDateTime now = LocalDateTime.now();  
@@ -165,7 +165,7 @@ public class CreateService {
 		case "number":
 		case "int":
 		case "bigint":
-			if (value.isEmpty()) {
+			if (value == null || value.isEmpty()) {
 				res = "0";
 			} else {
 				res = value;

@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import sql.generator.hackathon.model.Condition;
 import sql.generator.hackathon.model.ObjectMappingTable;
@@ -18,7 +19,9 @@ import sql.generator.hackathon.model.createdata.ExpressionObject;
 import sql.generator.hackathon.model.createdata.InnerReturnObjectWhere;
 import sql.generator.hackathon.model.createdata.ReturnObjectWhere;
 import sql.generator.hackathon.model.createdata.constant.Constant;
+import sql.generator.hackathon.service.createdata.CommonService;
 
+@Service
 public class ExecWhereService {
 
 	@Autowired
@@ -37,40 +40,43 @@ public class ExecWhereService {
 		Map<String, List<String>> inValidValueForColumn = new HashMap<>();
 		
 		ReturnObjectWhere objWhere = new ReturnObjectWhere();
+		objWhere.setValueMappingTableAliasColumn(new HashMap<>());
 		processReturn(objWhere, validValueForColumn, inValidValueForColumn);
 		return objWhere;
 	}
 
 	private void init(ParseObject parseObject) {
 		List<TableSQL> tables = parseObject.getListTableSQL();
+		mappingTables = new HashMap<>();
 		getMappingTables(tables);
 	}
 	
 	private void getMappingTables(List<TableSQL> tables) {
-		tables.stream().forEach(x -> {
+		for (TableSQL x : tables) {
 			String tableName = x.getTableName();
 			String aliasName = x.getAlias();
-			String tableAliasName = tableName + Constant.STR_DOT + aliasName;
+			String tableAliasName = CommonService.getTableAliasName(tableName + Constant.STR_DOT + aliasName);
 			Set<String> columns = x.getColumns();
 			List<Condition> conditions = x.getCondition();
-			conditions.stream()
-				.filter(cond -> cond.getRight() != null && !cond.getRight().startsWith(Constant.STR_KEYS))
-				.forEach(cond -> {
-				String left = cond.getLeft();
-				String right = cond.getRight();
-				String expression = cond.getExpression();
-				List<String> listRight = cond.getListRight();
-				List<String> groupValues = processSetValueForColumn(right, listRight);
-				if (mappingTables.containsKey(tableAliasName)) {
-					List<ObjectMappingTable> listMappingTable = mappingTables.get(tableAliasName);
-					processWhenExistsKeyInMappingTables(listMappingTable, left, expression, groupValues);
-				} else {
-					List<ObjectMappingTable> listMappingTable = new ArrayList<>();
-					processSetValueForMappingTables(listMappingTable, left, expression, groupValues);
-					mappingTables.put(tableAliasName, listMappingTable);
+			for (Condition cond : conditions) {
+				if ((cond.getRight() != null && !cond.getRight().startsWith(Constant.STR_KEYS)) || 
+						(cond.getListRight() != null && !cond.getListRight().isEmpty())) {
+					String left = cond.getLeft();
+					String right = cond.getRight();
+					String expression = cond.getExpression();
+					List<String> listRight = cond.getListRight();
+					List<String> groupValues = processSetValueForColumn(right, listRight);
+					if (mappingTables.containsKey(tableAliasName)) {
+						List<ObjectMappingTable> listMappingTable = mappingTables.get(tableAliasName);
+						processWhenExistsKeyInMappingTables(listMappingTable, left, expression, groupValues);
+					} else {
+						List<ObjectMappingTable> listMappingTable = new ArrayList<>();
+						processSetValueForMappingTables(listMappingTable, left, expression, groupValues);
+						mappingTables.put(tableAliasName, listMappingTable);
+					}
 				}
-			});
-		});
+			}
+		}
 	}
 	
 	
@@ -138,7 +144,7 @@ public class ExecWhereService {
 			Map<String, List<String>> inValidValueForColumn) {
 		
 		validValueForColumn.entrySet().forEach(x -> {
-			String tableAliasColumnName = x.getKey();
+			String tableAliasColumnName = CommonService.getTableAliasColumnName(x.getKey());
 			ExpressionObject expressionObject = x.getValue(); 
 			List<String> listValidValue = expressionObject.getListValidValue();
 			String lastValue = expressionObject.getLastValue();
@@ -158,7 +164,7 @@ public class ExecWhereService {
 		});
 		
 		inValidValueForColumn.entrySet().forEach(x -> {
-			String tableAliasColumnName = x.getKey();
+			String tableAliasColumnName = CommonService.getTableAliasColumnName(x.getKey());
 			List<String> listInValidValue = x.getValue(); 
 			if (objWhere.getValueMappingTableAliasColumn() == null) {
 				Map<String, InnerReturnObjectWhere> valueMappingTableAliasColumn = new HashMap<>();

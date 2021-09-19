@@ -4,8 +4,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.springframework.stereotype.Service;
+
 import sql.generator.hackathon.model.createdata.constant.Constant;
 
+@Service
 public class ExecLikeService {
 	
 	private List<String> operators = Arrays.asList("_", "%");

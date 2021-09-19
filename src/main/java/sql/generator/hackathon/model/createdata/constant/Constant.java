@@ -54,6 +54,8 @@ public class Constant {
 	
 	public static final String NO_CONNECTION = "0";
 	
+	public static final String STR_NO_CONNECTION = "No Database";
+	
 	public static final String STR_KEYS = "KEY";
 	
 	public static final String KEY_MARK_COLOR = "MARK_COLOR";

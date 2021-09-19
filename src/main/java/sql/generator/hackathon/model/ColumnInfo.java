@@ -110,7 +110,7 @@ public class ColumnInfo {
 	}
 	
 	public String getTableAlias() {
-		return color;
+		return tableAlias;
 	}
 
 	public void setTableAlias(String tableAlias) {
