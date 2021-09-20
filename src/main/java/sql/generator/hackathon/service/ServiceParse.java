@@ -45,6 +45,7 @@ import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.create.table.CreateTable;
 import net.sf.jsqlparser.statement.create.table.ForeignKeyIndex;
+import net.sf.jsqlparser.statement.create.table.Index;
 import net.sf.jsqlparser.statement.insert.Insert;
 import net.sf.jsqlparser.statement.select.AllColumns;
 import net.sf.jsqlparser.statement.select.FromItem;
@@ -455,17 +456,21 @@ public class ServiceParse {
 						.collect(Collectors.toSet());
 				tableSQL.condition = new ArrayList<>();
 				if (createTable.getIndexes() != null && !createTable.getIndexes().isEmpty()) {
-					System.out.println("XXXXXXXXXX");
-					ForeignKeyIndex foreignKeyIndex = (ForeignKeyIndex) createTable.getIndexes().get(1);
-					mappingKey.put("KEY" + state,
-							Arrays.asList(
+					for (Index index : createTable.getIndexes()) {
+						if (index instanceof ForeignKeyIndex) {
+							ForeignKeyIndex foreignKeyIndex = (ForeignKeyIndex) index;
+							mappingKey.put("KEY" + state,
+		 							Arrays.asList(
+											foreignKeyIndex.getTable().getName() + "."
+													+ foreignKeyIndex.getReferencedColumnNames().get(0),
+											tableSQL.tableName + "." + foreignKeyIndex.getColumnsNames().get(0)));
+							System.out.println(Arrays.asList(
 									foreignKeyIndex.getTable().getName() + "."
 											+ foreignKeyIndex.getReferencedColumnNames().get(0),
 									tableSQL.tableName + "." + foreignKeyIndex.getColumnsNames().get(0)));
-					System.out.println(Arrays.asList(
-							foreignKeyIndex.getTable().getName() + "."
-									+ foreignKeyIndex.getReferencedColumnNames().get(0),
-							tableSQL.tableName + "." + foreignKeyIndex.getColumnsNames().get(0)));
+							state++;
+						}
+					}
 				}
 				parseCreate.listTableSQL.add(tableSQL);
 			}
