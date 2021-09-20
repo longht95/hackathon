@@ -93,6 +93,10 @@ public class ExecClientService {
 		} else {
 			return;
 		}
+		
+		if (columnInSelect == null) {
+			return;
+		}
 		 
 		Set<String> columnNeedAdd = new HashSet<>();
 		for (String colName : columnInSelect) {

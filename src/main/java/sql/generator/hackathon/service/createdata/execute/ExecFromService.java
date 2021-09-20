@@ -296,7 +296,7 @@ public class ExecFromService {
 			// Flag true all Set<condtion> include this column! 
 			// Will not execute again this link mapping.
 			List<NodeColumn> pathValidValue = findPathValidForMapping(parentMap, nodeGoal);
-			pathValidValue.stream().forEach(cur -> {
+			for (NodeColumn cur : pathValidValue) {
 				// Mark color for column Info
 				if (returnObjFrom.getMappingTableAliasColumn() != null) {
 					if (returnObjFrom.getMappingTableAliasColumn().containsKey(cur.getTableAliasColumnName()) ) {
@@ -319,7 +319,7 @@ public class ExecFromService {
 					returnObjFrom.setMappingTableAliasColumn(mappingTableAliasColumn);
 				}
 				visitedMapping.add(cur.getTableAliasColumnName());
-			});
+			}
 			ServiceCreateData.indexColor++;
 		};
 	}

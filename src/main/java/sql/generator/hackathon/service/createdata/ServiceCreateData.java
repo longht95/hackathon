@@ -71,6 +71,7 @@ public class ServiceCreateData {
 			
 			response = processMultipleRow(lastValue, dataPicker, rowCreate, flgInsert);
 		} catch (Exception e) {
+			e.printStackTrace();
 		} finally {
 			// Close connection
 			if (dbService != null) {
@@ -84,9 +85,9 @@ public class ServiceCreateData {
 		indexColor = 1;
 		
 		foreignKeyNotExistsInmainTable = new HashMap<>();
-		
+
+		// Open connection		
 		if (!objectGenate.getInfoDatabase().getType().equalsIgnoreCase(Constant.STR_NO_CONNECTION)) {
-			// Open connection
 			openConnection(objectGenate);
 		}
 
@@ -140,7 +141,11 @@ public class ServiceCreateData {
 							lastValue = innerReturnObjWhere.getValidValueForColumn().get(0);
 							markColor = innerReturnObjWhere.getMarkColor();
 						} else {
-							throw new IllegalArgumentException("Not contains values for condition!");
+							ColumnInfo colInfo = CommonService.getColumnInfo(tableNameInfo, columnNameInfo);
+							String typeName = colInfo.getTypeName();
+							int typeValue = CommonService.convertLength(colInfo.getTypeValue());
+							lastValue = CommonService.processGenValue(typeName, typeValue, "", "").get(0);
+							markColor = Constant.KEY_MARK_COLOR + Constant.STR_UNDERLINE + Constant.DEFAULT_NUM_MARK_COLOR;
 						}
 					}
 				}

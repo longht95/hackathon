@@ -1,6 +1,7 @@
 package sql.generator.hackathon.service.createdata.execute;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -8,6 +9,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
+
+import com.sun.xml.bind.v2.runtime.unmarshaller.XsiNilLoader.Array;
 
 @Service
 public class ExecInAndNotInService {
@@ -55,7 +58,8 @@ public class ExecInAndNotInService {
 		if (currentValues == null) {
 			return new ArrayList<String>();
 		}
-		return currentValues.stream().filter(x -> !x.contains(valueNotIn)).collect(Collectors.toList());
+		List<String> valuesNotIn = Arrays.asList(valueNotIn);
+		return processCalcLastValue2(currentValues, valuesNotIn);
 	}
 	
 	/**
@@ -64,8 +68,8 @@ public class ExecInAndNotInService {
 	 * @param valuesNotIn
 	 * @return
 	 */
-	private List<String> processCalcLastValue2(List<String> valuesIn, List<String> valuesNotIn) {
-		return valuesIn.stream().filter(x -> valuesNotIn.contains(x))
+	private List<String> processCalcLastValue2(List<String> currentValues, List<String> valuesNotIn) {
+		return currentValues.stream().filter(x -> !valuesNotIn.contains(x))
 				.collect(Collectors.toList());
 	}
 }

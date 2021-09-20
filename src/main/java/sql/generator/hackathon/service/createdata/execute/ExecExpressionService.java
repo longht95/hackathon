@@ -4,6 +4,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
@@ -15,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import sql.generator.hackathon.model.ColumnInfo;
+import sql.generator.hackathon.model.Condition;
 import sql.generator.hackathon.model.ObjectMappingTable;
 import sql.generator.hackathon.model.createdata.ColumnCondition;
 import sql.generator.hackathon.model.createdata.ExpressionObject;
@@ -55,12 +57,9 @@ public class ExecExpressionService {
 				ColumnInfo columnInfo = CommonService.getColumnInfo(tableAliasNameArr[0], arrColumnName[arrColumnName.length - 1]);
 				String dataType = CommonService.getCommonDataType(columnInfo.getTypeName());
 				int length = CommonService.convertLength(columnInfo.getTypeValue());
-				try {
-					ExpressionObject expressionObj = processCalcValue(conditions, tableAliasNameArr[0], columnInfo, dataType, length);
-					res.put(tableAliasColumnName, expressionObj);
-				} catch (SQLException e) {
-					e.printStackTrace();
-				}
+				processComparatorPriority(conditions);
+				ExpressionObject expressionObj = processCalcValue(conditions, tableAliasNameArr[0], columnInfo, dataType, length);
+				res.put(tableAliasColumnName, expressionObj);
 			}
 		}
 		return res;
@@ -71,14 +70,14 @@ public class ExecExpressionService {
 	 * @param conditions
 	 * @return
 	 */
-	public Comparator<ColumnCondition> processComparatorPriority() {
-		Comparator<ColumnCondition> comparator = new Comparator<ColumnCondition>() {
+	public void processComparatorPriority(List<ColumnCondition> conditions) {
+		Collections.sort(conditions, new Comparator<ColumnCondition>() {
 			@Override
 			public int compare(ColumnCondition o1, ColumnCondition o2) {
 				return Constant.priorityOperators.get(o1.getExpression()) - Constant.priorityOperators.get(o2.getExpression());
 			}
-		};
-		return comparator;
+			
+		});
 	}
 	
 	
@@ -160,6 +159,7 @@ public class ExecExpressionService {
 		
 		// Excute calculator compare expression
 		if (!conditionCompare.isEmpty()) {
+			comparatorForCompareExpress(conditionCompare, dataType);
 			List<String> valuesCompare = calcCompareExpression(conditionCompare, tableName, columnInfo, dataType, length);
 			listValidValue = processCalcLastValueWithValuesCompare(listValidValue, valuesInValid, valuesCompare);
 		}
@@ -168,8 +168,12 @@ public class ExecExpressionService {
 		if (!valuesInValid.isEmpty()) {
 			listValidValue = execInAndNotInService.processNotIn(listValidValue, valuesInValid);
 		}
-		res.setListValidValue(listValidValue);
 		
+		if (listValidValue.isEmpty() && (!flgEquals && !conditionCompare.isEmpty())) {
+			throw new IllegalArgumentException("Not found valid value for where condition!");
+		}
+		
+		res.setListValidValue(listValidValue);
 		return res;
 	}
 	
@@ -268,23 +272,23 @@ public class ExecExpressionService {
 	 * @param dataType
 	 * @return
 	 */
-	private Comparator<ColumnCondition> comparatorForCompareExpress(int sizeConditions, String dataType) {
-		return new Comparator<ColumnCondition>(){
-
+	private void comparatorForCompareExpress(List<ColumnCondition> conditions, String dataType) {
+		int sizeConditions = conditions.size();
+		Collections.sort(conditions, new Comparator<ColumnCondition>() {
 			@Override
 			public int compare(ColumnCondition o1, ColumnCondition o2) {
 				String val1 = o1.getValues().get(0);
 				String val2 = o2.getValues().get(0);
-				if (dataType.equals("number")) {
-					int x = Integer.parseInt(val1);
-					int y = Integer.parseInt(val2);
+				if (dataType.equals(Constant.STR_TYPE_NUMBER)) {
+					int x = CommonService.convertStringToInt(val1);
+					int y = CommonService.convertStringToInt(val2);
 					if (Integer.compare(x, y) == 0) {
 						int priority1 = Constant.priorityOperators.get(o1.getExpression());
 						int priority2 = Constant.priorityOperators.get(o2.getExpression());
 						return sizeConditions % 2 == 0 ? priority2 - priority1 : priority1 - priority2;
 					}
 					return Integer.compare(x, y);
-				} else if (dataType.equals("date")) {
+				} else if (dataType.equals(Constant.STR_TYPE_DATE)) {
 					Date x = CommonService.convertStringToDate(val1);
 					Date y = CommonService.convertStringToDate(val2);
 					if (x.compareTo(y) < 0) {
@@ -299,7 +303,7 @@ public class ExecExpressionService {
 				}
 				return 0;
 			}
-		};
+		});
 	}
 	
 	/**

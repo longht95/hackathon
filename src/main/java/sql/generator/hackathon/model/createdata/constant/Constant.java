@@ -5,7 +5,7 @@ import java.util.Map;
 
 public class Constant {
 	public static final Map<String, Integer> priorityOperators = new HashMap<>();
-	{
+	static {
 		priorityOperators.put("=", 1);
 		priorityOperators.put("IN", 2);
 		priorityOperators.put("LIKE", 3);
@@ -37,7 +37,7 @@ public class Constant {
 	public static final int DEFAULT_LENGTH = 9;
 	public static final int DEFAULT_NUMBER = 1;
 	
-	public static final int LIMIT_GEN_VALUE = 10000;
+	public static final int LIMIT_GEN_VALUE = 100;
 	
 	public static final int LENGTH_UNICODE_CHARACTER = 26;
 	

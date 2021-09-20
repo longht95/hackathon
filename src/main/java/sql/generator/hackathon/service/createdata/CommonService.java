@@ -1,6 +1,5 @@
 package sql.generator.hackathon.service.createdata;
 
-import java.sql.SQLException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
@@ -17,11 +16,13 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import sql.generator.hackathon.model.ColumnInfo;
+import sql.generator.hackathon.model.Cond;
 import sql.generator.hackathon.model.Condition;
 import sql.generator.hackathon.model.ObjectCommonCreate;
 import sql.generator.hackathon.model.ObjectGenate;
 import sql.generator.hackathon.model.ParseObject;
 import sql.generator.hackathon.model.TableSQL;
+import sql.generator.hackathon.model.createdata.InfoMappingTableColumnObject;
 import sql.generator.hackathon.model.createdata.constant.Constant;
 
 public class CommonService {
@@ -33,6 +34,7 @@ public class CommonService {
 		String typeConnection = objectGenate.getInfoDatabase().getType();
 		objCommon.setObjectGenate(objectGenate);
 		objCommon.setListTableName(getListTableName(parseObject.getListTableSQL()));
+		objCommon.setHasReFormat(new HashSet<>());
 		
 		Map<String, List<ColumnInfo>> tableInfo;
 		if (typeConnection.equalsIgnoreCase(Constant.STR_NO_CONNECTION)) {
@@ -43,6 +45,7 @@ public class CommonService {
 							objCommon.getListTableName());
 		}
 		objCommon.setTableInfo(tableInfo);
+		processReformatDataType(tableInfo, parseObject.getListTableSQL());
 	}
 	
 	public static ColumnInfo getColumnInfo(String tableName, String columnName) {
@@ -54,6 +57,39 @@ public class CommonService {
 			throw new IllegalStateException();
 		}
 		return res.get(0);
+	}
+	
+	public void processReFormatDataTypeForMapping(Map<String, List<Cond>> columnMap) {
+		if (!objCommon.getObjectGenate().getInfoDatabase().getType().equalsIgnoreCase(Constant.STR_NO_CONNECTION)) {
+			return;
+		}
+		for (Map.Entry<String, List<Cond>> e : columnMap.entrySet()) {
+			String tableAliasColumnName = getTableAliasColumnName(e.getKey());
+			
+			String[] arrTableColumnName = getArrInColumns(tableAliasColumnName); 
+			String tableName = arrTableColumnName[0];
+			String colName = arrTableColumnName[2];
+			String tableColumnName = tableName + Constant.STR_DOT + colName;
+			ColumnInfo t = getColumnInfo(tableName, colName);
+			if (objCommon.getHasReFormat().contains(tableColumnName)) {
+				String typeName = t.getTypeName();
+				String typeValue = t.getTypeValue();
+				for (Cond cond : e.getValue()) {
+					String[] arrTableColumnName1 = getArrInColumns(cond.value);
+					String[] arrTableColumnName2 = getArrInColumns(cond.rightValue);
+					ColumnInfo t1 = getColumnInfo(arrTableColumnName1[0], arrTableColumnName1[2]);
+					if (t1 != null) {
+						t1.setTypeName(typeName);;
+						t1.setTypeValue(typeValue);
+					}
+					ColumnInfo t2 = getColumnInfo(arrTableColumnName2[0], arrTableColumnName2[2]);
+					if (t2 != null) {
+						t2.setTypeName(typeName);;
+						t2.setTypeValue(typeValue);
+					} 
+				}
+			}
+		}
 	}
 	
 	/**
@@ -94,7 +130,7 @@ public class CommonService {
 				}
 				listColumn.add(tableColName[2]);
 				ColumnInfo colInfo = new ColumnInfo(tableColName[2], "", Constant.STR_TYPE_CHAR, String.valueOf(Constant.DEFAULT_LENGTH_TYPE_CHAR));
-				colInfo.tableAlias = tableColName[0];
+				colInfo.setTableAlias(tableColName[0]);
 				listColInfo.add(colInfo);
 			}
 			if (res.containsKey(table.getTableName())) {
@@ -275,6 +311,7 @@ public class CommonService {
 	public static Date convertStringToDate(String input) {
 		Date res = new Date();
 		try {
+			input = removeSpecifyCharacter("'", input);
 			String format = readFormatDate(input);
 			SimpleDateFormat sdf = new SimpleDateFormat(format);
 			res = sdf.parse(input);
@@ -307,7 +344,7 @@ public class CommonService {
 	public static int convertStringToInt(String input) {
 		int res;
 		try {
-			res = Integer.parseInt(input);
+			res = Integer.parseInt(removeSpecifyCharacter("'", input));
 		} catch (NumberFormatException e) {
 			return Constant.DEFAULT_LENGTH;
 		}
@@ -525,5 +562,107 @@ public class CommonService {
 	private static List<String> getListTableName(List<TableSQL> tables) {
 		Set<String> res = tables.stream().map(x -> x.tableName).collect(Collectors.toSet());
 		return res.stream().collect(Collectors.toList());
+	}
+	
+	private static void processReformatDataType(Map<String, List<ColumnInfo>> tableInfo, List<TableSQL> tables) {
+		Map<String, InfoMappingTableColumnObject> mappingTableColumn = new HashMap<>();
+		for (TableSQL table : tables) {
+			for (Condition condition : table.getCondition()) {
+				String[] tableColName = getArrInColumns(condition.getLeft());
+				String tableColumnName = table.getTableName() + Constant.STR_DOT + tableColName[2];
+				List<String> listExpression;
+				List<String> listValue;
+				if (mappingTableColumn.containsKey(tableColumnName)) {
+					listExpression = mappingTableColumn.get(tableColumnName).getListExpression();
+					listValue = mappingTableColumn.get(tableColumnName).getListValue();
+				} else {
+					InfoMappingTableColumnObject infoMappingTableColumnobj = new InfoMappingTableColumnObject();
+					listExpression = new ArrayList<>();
+					listValue = new ArrayList<>();
+					infoMappingTableColumnobj.setListExpression(listExpression);
+					infoMappingTableColumnobj.setListValue(listValue);
+					mappingTableColumn.put(tableColumnName, infoMappingTableColumnobj);
+				}
+				if (condition.getRight() != null) {
+					listValue.add(condition.getRight());
+				} else {
+					if (condition.getListRight() != null) {
+						listValue.addAll(condition.getListRight());
+					}
+				}
+				listExpression.add(condition.getExpression());
+			}
+		}
+		for (Map.Entry<String, InfoMappingTableColumnObject> e : mappingTableColumn.entrySet()) {
+			String[] arrTableColumnName = getArrInColumns(e.getKey());
+			InfoMappingTableColumnObject infoMappingTableColumnobj = e.getValue();
+			List<String> listExpression = infoMappingTableColumnobj.getListExpression();
+			List<String> listValue = infoMappingTableColumnobj.getListValue();
+			ColumnInfo columnInfo = getColumnInfo(arrTableColumnName[0], arrTableColumnName[2]);
+			String typeName = "";
+			String typeValue = "";
+			boolean flgReFormat = false;
+			for (String expression : listExpression) {
+				if (expression.equals(Constant.EXPRESSION_GREATER) || 
+						expression.equals(Constant.EXPRESSION_GREATER_EQUALS) ||
+						expression.equals(Constant.EXPRESSION_LESS) ||
+						expression.equals(Constant.EXPRESSION_LESS_EQUALS)) {
+					typeName = Constant.STR_TYPE_NUMBER;
+					typeValue = String.valueOf(Constant.DEFAULT_LENGTH);
+					flgReFormat = true;
+					break;
+				}
+			}
+			
+			for (String value : listValue) {
+				if (flgReFormat) {
+					break;
+				}
+				if (isNumber(value)) {
+					typeName = Constant.STR_TYPE_NUMBER;
+					typeValue = String.valueOf(Constant.DEFAULT_LENGTH);
+					flgReFormat = true;
+					break;
+				} else if (isDate(value)) {
+					typeName = Constant.STR_TYPE_DATE;
+					typeValue = null;
+					flgReFormat = true;
+					break;
+				} else {
+				}
+			}
+			
+			if (flgReFormat) {
+				columnInfo.setTypeName(typeName);
+				columnInfo.setTypeValue(typeValue);
+				String tableColumnName = arrTableColumnName[0] + Constant.STR_DOT + arrTableColumnName[2];
+				objCommon.getHasReFormat().add(tableColumnName);
+			}
+		}
+	}
+	
+	/**
+	 * Check is Number
+	 */
+	private static boolean isNumber(String origin) {
+		try {
+			Integer.parseInt(origin);
+		} catch (NumberFormatException e) {
+			return false;
+		}
+		return true;
+	}
+	
+	/**
+	 * Check is Number
+	 */
+	private static boolean isDate(String origin) {
+		try {
+			SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+			sdf.parse(removeSpecifyCharacter("'", origin));
+		} catch (ParseException e) {
+			return false;
+		}
+		return true;
 	}
 }
