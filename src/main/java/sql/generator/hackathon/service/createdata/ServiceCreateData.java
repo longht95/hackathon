@@ -12,10 +12,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import sql.generator.hackathon.model.ColumnInfo;
+import sql.generator.hackathon.model.Condition;
 import sql.generator.hackathon.model.CreateObject;
 import sql.generator.hackathon.model.InforTableReferFK;
 import sql.generator.hackathon.model.ObjectGenate;
 import sql.generator.hackathon.model.ParseObject;
+import sql.generator.hackathon.model.TableSQL;
 import sql.generator.hackathon.model.createdata.InnerReturnObjectFrom;
 import sql.generator.hackathon.model.createdata.InnerReturnObjectWhere;
 import sql.generator.hackathon.model.createdata.ReturnObjectFrom;
@@ -25,6 +27,7 @@ import sql.generator.hackathon.service.ExecuteDBSQLServer;
 import sql.generator.hackathon.service.ServerFaker;
 import sql.generator.hackathon.service.createdata.execute.ExecClientService;
 import sql.generator.hackathon.service.createdata.execute.ExecFromService;
+import sql.generator.hackathon.service.createdata.execute.ExecInAndNotInService;
 import sql.generator.hackathon.service.createdata.execute.ExecWhereService;
 
 @Service
@@ -38,6 +41,9 @@ public class ServiceCreateData {
 	
 	@Autowired
 	private ExecClientService execClientService;
+	
+	@Autowired
+	private ExecInAndNotInService execInAndNotInService;
 	
 	@Autowired
 	private ServerFaker fakerService;
@@ -63,6 +69,7 @@ public class ServiceCreateData {
 		try {
 			int rowCreate = objectGenate.getRow();
 			init(objectGenate, parseObject);
+			
 			
 			ReturnObjectWhere objWhere = execWhereService.processWhere(parseObject);
 			ReturnObjectFrom objFrom = execFromService.processFrom(parseObject, objWhere);
@@ -93,7 +100,28 @@ public class ServiceCreateData {
 
 		CommonService.init(objectGenate, parseObject);
 		execClientService.init(parseObject);
+		processFormatTableSQL(parseObject.getListTableSQL());
 	}
+	
+	private void processFormatTableSQL(List<TableSQL> tables) {
+		for (TableSQL table : tables) {
+			List<Condition> conditions = table.getCondition();
+			for (Condition cond : conditions) {
+				if (cond.getRight() != null && !cond.getRight().startsWith(Constant.STR_KEYS)) {
+					cond.setRight(CommonService.removeSpecifyCharacterFirstLastStr(Constant.CHAR_APOSTROPHE, cond.getRight()));
+				}
+				
+				if (cond.getListRight() != null) {
+					List<String> reListRight = new ArrayList<>();
+					for (String val : cond.getListRight()) {
+						reListRight.add(CommonService.removeSpecifyCharacterFirstLastStr(Constant.CHAR_APOSTROPHE, val));
+					}
+					cond.setListRight(reListRight);
+				}
+			}
+		}
+	}
+	
 	/**
 	 * Open connection
 	 * @param objectGenate
@@ -144,7 +172,9 @@ public class ServiceCreateData {
 							ColumnInfo colInfo = CommonService.getColumnInfo(tableNameInfo, columnNameInfo);
 							String typeName = colInfo.getTypeName();
 							int typeValue = CommonService.convertLength(colInfo.getTypeValue());
-							lastValue = CommonService.processGenValue(typeName, typeValue, "", "").get(0);
+							List<String> inValidValues = innerReturnObjWhere.getInValidValueForColumn();
+							lastValue = execInAndNotInService.processNotIn(CommonService.processGenValue(typeName, typeValue, "", ""), 
+									inValidValues).get(0);
 							markColor = Constant.KEY_MARK_COLOR + Constant.STR_UNDERLINE + Constant.DEFAULT_NUM_MARK_COLOR;
 						}
 					}
@@ -222,7 +252,7 @@ public class ServiceCreateData {
 				for (ColumnInfo colInfo : l) {
 					for (ColumnInfo d : data) {
 						if (colInfo.getName().equals(d.getName()) && colInfo.getTableAlias().equals(d.getTableAlias())) {
-							colInfo.setVal(CommonService.removeSpecifyCharacter("'", d.getVal()));
+							colInfo.setVal(CommonService.removeSpecifyCharacterFirstLastStr(Constant.CHAR_APOSTROPHE, d.getVal()));
 							colInfo.setColor(d.getColor());
 						}
 					}
@@ -251,7 +281,7 @@ public class ServiceCreateData {
 			for (ColumnInfo colInfo : l) {
 				if (colInfo.getUnique() && (colInfo.getVal() == null || colInfo.getVal().isEmpty())) {
 					try {
-						colInfo.setVal(CommonService.removeSpecifyCharacter("'", dbService.genListUniqueVal(tableName, colInfo, "", "").get(0)));
+						colInfo.setVal(CommonService.removeSpecifyCharacterFirstLastStr(Constant.CHAR_APOSTROPHE, dbService.genListUniqueVal(tableName, colInfo, "", "").get(0)));
 					} catch (SQLException e1) {
 						e1.printStackTrace();
 					}

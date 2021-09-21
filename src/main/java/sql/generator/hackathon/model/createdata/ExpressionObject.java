@@ -15,4 +15,5 @@ public class ExpressionObject {
 
 	private List<String> listValidValue;
 	private String lastValue;
+	private List<String> listInValidValue;
 }

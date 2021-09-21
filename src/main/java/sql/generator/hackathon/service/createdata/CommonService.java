@@ -198,6 +198,23 @@ public class CommonService {
 		return sb.toString();
 	}
 	
+	public static String removeSpecifyCharacterFirstLastStr(char needRemove, String origin) {
+		String res = "";
+		char[] arr = origin.toCharArray();
+		if (arr[0] == needRemove) {
+			if (arr[arr.length - 1] == needRemove) {
+				res = origin.substring(1, arr.length - 1);
+			} else {
+				res = origin.substring(1);
+			}
+		} else {
+			if (arr[arr.length - 1] == needRemove) {
+				res = origin.substring(0, arr.length - 1);
+			}
+		}
+		return res.isEmpty() ? origin : res;
+	}
+	
 	/**
 	 * Process Gen value
 	 */
@@ -258,6 +275,17 @@ public class CommonService {
 		return res;
 	}
 	
+	public static String processRemoveApostrophe(String input) {
+		return removeSpecifyCharacterFirstLastStr(Constant.CHAR_APOSTROPHE, input);
+	}
+	
+	public static List<String> processRemoveApostrophe(List<String> inputs) {
+		List<String> res = new ArrayList<>();
+		for (String input : inputs) {
+			res.add(processRemoveApostrophe(input));
+		}
+		return res;
+	}
 	/**
 	 * All data type will to 3 dataType below
 	 * number - char - date
@@ -311,7 +339,7 @@ public class CommonService {
 	public static Date convertStringToDate(String input) {
 		Date res = new Date();
 		try {
-			input = removeSpecifyCharacter("'", input);
+			input = removeSpecifyCharacterFirstLastStr(Constant.CHAR_APOSTROPHE, input);
 			String format = readFormatDate(input);
 			SimpleDateFormat sdf = new SimpleDateFormat(format);
 			res = sdf.parse(input);
@@ -344,7 +372,7 @@ public class CommonService {
 	public static int convertStringToInt(String input) {
 		int res;
 		try {
-			res = Integer.parseInt(removeSpecifyCharacter("'", input));
+			res = Integer.parseInt(removeSpecifyCharacterFirstLastStr(Constant.CHAR_APOSTROPHE, input));
 		} catch (NumberFormatException e) {
 			return Constant.DEFAULT_LENGTH;
 		}
@@ -568,6 +596,9 @@ public class CommonService {
 		Map<String, InfoMappingTableColumnObject> mappingTableColumn = new HashMap<>();
 		for (TableSQL table : tables) {
 			for (Condition condition : table.getCondition()) {
+				if (condition.getRight() != null && condition.getRight().startsWith(Constant.STR_KEYS)) {
+					continue;
+				}
 				String[] tableColName = getArrInColumns(condition.getLeft());
 				String tableColumnName = table.getTableName() + Constant.STR_DOT + tableColName[2];
 				List<String> listExpression;
@@ -646,7 +677,7 @@ public class CommonService {
 	 */
 	private static boolean isNumber(String origin) {
 		try {
-			Integer.parseInt(origin);
+			Integer.parseInt(removeSpecifyCharacterFirstLastStr(Constant.CHAR_APOSTROPHE, origin));
 		} catch (NumberFormatException e) {
 			return false;
 		}
@@ -659,7 +690,7 @@ public class CommonService {
 	private static boolean isDate(String origin) {
 		try {
 			SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-			sdf.parse(removeSpecifyCharacter("'", origin));
+			sdf.parse(removeSpecifyCharacterFirstLastStr(Constant.CHAR_APOSTROPHE, origin));
 		} catch (ParseException e) {
 			return false;
 		}

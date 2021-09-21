@@ -1,4 +1,4 @@
-package sql.generator.hackathon.service.createdata.execute;
+	package sql.generator.hackathon.service.createdata.execute;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -16,7 +16,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import sql.generator.hackathon.model.ColumnInfo;
-import sql.generator.hackathon.model.Condition;
 import sql.generator.hackathon.model.ObjectMappingTable;
 import sql.generator.hackathon.model.createdata.ColumnCondition;
 import sql.generator.hackathon.model.createdata.ExpressionObject;
@@ -174,6 +173,7 @@ public class ExecExpressionService {
 		}
 		
 		res.setListValidValue(listValidValue);
+		res.setListInValidValue(valuesInValid);
 		return res;
 	}
 	

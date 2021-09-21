@@ -44,7 +44,7 @@ public class ExecInAndNotInService {
 	 * @return
 	 */
 	public List<String> processNotIn(List<String> currentValues, List<String> valuesNotIn) {
-		if (currentValues == null) {
+		if (currentValues == null || currentValues.isEmpty()) {
 			return new ArrayList<String>();
 		}
 		
@@ -55,7 +55,7 @@ public class ExecInAndNotInService {
 	}
 	
 	public List<String> processNotIn(List<String> currentValues, String valueNotIn) {
-		if (currentValues == null) {
+		if (currentValues == null || currentValues.isEmpty()) {
 			return new ArrayList<String>();
 		}
 		List<String> valuesNotIn = Arrays.asList(valueNotIn);

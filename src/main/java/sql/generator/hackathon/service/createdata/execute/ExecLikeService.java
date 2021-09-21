@@ -41,7 +41,7 @@ public class ExecLikeService {
 				break;
 			}
 		}
-		return res;
+		return res.isEmpty() ? Arrays.asList(sb.toString()) : res;
 	}
 	
 	/**

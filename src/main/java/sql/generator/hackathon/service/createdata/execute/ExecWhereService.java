@@ -33,15 +33,14 @@ public class ExecWhereService {
 	public ReturnObjectWhere processWhere(ParseObject parseObject) throws SQLException {
 		init(parseObject);
 		
-		Map<String, ExpressionObject> validValueForColumn = execExpressionService.calcLastValue(mappingTables);
+		Map<String, ExpressionObject> valueForColumn = execExpressionService.calcLastValue(mappingTables);
 		
 		// TODO
 //		Map<String, List<String>> inValidValueForColumn = execExpressionService.getInValidValueForColumn(mappingTables);
-		Map<String, List<String>> inValidValueForColumn = new HashMap<>();
 		
 		ReturnObjectWhere objWhere = new ReturnObjectWhere();
 		objWhere.setValueMappingTableAliasColumn(new HashMap<>());
-		processReturn(objWhere, validValueForColumn, inValidValueForColumn);
+		processReturn(objWhere, valueForColumn);
 		return objWhere;
 	}
 
@@ -140,13 +139,13 @@ public class ExecWhereService {
 	}
 	
 	private void processReturn(ReturnObjectWhere objWhere, 
-			Map<String, ExpressionObject> validValueForColumn, 
-			Map<String, List<String>> inValidValueForColumn) {
+			Map<String, ExpressionObject> validValueForColumn) {
 		
 		validValueForColumn.entrySet().forEach(x -> {
 			String tableAliasColumnName = CommonService.getTableAliasColumnName(x.getKey());
 			ExpressionObject expressionObject = x.getValue(); 
 			List<String> listValidValue = expressionObject.getListValidValue();
+			List<String> listInValidValue = expressionObject.getListInValidValue();
 			String lastValue = expressionObject.getLastValue();
 			if (objWhere.getValueMappingTableAliasColumn() == null) {
 				Map<String, InnerReturnObjectWhere> valueMappingTableAliasColumn = new HashMap<>();
@@ -159,29 +158,30 @@ public class ExecWhereService {
 			InnerReturnObjectWhere innerReturnObjectWhere = new InnerReturnObjectWhere();
 			innerReturnObjectWhere.setValidValueForColumn(listValidValue);
 			innerReturnObjectWhere.setLastValue(lastValue);
+			innerReturnObjectWhere.setInValidValueForColumn(listInValidValue);
 			innerReturnObjectWhere.setMarkColor(Constant.KEY_MARK_COLOR + Constant.STR_UNDERLINE + Constant.DEFAULT_NUM_MARK_COLOR);
 			valueMappingTableAliasColumn.put(tableAliasColumnName, innerReturnObjectWhere);
 		});
 		
-		inValidValueForColumn.entrySet().forEach(x -> {
-			String tableAliasColumnName = CommonService.getTableAliasColumnName(x.getKey());
-			List<String> listInValidValue = x.getValue(); 
-			if (objWhere.getValueMappingTableAliasColumn() == null) {
-				Map<String, InnerReturnObjectWhere> valueMappingTableAliasColumn = new HashMap<>();
-				objWhere.setValueMappingTableAliasColumn(valueMappingTableAliasColumn);
-			}
-			if (objWhere.getValueMappingTableAliasColumn().containsKey(tableAliasColumnName)) {
-				throw new IllegalArgumentException("Duplicate process valid values!");
-			}
-			if (objWhere.getValueMappingTableAliasColumn().containsKey(tableAliasColumnName)) {
-				InnerReturnObjectWhere innerReturnObjectWhere = objWhere.getValueMappingTableAliasColumn().get(tableAliasColumnName);
-				innerReturnObjectWhere.setInValidValueForColumn(listInValidValue);
-			} else {
-				Map<String, InnerReturnObjectWhere> valueMappingTableAliasColumn = objWhere.getValueMappingTableAliasColumn();
-				InnerReturnObjectWhere innerReturnObjectWhere = new InnerReturnObjectWhere();
-				innerReturnObjectWhere.setInValidValueForColumn(listInValidValue);
-				valueMappingTableAliasColumn.put(tableAliasColumnName, innerReturnObjectWhere);
-			}
-		});
+//		inValidValueForColumn.entrySet().forEach(x -> {
+//			String tableAliasColumnName = CommonService.getTableAliasColumnName(x.getKey());
+//			List<String> listInValidValue = x.getValue(); 
+//			if (objWhere.getValueMappingTableAliasColumn() == null) {
+//				Map<String, InnerReturnObjectWhere> valueMappingTableAliasColumn = new HashMap<>();
+//				objWhere.setValueMappingTableAliasColumn(valueMappingTableAliasColumn);
+//			}
+//			if (objWhere.getValueMappingTableAliasColumn().containsKey(tableAliasColumnName)) {
+//				throw new IllegalArgumentException("Duplicate process valid values!");
+//			}
+//			if (objWhere.getValueMappingTableAliasColumn().containsKey(tableAliasColumnName)) {
+//				InnerReturnObjectWhere innerReturnObjectWhere = objWhere.getValueMappingTableAliasColumn().get(tableAliasColumnName);
+//				innerReturnObjectWhere.setInValidValueForColumn(listInValidValue);
+//			} else {
+//				Map<String, InnerReturnObjectWhere> valueMappingTableAliasColumn = objWhere.getValueMappingTableAliasColumn();
+//				InnerReturnObjectWhere innerReturnObjectWhere = new InnerReturnObjectWhere();
+//				innerReturnObjectWhere.setInValidValueForColumn(listInValidValue);
+//				valueMappingTableAliasColumn.put(tableAliasColumnName, innerReturnObjectWhere);
+//			}
+//		});
 	}
 }

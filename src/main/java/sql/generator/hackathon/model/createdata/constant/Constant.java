@@ -48,6 +48,8 @@ public class Constant {
 	public static final String STR_DOT = ".";
 	public static final String STR_UNDERLINE = "_";
 	
+	public static final String STR_APOSTROPHE = "'";
+	
 	public static final String STR_TYPE_CHAR = "char";
 	public static final String STR_TYPE_NUMBER = "number";
 	public static final String STR_TYPE_DATE = "date";
@@ -64,4 +66,7 @@ public class Constant {
 	
 	// DATE TIME
 	public static final String DEFAULT_FORMAT_DATE = "yyyy-MM-dd";
+	
+	
+	public static final char CHAR_APOSTROPHE = '\'';
 }
