@@ -21,7 +21,7 @@ jQuery(function ($) {
             defaultOperatorClass: 'flowchart-default-operator',
             defaultLinkColor: '#3366ff',
             defaultSelectedLinkColor: 'black',
-            linkWidth: 10,
+            linkWidth: 2,
             grid: 20,
             multipleLinksOnOutput: false,
             multipleLinksOnInput: false,

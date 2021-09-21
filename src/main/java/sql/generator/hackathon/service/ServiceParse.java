@@ -43,6 +43,9 @@ import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.Statement;
+import net.sf.jsqlparser.statement.create.table.CreateTable;
+import net.sf.jsqlparser.statement.create.table.ForeignKeyIndex;
+import net.sf.jsqlparser.statement.create.table.Index;
 import net.sf.jsqlparser.statement.insert.Insert;
 import net.sf.jsqlparser.statement.select.AllColumns;
 import net.sf.jsqlparser.statement.select.FromItem;
@@ -69,8 +72,8 @@ public class ServiceParse {
 	private Map<String, List<String>> mappingKey;
 	private static Map<String, String> reverseExpression = new HashMap<>();
 	private List<Condition> listCondition;
-	private Map<String,Set<ColumnInfo>> listColumnInfo;
-	
+	private Map<String, Set<ColumnInfo>> listColumnInfo;
+
 	public static final String NOT_IN = "NOT IN";
 	public static final String IN = "IN";
 	public static final String GREATHER_OR_EQUAL = ">=";
@@ -82,7 +85,7 @@ public class ServiceParse {
 	public static final String DOT = ".";
 	public static final String LIKE = "LIKE";
 	private int state = 1;
-	
+
 	private Map<String, Set<String>> listColumnAlias;
 
 	static {
@@ -93,41 +96,89 @@ public class ServiceParse {
 		reverseExpression.put(">=", "<");
 		reverseExpression.put("<=", ">");
 	}
-	
+
 	public Map<String, TableSQL> getColumnInfo(String query) throws JSQLParserException {
-		Select select = (Select) CCJSqlParserUtil.parse(query);
-		listColumnInfo = new HashMap<>();
+		String result[] = query.split(";");
 		tables = new HashMap<>();
-		parentAlias = new HashMap<>();
-		listColumnAlias = new HashMap<>();
-		SelectBody selectBody = select.getSelectBody();
-		processSelectBody(selectBody, null);
-		processColumnWithAlias();
+		for (String querySingle : result) {
+			Statement statement = CCJSqlParserUtil.parse(querySingle);
+			if (statement instanceof CreateTable) {
+				CreateTable createTable = (CreateTable) statement;
+				TableSQL tableSQL = TableSQL.builder().tableName(createTable.getTable().getName()).build();
+				tableSQL.columns = createTable.getColumnDefinitions().stream().map(item -> item.getColumnName())
+						.collect(Collectors.toSet());
+				tableSQL.condition = new ArrayList<>();
+				tables.put(tableSQL.getTableName(), tableSQL);
+			}
+			if (statement instanceof Insert) {
+				Insert insert = (Insert) statement;
+				TableSQL tableSQL = TableSQL.builder().tableName(insert.getTable().getName()).build();
+				tableSQL.columns = insert.getColumns().stream().map(item -> item.getName(false))
+						.collect(Collectors.toSet());
+				tableSQL.condition = new ArrayList<>();
+				tables.put(tableSQL.getTableName(), tableSQL);
+			}
+			if (statement instanceof Select) {
+				Select select = (Select) statement;
+				listColumnInfo = new HashMap<>();
+				parentAlias = new HashMap<>();
+				listColumnAlias = new HashMap<>();
+				SelectBody selectBody = select.getSelectBody();
+				processSelectBody(selectBody, null);
+				processColumnWithAlias();
+				return tables;
+			}
+		}
+
 		return tables;
 	}
-	
+
 	public List<InfoDisplayScreen> getColumnInfoView(String query) throws JSQLParserException {
-		Select select = (Select) CCJSqlParserUtil.parse(query);
-		listColumnInfo = new HashMap<>();
-		tables = new HashMap<>();
-		parentAlias = new HashMap<>();
-		listColumnAlias = new HashMap<>();
-		SelectBody selectBody = select.getSelectBody();
-		processSelectBody(selectBody, null);
-		processColumnWithAlias();
-		List<InfoDisplayScreen> listInfo = new ArrayList<>();
-		
-		tables.entrySet().forEach(x -> {
-			InfoDisplayScreen infoDisplayScreen = new InfoDisplayScreen();
-			infoDisplayScreen.tableName = tables.get(x.getKey()).getTableName();
-			if (x.getValue().getColumns() != null) {
-				infoDisplayScreen.listColumnName = x.getValue().getColumns().stream().collect(Collectors.toList());
+		String result[] = query.split(";");
+		List<InfoDisplayScreen> listInfoDisplayScreen = new ArrayList<>();
+		for (String querySingle : result) {
+			Statement statement = CCJSqlParserUtil.parse(querySingle);
+			if (statement instanceof Insert) {
+				Insert insert = (Insert) statement;
+				InfoDisplayScreen infoDisplayScreen = new InfoDisplayScreen();
+				infoDisplayScreen.tableName = insert.getTable().getName();
+				infoDisplayScreen.listColumnName = insert.getColumns().stream().map(item -> item.getName(false))
+						.collect(Collectors.toList());
+				listInfoDisplayScreen.add(infoDisplayScreen);
 			}
-			listInfo.add(infoDisplayScreen);
-		});
-		return listInfo;
+			if (statement instanceof CreateTable) {
+				CreateTable createTable = (CreateTable) statement;
+				InfoDisplayScreen infoDisplayScreen = new InfoDisplayScreen();
+				infoDisplayScreen.tableName = createTable.getTable().getName();
+				infoDisplayScreen.listColumnName = createTable.getColumnDefinitions().stream()
+						.map(item -> item.getColumnName()).collect(Collectors.toList());
+				listInfoDisplayScreen.add(infoDisplayScreen);
+			}
+			if (statement instanceof Select) {
+				Select select = (Select) statement;
+				listColumnInfo = new HashMap<>();
+				tables = new HashMap<>();
+				parentAlias = new HashMap<>();
+				listColumnAlias = new HashMap<>();
+				SelectBody selectBody = select.getSelectBody();
+				processSelectBody(selectBody, null);
+				processColumnWithAlias();
+				List<InfoDisplayScreen> listInfo = new ArrayList<>();
+				tables.entrySet().forEach(x -> {
+					InfoDisplayScreen infoDisplayScreen = new InfoDisplayScreen();
+					infoDisplayScreen.tableName = tables.get(x.getKey()).getTableName();
+					if (x.getValue().getColumns() != null) {
+						infoDisplayScreen.listColumnName = x.getValue().getColumns().stream()
+								.collect(Collectors.toList());
+					}
+					listInfo.add(infoDisplayScreen);
+				});
+				return listInfo;
+			}
+		}
+		return listInfoDisplayScreen;
 	}
-	
+
 	private void processColumnWithAlias() {
 		listColumnAlias.entrySet().forEach(x -> {
 			TableSQL tbl = tables.get(x.getKey());
@@ -148,18 +199,18 @@ public class ServiceParse {
 							if (tbl.columns != null) {
 								listTMP = tbl.columns;
 							}
-							
+
 							listTMP.addAll(x.getValue());
 							tbl.setColumns(listTMP);
 							tables.put(s, tbl);
 						}
-						
+
 					}
 				}
 			}
 		});
 	}
-	
+
 	private void processSelectBody(SelectBody selectBody, Alias alias) throws JSQLParserException {
 		if (selectBody instanceof PlainSelect) {
 			processSingle((PlainSelect) selectBody, alias);
@@ -179,15 +230,16 @@ public class ServiceParse {
 		if (selectItems != null) {
 			selectItems.forEach(item -> {
 				if (item instanceof AllColumns) {
-					System.out.println("ALL COLUMN"+item);
+					System.out.println("ALL COLUMN" + item);
 				}
-				
+
 				if (item instanceof SelectExpressionItem) {
 					SelectExpressionItem selectExpressionItem = (SelectExpressionItem) item;
 					if (selectExpressionItem.getExpression() instanceof Column) {
 						Column column = (Column) selectExpressionItem.getExpression();
 
-						String aliasOrTableName = Optional.ofNullable(column.getTable()).orElse(new Table(alias)).getName();
+						String aliasOrTableName = Optional.ofNullable(column.getTable()).orElse(new Table(alias))
+								.getName();
 
 						Set<String> listColumn = listColumnAlias.getOrDefault(aliasOrTableName, new HashSet<>());
 
@@ -205,11 +257,11 @@ public class ServiceParse {
 						}
 					}
 				}
-				
+
 			});
 		}
 	}
-	
+
 	private void processSingle(PlainSelect plainSelect, Alias alias) throws JSQLParserException {
 		String tableNameORAlias;
 		if (plainSelect.getFromItem() instanceof Table) {
@@ -222,7 +274,6 @@ public class ServiceParse {
 			}
 			tableNameORAlias = plainSelect.getFromItem().getAlias().getName();
 		}
-
 		processFrom(plainSelect.getFromItem(), alias);
 		List<Join> joins = plainSelect.getJoins();
 		if (joins != null && !joins.isEmpty()) {
@@ -242,7 +293,8 @@ public class ServiceParse {
 
 	private void processUsingJoin(Column column, Join join, FromItem fromItem) {
 		String aliasLeft = fromItem.getAlias() != null ? fromItem.getAlias().getName() : fromItem.toString();
-		String aliasRight = join.getRightItem().getAlias() != null ? join.getRightItem().getAlias().getName() : join.getRightItem().toString();
+		String aliasRight = join.getRightItem().getAlias() != null ? join.getRightItem().getAlias().getName()
+				: join.getRightItem().toString();
 		Set<String> listLeft = listColumnAlias.get(aliasLeft);
 		if (listLeft == null) {
 			listLeft = new HashSet<>();
@@ -256,8 +308,9 @@ public class ServiceParse {
 		listRight.add(column.getColumnName());
 		listColumnAlias.put(aliasRight, listRight);
 	}
-	
-	private void processJoinColumn(Join join, FromItem fromItem, List<SelectItem> selectItems) throws JSQLParserException {
+
+	private void processJoinColumn(Join join, FromItem fromItem, List<SelectItem> selectItems)
+			throws JSQLParserException {
 		if (join.getRightItem() instanceof SubSelect) {
 			SubSelect subSelect = (SubSelect) join.getRightItem();
 			processExpression(join.getOnExpression(), fromItem);
@@ -269,14 +322,16 @@ public class ServiceParse {
 			if (join.getUsingColumns() != null && !join.getUsingColumns().isEmpty()) {
 				processUsingJoin(join.getUsingColumns().get(0), join, fromItem);
 			}
-			
-			String tableNameORAlias = join.getRightItem().getAlias() != null ? join.getRightItem().getAlias().getName() : join.getRightItem().toString();
+
+			String tableNameORAlias = join.getRightItem().getAlias() != null ? join.getRightItem().getAlias().getName()
+					: join.getRightItem().toString();
 			if (selectItems != null && !selectItems.isEmpty()) {
-				listColumnAlias.put(tableNameORAlias.replace(" ", ""),selectItems.stream().map(x -> x.toString()).collect(Collectors.toSet()));
+				listColumnAlias.put(tableNameORAlias.replace(" ", ""),
+						selectItems.stream().map(x -> x.toString()).collect(Collectors.toSet()));
 			}
 		}
 	}
-	
+
 	private void processExpression(Expression expression, FromItem fromItem) throws JSQLParserException {
 		if (expression != null) {
 			if (expression instanceof NotExpression) {
@@ -291,7 +346,7 @@ public class ServiceParse {
 			expression.accept(new ExpressionVisitorAdapter() {
 				@Override
 				protected void visitBinaryExpression(BinaryExpression expr) {
-					
+
 					if (expr.getLeftExpression() instanceof Column) {
 
 						Column column = (Column) expr.getLeftExpression();
@@ -323,7 +378,6 @@ public class ServiceParse {
 				}
 			});
 		}
-		
 
 	}
 
@@ -338,7 +392,7 @@ public class ServiceParse {
 			}
 		}
 	}
-	
+
 	private void processTableColumn(FromItem fromItem) {
 		Table table = (Table) fromItem;
 		String alias = table.getAlias() != null ? table.getAlias().getName() : table.getName();
@@ -348,28 +402,6 @@ public class ServiceParse {
 		}
 		listColumnInfo.put(alias, columnInfo);
 	}
-
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
 
 	public List<String> dataToSqlInsert(Map<String, List<List<ColumnInfo>>> listData) {
 
@@ -401,22 +433,103 @@ public class ServiceParse {
 		listCondition = new ArrayList<>();
 		mappingKey = new HashMap<>();
 		state = 1;
-		Select select = (Select) CCJSqlParserUtil.parse(query);
-		processSelectBody(select.getSelectBody(), false, null);
-		processPushCondition();
-		ParseObject parseObject = new ParseObject();
-		parseObject.listTableSQL = tables.entrySet().stream().map(table -> table.getValue())
-				.collect(Collectors.toList());
-		parseObject.mappingKey = mappingKey;
-		System.out.println(listCondition.toString());
-		return parseObject;
+		String result[] = query.split(";");
+		ParseObject parseCreate = new ParseObject();
+		parseCreate.listTableSQL = new ArrayList<>();
+		boolean isCreate = false;
+		for (String querySingle : result) {
+			Statement statement = CCJSqlParserUtil.parse(querySingle);
+			if (statement instanceof Insert) {
+				Insert insert = (Insert) statement;
+				TableSQL tableSQL = TableSQL.builder().tableName(insert.getTable().getName()).build();
+				tableSQL.columns = insert.getColumns().stream().map(item -> item.getName(false))
+						.collect(Collectors.toSet());
+				tableSQL.condition = new ArrayList<>();
+				parseCreate.listTableSQL.add(tableSQL);
+			}
+			if (statement instanceof CreateTable) {
+				isCreate = true;
+				CreateTable createTable = (CreateTable) statement;
+				TableSQL tableSQL = TableSQL.builder().tableName(createTable.getTable().getName())
+						.alias(createTable.getTable().getName()).build();
+				tableSQL.columns = createTable.getColumnDefinitions().stream().map(item -> item.getColumnName())
+						.collect(Collectors.toSet());
+				tableSQL.condition = new ArrayList<>();
+				if (createTable.getIndexes() != null && !createTable.getIndexes().isEmpty()) {
+					for (Index index : createTable.getIndexes()) {
+						if (index instanceof ForeignKeyIndex) {
+							ForeignKeyIndex foreignKeyIndex = (ForeignKeyIndex) index;
+							mappingKey.put("KEY" + state,
+		 							Arrays.asList(
+											foreignKeyIndex.getTable().getName() + "."
+													+ foreignKeyIndex.getReferencedColumnNames().get(0),
+											tableSQL.tableName + "." + foreignKeyIndex.getColumnsNames().get(0)));
+							System.out.println(Arrays.asList(
+									foreignKeyIndex.getTable().getName() + "."
+											+ foreignKeyIndex.getReferencedColumnNames().get(0),
+									tableSQL.tableName + "." + foreignKeyIndex.getColumnsNames().get(0)));
+							state++;
+						}
+					}
+				}
+				parseCreate.listTableSQL.add(tableSQL);
+			}
+			if (statement instanceof Select) {
+				Select select = (Select) statement;
+				processSelectBody(select.getSelectBody(), false, null);
+				processPushCondition();
+				parseCreate.listTableSQL = tables.entrySet().stream().map(table -> table.getValue())
+						.collect(Collectors.toList());
+				System.out.println("XXXXXXXXXXXXX");
+				System.out.println(tables.toString());
+				System.out.println(listCondition.toString());
+				System.out.println(mappingKey.toString());
+			}
+		}
+		parseCreate.mappingKey = mappingKey;
+		if (isCreate) {
+			mappingKey.entrySet().forEach(key -> {
+				List<String> listCondition = key.getValue();
+				boolean existTBL1 = parseCreate.listTableSQL.stream()
+						.anyMatch(t -> t.tableName.equals(listCondition.get(0).split("\\.")[0]));
+				boolean existTBL2 = parseCreate.listTableSQL.stream()
+						.anyMatch(t -> t.tableName.equals(listCondition.get(1).split("\\.")[0]));
+				if (existTBL1 && existTBL2) {
+					key.getValue().forEach(tbl -> {
+						String alias = tbl.split("\\.")[0];
+						Optional<TableSQL> tblSQL = parseCreate.listTableSQL.stream()
+								.filter(p -> p.tableName.equals(alias)).findFirst();
+						if (tblSQL.isPresent()) {
+							tblSQL.get().condition
+									.add(Condition.builder().left(tbl).expression("=").right(key.getKey()).build());
+						}
+					});
+				}
+			});
+		}
+		return parseCreate;
 	}
 
 	public List<String> getListTableByStatement(String query) throws JSQLParserException {
-		Statement statement = CCJSqlParserUtil.parse(query);
-		Select selectStatement = (Select) statement;
-		TablesNamesFinder tablesNamesFinder = new TablesNamesFinder();
-		return tablesNamesFinder.getTableList(selectStatement);
+		String result[] = query.split(";");
+		List<String> listTable = new ArrayList<>();
+		for (String querySingle : result) {
+			Statement statement = CCJSqlParserUtil.parse(querySingle);
+			if (statement instanceof Select) {
+				Select selectStatement = (Select) statement;
+				TablesNamesFinder tablesNamesFinder = new TablesNamesFinder();
+				listTable.addAll(tablesNamesFinder.getTableList(selectStatement));
+			}
+			if (statement instanceof CreateTable) {
+				CreateTable createTable = (CreateTable) statement;
+				listTable.add(createTable.getTable().getName());
+			}
+			if (statement instanceof Insert) {
+				Insert insert = (Insert) statement;
+				listTable.add(insert.getTable().getName());
+			}
+		}
+		return listTable;
 	}
 
 	private void processPushCondition() {
@@ -515,7 +628,6 @@ public class ServiceParse {
 		if (tbl == null) {
 			tbl = TableSQL.builder().tableName(table.getName()).alias(alias).condition(new ArrayList<>()).build();
 		}
-		System.out.println("PROCESS TABLE : " + tbl.toString());
 		tables.put(tbl.getAlias(), tbl);
 	}
 
@@ -542,8 +654,7 @@ public class ServiceParse {
 					return ((LongValue) i).getValue();
 				}
 				return 0;
-			})
-					.max().getAsLong();
+			}).max().getAsLong();
 			condition = Condition.builder().left(column.getFullyQualifiedName())
 					.expression(binaryExpression.getStringExpression()).function(function.getName())
 					.right(String.valueOf(maxValue)).build();
@@ -556,27 +667,29 @@ public class ServiceParse {
 					.expression(binaryExpression.getStringExpression()).function(function.getName())
 					.right(expressionList.get(0)).build();
 		}
-		
+
 		if (Objects.nonNull(condition)) {
 			listCondition.add(condition);
 		}
 	}
-	
+
 	private void processComparisonExpression(Expression expression, String currentAlias) throws JSQLParserException {
 		BinaryExpression binaryExpression = (BinaryExpression) expression;
 		Column column = (Column) binaryExpression.getLeftExpression();
 		Condition condition = null;
 		if (binaryExpression.getRightExpression() instanceof AllComparisonExpression) {
-			AllComparisonExpression allComparisonExpression = (AllComparisonExpression) binaryExpression.getRightExpression();
+			AllComparisonExpression allComparisonExpression = (AllComparisonExpression) binaryExpression
+					.getRightExpression();
 			allComparisonExpression.getSubSelect();
 			processSelectBody(allComparisonExpression.getSubSelect().getSelectBody(), null);
 		}
 		if (binaryExpression.getRightExpression() instanceof AnyComparisonExpression) {
-			AnyComparisonExpression anyComparisonExpression = (AnyComparisonExpression) binaryExpression.getRightExpression();
+			AnyComparisonExpression anyComparisonExpression = (AnyComparisonExpression) binaryExpression
+					.getRightExpression();
 			processSelectBody(anyComparisonExpression.getSubSelect().getSelectBody(), null);
 		}
 	}
-	
+
 	private void processExpression(Expression expression, boolean isNot, FromItem alias) throws JSQLParserException {
 		String currentAlias;
 		if (alias instanceof Table) {
@@ -629,7 +742,7 @@ public class ServiceParse {
 				listCondition.add(condition);
 			} else if (binary.getLeftExpression() instanceof Column
 					&& binary.getRightExpression() instanceof SubSelect) {
-				
+
 				Column leftColumn = (Column) binary.getLeftExpression();
 				if (leftColumn.getTable() == null) {
 					leftColumn.setTable(new Table(currentAlias));
@@ -648,9 +761,9 @@ public class ServiceParse {
 					}
 				}).collect(Collectors.toList()));
 				Condition condition = Condition.builder().left(leftColumn.toString())
-						.expression(binary.getStringExpression()).right("KEY"+state).build();
+						.expression(binary.getStringExpression()).right("KEY" + state).build();
 				Condition conditionRight = Condition.builder().left(selectItems.get(0).toString())
-						.expression(binary.getStringExpression()).right("KEY"+state).build();
+						.expression(binary.getStringExpression()).right("KEY" + state).build();
 				listCondition.add(condition);
 				listCondition.add(conditionRight);
 				mappingKey.put("KEY" + state,
@@ -663,14 +776,17 @@ public class ServiceParse {
 					|| binary.getRightExpression() instanceof AnyComparisonExpression) {
 				processComparisonExpression(binary, currentAlias);
 			} else {
-				Column leftColumn = (Column) binary.getLeftExpression();
-				if (leftColumn.getTable() == null) {
-					leftColumn.setTable(new Table(currentAlias));
+				if (binary.getLeftExpression() instanceof Column) {
+					Column leftColumn = (Column) binary.getLeftExpression();
+					if (leftColumn.getTable() == null) {
+						leftColumn.setTable(new Table(currentAlias));
+					}
+					Condition condition = Condition.builder().left(leftColumn.toString())
+							.expression(isNot ? reverseExpression.get(binary.getStringExpression())
+									: binary.getStringExpression())
+							.right(binary.getRightExpression().toString()).build();
+					listCondition.add(condition);
 				}
-				Condition condition = Condition.builder().left(leftColumn.toString()).expression(
-						isNot ? reverseExpression.get(binary.getStringExpression()) : binary.getStringExpression())
-						.right(binary.getRightExpression().toString()).build();
-				listCondition.add(condition);
 			}
 		} else if (expression instanceof AndExpression) {
 			AndExpression andExpression = (AndExpression) expression;
@@ -771,7 +887,8 @@ public class ServiceParse {
 					leftColumn.setTable(new Table(currentAlias));
 				}
 				Condition condition = Condition.builder().left(leftColumn.toString())
-						.expression(likeExpression.isNot() ? "NOT LIKE" : "LIKE").right(likeExpression.getRightExpression().toString()).build();
+						.expression(likeExpression.isNot() ? "NOT LIKE" : "LIKE")
+						.right(likeExpression.getRightExpression().toString()).build();
 				listCondition.add(condition);
 			}
 		} else if (expression instanceof Between) {
@@ -862,7 +979,6 @@ public class ServiceParse {
 				listCondition.add(condition);
 			}
 		}
-		
-		
+
 	}
 }
