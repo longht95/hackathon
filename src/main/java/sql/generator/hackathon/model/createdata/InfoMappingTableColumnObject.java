@@ -1,7 +1,6 @@
-package sql.generator.hackathon.model;
+package sql.generator.hackathon.model.createdata;
 
 import java.util.List;
-import java.util.Map;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -12,8 +11,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class CreateObject {
+public class InfoMappingTableColumnObject {
 
-	public Map<String, List<List<ColumnInfo>>> listData;
-	public List<String> listMarkColor;
+	private List<String> listExpression;
+	private List<String> listValue;
 }

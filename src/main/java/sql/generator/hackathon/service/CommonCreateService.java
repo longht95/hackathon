@@ -206,7 +206,8 @@ public class CommonCreateService {
 			for (ColumnInfo colInfo : curListColumn) {
 				for (ColumnInfo c : client) {
 					if (c.val != null && !c.val.equals("null") 
-							&& colInfo.getName().equals(c.getName()) && colInfo.val.isEmpty()) {
+							&& colInfo.getName().equals(c.getName()) && 
+							(colInfo.getVal() == null || colInfo.getVal().isEmpty())) {
 						colInfo.val = c.val;
 					}
 				}

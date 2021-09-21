@@ -2,6 +2,7 @@ package sql.generator.hackathon.model;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -12,8 +13,9 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class CreateObject {
-
-	public Map<String, List<List<ColumnInfo>>> listData;
-	public List<String> listMarkColor;
+public class ObjectCommonCreate {
+	private ObjectGenate objectGenate;
+	private List<String> listTableName;
+	private Map<String, List<ColumnInfo>> tableInfo;
+	private Set<String> hasReFormat;
 }
