@@ -83,15 +83,13 @@ public class ExecClientService {
 	/**
 	 * Add column get from select
 	 */
-	public void addColumnGetFromSelect(List<ColumnInfo> columns, String tableName, String aliasName) {
+	public void addColumnGetFromSelect(List<ColumnInfo> columns, String aliasName) {
 		if (!commonService.objCommon.getObjectGenate().getInfoDatabase().getType().equalsIgnoreCase(Constant.STR_NO_CONNECTION)) {
 			return;
 		}
 
 		Set<String> columnInSelect;
-		if (fullTableInfo.get(tableName) != null) {
-			columnInSelect = fullTableInfo.get(tableName).getColumns();
-		} else if (fullTableInfo.get(aliasName) != null) {
+		if (fullTableInfo.get(aliasName) != null) {
 			columnInSelect = fullTableInfo.get(aliasName).getColumns();
 		} else {
 			return;

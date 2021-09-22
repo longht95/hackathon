@@ -47,10 +47,10 @@ public class CommonService {
 		this.dbService = dbService;
 		
 		Map<String, List<ColumnInfo>> tableInfo;
+		objCommon.setListTableAlias(getListTableAlias(parseObject.getListTableSQL()));
 		if (typeConnection.equalsIgnoreCase(Constant.STR_NO_CONNECTION)) {
 			tableInfo = getInfoTableWithoutConnect(parseObject.getListTableSQL());
 		} else {
-			objCommon.setListTableAlias(getListTableAlias(parseObject.getListTableSQL()));
 			tableInfo = dbService.getInforTable(objCommon.getObjectGenate().getInfoDatabase().getSchema(), 
 							objCommon.getListTableName(), objCommon.getListTableAlias());
 		}
@@ -121,6 +121,21 @@ public class CommonService {
 			}
 		};
 		return res;
+	}
+	
+	public <T> List<T> processMergeList(List<T> list1, List<T> list2){
+		Set<T> set = new HashSet<>();
+		if (list1 == null) {
+			return list2;
+		}
+		
+		if (list2 == null) {
+			return list1;
+		}
+		
+		set.addAll(list1.stream().collect(Collectors.toSet()));
+		set.addAll(list2.stream().collect(Collectors.toSet()));
+		return set.stream().collect(Collectors.toList());
 	}
 	
 	/**
@@ -715,6 +730,13 @@ public class CommonService {
 		for (TableSQL table : tables) {
 			String tableName = table.getTableName();
 			List<Condition> conditions = table.getCondition();
+			String aliasName = table.getAlias();
+			if (!res.containsKey(tableName)) {
+				res.put(tableName, new ArrayList<>());
+			}
+			if (!res.get(tableName).contains(aliasName)) {
+				res.get(tableName).add(aliasName);
+			}
 			for (Condition condition : conditions) {
 				String[] tableColName = getArrInColumns(condition.getLeft());
 				if (!res.containsKey(tableName)) {

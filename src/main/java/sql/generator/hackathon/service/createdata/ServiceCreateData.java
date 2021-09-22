@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -123,17 +124,6 @@ public class ServiceCreateData {
 				}
 			}
 		}
-	}
-	
-	/**
-	 * Open connection
-	 * @param objectGenate
-	 * @throws Exception
-	 */
-	private void openConnection(ObjectGenate objectGenate) throws Exception {
-		dbService.connectDB(objectGenate.infoDatabase.getType(), objectGenate.infoDatabase.getUrl(), 
-				objectGenate.infoDatabase.getSchema(), objectGenate.infoDatabase.getUser(), 
-				objectGenate.infoDatabase.getPassword());
 	}
 	
 	private Map<String, List<ColumnInfo>> processCalcLastValue(ReturnObjectFrom objFrom, ReturnObjectWhere objWhere) {
@@ -290,8 +280,13 @@ public class ServiceCreateData {
 					}
 				}
 			}
+
+			List<String> listAliasTable2 = commonService.objCommon.getListTableAlias().get(tableName);
+			if (listAliasTable2 != null) {
+				listAliasTable = commonService.processMergeList(listAliasTable, listAliasTable2);
+			}
 			
-			listAliasTable.stream().forEach(x -> execClientService.addColumnGetFromSelect(l, tableName, x));
+			listAliasTable.stream().forEach(x -> execClientService.addColumnGetFromSelect(l, x));
 			execClientService.setClientData(tableName, idxRow, l, dataPicker);
 			
 			// Add default value
