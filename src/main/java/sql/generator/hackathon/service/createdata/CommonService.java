@@ -15,6 +15,8 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.springframework.stereotype.Service;
+
 import sql.generator.hackathon.model.ColumnInfo;
 import sql.generator.hackathon.model.Cond;
 import sql.generator.hackathon.model.Condition;
@@ -24,31 +26,39 @@ import sql.generator.hackathon.model.ParseObject;
 import sql.generator.hackathon.model.TableSQL;
 import sql.generator.hackathon.model.createdata.InfoMappingTableColumnObject;
 import sql.generator.hackathon.model.createdata.constant.Constant;
+import sql.generator.hackathon.service.ExecuteDBSQLServer;
 
+@Service
 public class CommonService {
 
-	public static ObjectCommonCreate objCommon;
+	public ObjectCommonCreate objCommon;
+	
+	private ExecuteDBSQLServer dbService;
+	
 
-	public static void init(ObjectGenate objectGenate, ParseObject parseObject) throws Exception {
+	public void init(ExecuteDBSQLServer dbService, ObjectGenate objectGenate, 
+			ParseObject parseObject) throws Exception {
 		objCommon = new ObjectCommonCreate();
 		String typeConnection = objectGenate.getInfoDatabase().getType();
 		objCommon.setObjectGenate(objectGenate);
 		objCommon.setListTableName(getListTableName(parseObject.getListTableSQL()));
 		objCommon.setHasReFormat(new HashSet<>());
 		
+		this.dbService = dbService;
+		
 		Map<String, List<ColumnInfo>> tableInfo;
+		objCommon.setListTableAlias(getListTableAlias(parseObject.getListTableSQL()));
 		if (typeConnection.equalsIgnoreCase(Constant.STR_NO_CONNECTION)) {
 			tableInfo = getInfoTableWithoutConnect(parseObject.getListTableSQL());
 		} else {
-			tableInfo = ServiceCreateData.dbService
-					.getInforTable(objCommon.getObjectGenate().getInfoDatabase().getSchema(), 
-							objCommon.getListTableName());
+			tableInfo = dbService.getInforTable(objCommon.getObjectGenate().getInfoDatabase().getSchema(), 
+							objCommon.getListTableName(), objCommon.getListTableAlias());
 		}
 		objCommon.setTableInfo(tableInfo);
 		processReformatDataType(tableInfo, parseObject.getListTableSQL());
 	}
 	
-	public static ColumnInfo getColumnInfo(String tableName, String columnName) {
+	public  ColumnInfo getColumnInfo(String tableName, String columnName) {
 		List<ColumnInfo> columnsInfo = objCommon.getTableInfo().get(tableName);
 		List<ColumnInfo> res = columnsInfo.stream().filter(x -> x.getName().equals(columnName))
 								.collect(Collectors.toList());
@@ -97,7 +107,7 @@ public class CommonService {
 	 * @param tableName
 	 * @return
 	 */
-	public static boolean isCompositeKey(String tableName) {
+	public  boolean isCompositeKey(String tableName) {
 		boolean res = false;
 		for (Entry<String, List<ColumnInfo>> x : objCommon.getTableInfo().entrySet()) {
 			String innerTableName = x.getKey();
@@ -113,12 +123,27 @@ public class CommonService {
 		return res;
 	}
 	
+	public <T> List<T> processMergeList(List<T> list1, List<T> list2){
+		Set<T> set = new HashSet<>();
+		if (list1 == null) {
+			return list2;
+		}
+		
+		if (list2 == null) {
+			return list1;
+		}
+		
+		set.addAll(list1.stream().collect(Collectors.toSet()));
+		set.addAll(list2.stream().collect(Collectors.toSet()));
+		return set.stream().collect(Collectors.toList());
+	}
+	
 	/**
 	 * Get table info for NoConnection
 	 * @param tables
 	 * @return
 	 */
-	private static Map<String, List<ColumnInfo>> getInfoTableWithoutConnect(List<TableSQL> tables) {
+	private  Map<String, List<ColumnInfo>> getInfoTableWithoutConnect(List<TableSQL> tables) {
 		Map<String, List<ColumnInfo>> res = new HashMap<>();
 		for (TableSQL table : tables) {
 			List<ColumnInfo> listColInfo = new ArrayList<>();
@@ -164,7 +189,7 @@ public class CommonService {
 	 * @param input 
 	 * @return String[3], String[0] = tableName, String[1] = aliasName ,String[2] = columnName
 	 */
-	public static String[] getArrInColumns(String input) {
+	public  String[] getArrInColumns(String input) {
 		String[] res = new String[3];
 		if (input.indexOf(Constant.STR_DOT) != -1) {
 			String[] tmp = input.split("\\" + Constant.STR_DOT);
@@ -188,7 +213,7 @@ public class CommonService {
 	 * @param origin
 	 * @return String without character in specifyStr.
 	 */
-	public static String removeSpecifyCharacter(String specifyStr, String origin) {
+	public  String removeSpecifyCharacter(String specifyStr, String origin) {
 		StringBuilder sb = new StringBuilder();
 		for (int i = 0; i < origin.length(); ++i) {
 			if (!specifyStr.contains("" + origin.charAt(i))) {
@@ -198,9 +223,12 @@ public class CommonService {
 		return sb.toString();
 	}
 	
-	public static String removeSpecifyCharacterFirstLastStr(char needRemove, String origin) {
+	public  String removeSpecifyCharacterFirstLastStr(char needRemove, String origin) {
 		String res = "";
 		char[] arr = origin.toCharArray();
+		if (arr == null) {
+			return origin;
+		}
 		if (arr[0] == needRemove) {
 			if (arr[arr.length - 1] == needRemove) {
 				res = origin.substring(1, arr.length - 1);
@@ -218,7 +246,7 @@ public class CommonService {
 	/**
 	 * Process Gen value
 	 */
-	public static List<String> processGenValue(String dataType, int len, String valGreater, String valLess) {
+	public  List<String> processGenValue(String dataType, int len, String valGreater, String valLess) {
 		List<String> res = new ArrayList<>();
 		boolean hasLess = !valLess.isEmpty();
 		
@@ -230,17 +258,17 @@ public class CommonService {
 			isIncrement = true;
 		}
 		String curVal = isIncrement ? valGreater.isEmpty() 
-									? CommonService.processGenValueWithLength(dataType, len) 
+									? processGenValueWithLength(dataType, len) 
 									: valGreater : valLess;
 		
 		for (int i = 1; i <= Constant.LIMIT_GEN_VALUE; ++i) {
 			res.add(curVal);
 			String newVal = "";
 			if (dataType.equals(Constant.STR_TYPE_DATE)) {
-				newVal = CommonService.processGenValueTypeDate(isIncrement, curVal);
+				newVal = processGenValueTypeDate(isIncrement, curVal);
 				if (hasLess && isIncrement) {
-					Date t1 = CommonService.convertStringToDate(valLess);
-					Date t2 = CommonService.convertStringToDate(newVal);
+					Date t1 = convertStringToDate(valLess);
+					Date t2 = convertStringToDate(newVal);
 					
 					// New value large than limit value
 					if (t2.compareTo(t1) > 0) {
@@ -248,15 +276,15 @@ public class CommonService {
 					}
 				}
 			} else if (dataType.equals(Constant.STR_TYPE_NUMBER)) {
-				newVal = CommonService.processGenValueTypeNumber(isIncrement, curVal);
-				Integer t2 = CommonService.convertStringToInt(newVal);
+				newVal = processGenValueTypeNumber(isIncrement, curVal);
+				Integer t2 = convertStringToInt(newVal);
 				
 				// When greater len stop!
 				if (newVal.length() > len || t2 < 0) {
 					break;
 				}
 				if (hasLess && isIncrement) {
-					Integer t1 = CommonService.convertStringToInt(valLess);
+					Integer t1 = convertStringToInt(valLess);
 					
 					// New value large than limit value
 					if (t2 > t1) {
@@ -264,7 +292,7 @@ public class CommonService {
 					}
 				}
 			} else if (dataType.equals(Constant.STR_TYPE_CHAR)) {
-				newVal = CommonService.processGenValueTypeChar(isIncrement, curVal);
+				newVal = processGenValueTypeChar(isIncrement, curVal);
 				// When greater len stop!
 				if (newVal.length() > len) {
 					break;
@@ -275,11 +303,11 @@ public class CommonService {
 		return res;
 	}
 	
-	public static String processRemoveApostrophe(String input) {
+	public  String processRemoveApostrophe(String input) {
 		return removeSpecifyCharacterFirstLastStr(Constant.CHAR_APOSTROPHE, input);
 	}
 	
-	public static List<String> processRemoveApostrophe(List<String> inputs) {
+	public  List<String> processRemoveApostrophe(List<String> inputs) {
 		List<String> res = new ArrayList<>();
 		for (String input : inputs) {
 			res.add(processRemoveApostrophe(input));
@@ -292,7 +320,7 @@ public class CommonService {
 	 * @param dataType
 	 * @return
 	 */
-	public static String getCommonDataType(String dataType) {
+	public  String getCommonDataType(String dataType) {
 		String res = "";
 		switch(dataType) {
 		case "number":
@@ -321,7 +349,7 @@ public class CommonService {
 	 * @param val
 	 * @return
 	 */
-	public static int convertLength(String val) {
+	public  int convertLength(String val) {
 		int len;
 		try {
 			len = Integer.parseInt(val);
@@ -336,7 +364,7 @@ public class CommonService {
 	 * Format will get from input value
 	 */
 	@SuppressWarnings("finally")
-	public static Date convertStringToDate(String input) {
+	public  Date convertStringToDate(String input) {
 		Date res = new Date();
 		try {
 			input = removeSpecifyCharacterFirstLastStr(Constant.CHAR_APOSTROPHE, input);
@@ -361,7 +389,7 @@ public class CommonService {
 	 * Convert Date to string 
 	 * Format will get from input value
 	 */
-	public static String convertDateToString(String format, Date input) {
+	public  String convertDateToString(String format, Date input) {
 		SimpleDateFormat sdf = new SimpleDateFormat(format);
 		return sdf.format(input);
 	}
@@ -369,7 +397,7 @@ public class CommonService {
 	/**
 	 * Convert string to int
 	 */
-	public static int convertStringToInt(String input) {
+	public  int convertStringToInt(String input) {
 		int res;
 		try {
 			res = Integer.parseInt(removeSpecifyCharacterFirstLastStr(Constant.CHAR_APOSTROPHE, input));
@@ -385,16 +413,16 @@ public class CommonService {
 	 * @param input
 	 * @return
 	 */
-	public static String readFormatDate(String input) {
+	public  String readFormatDate(String input) {
 		// TODO
 		return Constant.DEFAULT_FORMAT_DATE;
 	}
 
-	public static String[] StringToArrWithRegex(String regex, String input) {
+	public  String[] StringToArrWithRegex(String regex, String input) {
 		return input.split("\\" + regex);
 	}
 	
-	public static String getTableAliasColumnName(String input) {
+	public  String getTableAliasColumnName(String input) {
 		String[] arr = StringToArrWithRegex(Constant.STR_DOT, input);
 		Set<String> existsName = new HashSet<>();
 		StringBuilder res = new StringBuilder();
@@ -410,7 +438,7 @@ public class CommonService {
 		return res.toString();
 	}
 	
-	public static String getTableAliasName(String input) {
+	public  String getTableAliasName(String input) {
 		String[] arr = StringToArrWithRegex(Constant.STR_DOT, input);
 		if (arr[0].equals(arr[1])) {
 			return arr[0];
@@ -423,7 +451,7 @@ public class CommonService {
 	 * @param len
 	 * @return
 	 */
-	public static String processGenValueWithLength(String dataType, int len) {
+	public  String processGenValueWithLength(String dataType, int len) {
 		if (dataType.equals(Constant.STR_TYPE_DATE)) {
 			DateTimeFormatter dtf = DateTimeFormatter.ofPattern(Constant.DEFAULT_FORMAT_DATE);  
 			LocalDateTime now = LocalDateTime.now();  
@@ -444,7 +472,7 @@ public class CommonService {
 	 * @param curVal current value
 	 * @return String new value after (++, --)
 	 */
-	private static String processGenValueTypeDate(boolean isIncrease, String curVal) {
+	private  String processGenValueTypeDate(boolean isIncrease, String curVal) {
 		Date curD;
 		Calendar c = Calendar.getInstance();
 		SimpleDateFormat sdf = new SimpleDateFormat(Constant.DEFAULT_FORMAT_DATE);
@@ -471,7 +499,7 @@ public class CommonService {
 	 * @param curVal current value
 	 * @return String new value after (++, --)
 	 */
-	private static String processGenValueTypeNumber(boolean isIncrease, String curVal) {
+	private  String processGenValueTypeNumber(boolean isIncrease, String curVal) {
 		String val = "";
 		try {
 			Integer i = Integer.parseInt(curVal);
@@ -493,7 +521,7 @@ public class CommonService {
 	 * @param curVal current value
 	 * @return String new value after (++, --)
 	 */
-	private static String processGenValueTypeChar(boolean isIncrement, String curVal) {
+	private  String processGenValueTypeChar(boolean isIncrement, String curVal) {
 		char[] chr = new char[26];
 		for (int i = 0; i < 26; ++i) {
 			chr[i] = (char) (Constant.DEFAULT_CHAR + i); 
@@ -519,7 +547,7 @@ public class CommonService {
 	 * 'z' -> 'aa'
 	 * @param curChar
 	 */
-	private static String processGenValueTypeCharIncrement(char[] curChar) {
+	private  String processGenValueTypeCharIncrement(char[] curChar) {
 		int remain = 0;
 		int length = curChar.length;
 		for (int i = length - 1; i >= 0; --i) {
@@ -547,7 +575,7 @@ public class CommonService {
 	 * @param curChar
 	 * @return
 	 */
-	private static String processGenValueTypeCharDecrement(char[] curChar) {
+	private  String processGenValueTypeCharDecrement(char[] curChar) {
 		int remain = 0;
 		int length = curChar.length;
 		for (int i = length - 1; i >= 0; --i) {
@@ -574,7 +602,7 @@ public class CommonService {
 	 * @param length need repeat
 	 * @return String repeated
 	 */
-	private static String repeat(char c, int length) {
+	private  String repeat(char c, int length) {
 		StringBuilder sb = new StringBuilder();
 		for (int i = 0; i < length; ++i) {
 			sb.append("" + c);
@@ -587,12 +615,12 @@ public class CommonService {
 	 * @param tables
 	 * @return
 	 */
-	private static List<String> getListTableName(List<TableSQL> tables) {
+	private  List<String> getListTableName(List<TableSQL> tables) {
 		Set<String> res = tables.stream().map(x -> x.tableName).collect(Collectors.toSet());
 		return res.stream().collect(Collectors.toList());
 	}
 	
-	private static void processReformatDataType(Map<String, List<ColumnInfo>> tableInfo, List<TableSQL> tables) {
+	private  void processReformatDataType(Map<String, List<ColumnInfo>> tableInfo, List<TableSQL> tables) {
 		Map<String, InfoMappingTableColumnObject> mappingTableColumn = new HashMap<>();
 		for (TableSQL table : tables) {
 			for (Condition condition : table.getCondition()) {
@@ -675,7 +703,7 @@ public class CommonService {
 	/**
 	 * Check is Number
 	 */
-	private static boolean isNumber(String origin) {
+	private  boolean isNumber(String origin) {
 		try {
 			Integer.parseInt(removeSpecifyCharacterFirstLastStr(Constant.CHAR_APOSTROPHE, origin));
 		} catch (NumberFormatException e) {
@@ -687,7 +715,7 @@ public class CommonService {
 	/**
 	 * Check is Number
 	 */
-	private static boolean isDate(String origin) {
+	private boolean isDate(String origin) {
 		try {
 			SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 			sdf.parse(removeSpecifyCharacterFirstLastStr(Constant.CHAR_APOSTROPHE, origin));
@@ -695,5 +723,30 @@ public class CommonService {
 			return false;
 		}
 		return true;
+	}
+	
+	private Map<String, List<String>> getListTableAlias(List<TableSQL> tables) {
+		Map<String, List<String>> res = new HashMap<>(); 
+		for (TableSQL table : tables) {
+			String tableName = table.getTableName();
+			List<Condition> conditions = table.getCondition();
+			String aliasName = table.getAlias();
+			if (!res.containsKey(tableName)) {
+				res.put(tableName, new ArrayList<>());
+			}
+			if (!res.get(tableName).contains(aliasName)) {
+				res.get(tableName).add(aliasName);
+			}
+			for (Condition condition : conditions) {
+				String[] tableColName = getArrInColumns(condition.getLeft());
+				if (!res.containsKey(tableName)) {
+					res.put(tableName, new ArrayList<>());
+				}
+				if (!res.get(tableName).contains(tableColName[0])) {
+					res.get(tableName).add(tableColName[0]);
+				}
+			}
+		}
+		return res;
 	}
 }

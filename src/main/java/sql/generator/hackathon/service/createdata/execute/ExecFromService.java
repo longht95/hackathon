@@ -27,6 +27,7 @@ import sql.generator.hackathon.model.createdata.NodeColumn;
 import sql.generator.hackathon.model.createdata.ReturnObjectFrom;
 import sql.generator.hackathon.model.createdata.ReturnObjectWhere;
 import sql.generator.hackathon.model.createdata.constant.Constant;
+import sql.generator.hackathon.service.ExecuteDBSQLServer;
 import sql.generator.hackathon.service.createdata.CommonService;
 import sql.generator.hackathon.service.createdata.ServiceCreateData;
 
@@ -40,8 +41,13 @@ public class ExecFromService {
 	
 	private ReturnObjectFrom returnObjFrom;
 	
-	public ReturnObjectFrom processFrom(ParseObject parseObject, ReturnObjectWhere returnObjWhere) throws SQLException {
-		processInit(parseObject, returnObjWhere);
+	private CommonService commonService;
+	
+	private ExecuteDBSQLServer dbService;
+	
+	public ReturnObjectFrom processFrom(CommonService commonService, ExecuteDBSQLServer dbService, 
+			ParseObject parseObject, ReturnObjectWhere returnObjWhere) throws SQLException {
+		processInit(commonService, dbService, parseObject, returnObjWhere);
 		Map<String, Set<String>> columnMapping = getMappingColumn();
 		
 		Map<String, List<Cond>> mappingAllColumn = calcLastMapping(getAllMappingColum(columnMapping));
@@ -50,8 +56,9 @@ public class ExecFromService {
 		return returnObjFrom;
 	}
 	
-	private void processInit(ParseObject parseObject, ReturnObjectWhere returnObjWhere) {
-		initObject(returnObjWhere);
+	private void processInit(CommonService commonService, ExecuteDBSQLServer dbService, 
+			ParseObject parseObject, ReturnObjectWhere returnObjWhere) {
+		initObject(commonService, dbService, returnObjWhere);
 		List<TableSQL> tables = parseObject.getListTableSQL();
 		Map<String, List<String>> mappingKey = parseObject.getMappingKey();
 		tables.stream().forEach(x -> {
@@ -61,8 +68,8 @@ public class ExecFromService {
 			listCondition.stream()
 			.filter(y -> y.getRight() != null && y.getRight().startsWith(Constant.STR_KEYS))
 			.forEach(y -> {
-				String[] arrTableColumn = CommonService.getArrInColumns(y.getLeft());
-				String tableAliasColumnName = CommonService.getTableAliasColumnName(tableName + Constant.STR_DOT + aliasName + Constant.STR_DOT + arrTableColumn[2]);
+				String[] arrTableColumn = commonService.getArrInColumns(y.getLeft());
+				String tableAliasColumnName = commonService.getTableAliasColumnName(tableName + Constant.STR_DOT + aliasName + Constant.STR_DOT + arrTableColumn[2]);
 				String right = y.getRight();
 				if (!mappingKey.containsKey(right)) {
 					throw new IllegalArgumentException("Mapping key not exists!");
@@ -74,12 +81,15 @@ public class ExecFromService {
 		processGetInfoColumn(parseObject.getListTableSQL());
 	}
 	
-	private void initObject(ReturnObjectWhere returnObjWhere) {
+	private void initObject(CommonService commonService, ExecuteDBSQLServer dbService,
+			ReturnObjectWhere returnObjWhere) {
 		this.keysFormat = new HashMap<>();
 		this.infoCol = new HashMap<>();
 		this.returnObjWhere = returnObjWhere;
 		this.returnObjFrom = new ReturnObjectFrom();
 		this.returnObjFrom.setMappingTableAliasColumn(new HashMap<>());
+		this.commonService = commonService;
+		this.dbService = dbService;
 	}
 	
 	/**
@@ -227,9 +237,9 @@ public class ExecFromService {
 		// table.aliasName.colName => condition valid
 		// Map<String, List<Cond>> columnMap;
 		for (Map.Entry<String, List<Cond>> e : columnMap.entrySet()) {
-			String tableAliasColumnName = CommonService.getTableAliasColumnName(e.getKey());
+			String tableAliasColumnName = commonService.getTableAliasColumnName(e.getKey());
 			
-			String[] tableColumnName = CommonService.getArrInColumns(tableAliasColumnName); 
+			String[] tableColumnName = commonService.getArrInColumns(tableAliasColumnName); 
 			String tableName = tableColumnName[0];
 			String colName = tableColumnName[2];
 			
@@ -238,12 +248,12 @@ public class ExecFromService {
 				continue;
 			}
 			
-			ColumnInfo t = CommonService.getColumnInfo(tableName, colName);
+			ColumnInfo t = commonService.getColumnInfo(tableName, colName);
 			ColumnInfo colInfo = new ColumnInfo(t.getName(), "", t.getTypeName(), t.getTypeValue(),
 						t.getIsNull(), t.getIsPrimarykey(), t.getIsForeignKey(), t.getUnique());
 
-			String dataType = CommonService.getCommonDataType(colInfo.getTypeName());
-			int len = CommonService.convertLength(colInfo.getTypeValue());
+			String dataType = commonService.getCommonDataType(colInfo.getTypeName());
+			int len = commonService.convertLength(colInfo.getTypeValue());
 			
 			InnerReturnObjectWhere innerReturnObjectWhere = returnObjWhere.getValueMappingTableAliasColumn().get(tableAliasColumnName);
 			List<String> validOfCol = new ArrayList<>();
@@ -368,9 +378,9 @@ public class ExecFromService {
 			String dataType, int length) throws SQLException {
 		List<String> res = new ArrayList<>();
 		if (columnInfo.isKey()) {
-			res.addAll(ServiceCreateData.dbService.genListUniqueVal(tableName, columnInfo, "", ""));
+			res.addAll(dbService.genListUniqueVal(tableName, columnInfo, "", ""));
 		} else {
-			res.addAll(CommonService.processGenValue(dataType, length, "", ""));
+			res.addAll(commonService.processGenValue(dataType, length, "", ""));
 		}
 		return res;
 	}
@@ -449,8 +459,8 @@ public class ExecFromService {
 			
 			for (int i = validOfCol.size() - 1; i >= 0; --i) {
 				
-				String[] innerTableColName = CommonService.getArrInColumns(nextCond.value);
-				ColumnInfo t2 = CommonService.getColumnInfo(innerTableColName[0], innerTableColName[2]);
+				String[] innerTableColName = commonService.getArrInColumns(nextCond.value);
+				ColumnInfo t2 = commonService.getColumnInfo(innerTableColName[0], innerTableColName[2]);
 				ColumnInfo colInnerInfo = new ColumnInfo(t2.getName(), "", 
 						t2.getTypeName(), t2.getTypeValue(), t2.getIsNull(), 
 						t2.getIsPrimarykey(), t2.getIsForeignKey(), t2.getUnique());
@@ -461,17 +471,17 @@ public class ExecFromService {
 				if (flgAdd) {
 					// Check value unique
 					if ((colInnerInfo.isKey() || colInnerInfo.getUnique()) && 
-							!ServiceCreateData.dbService.isUniqueValue(innerTableColName[0], colInnerInfo, validOfCol.get(i))) {
+							!dbService.isUniqueValue(innerTableColName[0], colInnerInfo, validOfCol.get(i))) {
 						flgAdd = false;
 					} else {
 						flgAdd = true;
 					}
-					boolean innerIsCompositeKey = CommonService.isCompositeKey(innerTableColName[0]);
+					boolean innerIsCompositeKey = commonService.isCompositeKey(innerTableColName[0]);
 					
 					// Execute for composite key
 					if (flgAdd && innerIsCompositeKey) {
-						valCompositeKey = ServiceCreateData.dbService
-								.genUniqueCol(CommonService.objCommon.getObjectGenate().getInfoDatabase().getSchema(), 
+						valCompositeKey = dbService
+								.genUniqueCol(commonService.objCommon.getObjectGenate().getInfoDatabase().getSchema(), 
 								innerTableColName[0], colInnerInfo, validOfCol.get(i));
 						if (valCompositeKey.size() != 0) {
 							flgAdd = true;
@@ -506,14 +516,14 @@ public class ExecFromService {
 			break;
 		case Constant.EXPRESSION_LESS_EQUALS:
 			if (dataType.equals(Constant.STR_TYPE_DATE)) {
-				Date tmp1 = CommonService.convertStringToDate(currentVal);
-				Date tmp2 = CommonService.convertStringToDate(checkVal);
+				Date tmp1 = commonService.convertStringToDate(currentVal);
+				Date tmp2 = commonService.convertStringToDate(checkVal);
 				if (tmp2.compareTo(tmp1) <= 0) {
 					flgAdd = true;
 				}
 			} else if (dataType.equals(Constant.STR_TYPE_NUMBER)) {
-				Integer int1 = CommonService.convertStringToInt(currentVal);
-				Integer int2 = CommonService.convertStringToInt(checkVal);
+				Integer int1 = commonService.convertStringToInt(currentVal);
+				Integer int2 = commonService.convertStringToInt(checkVal);
 				if (int2 <= int1) {
 					flgAdd = true;
 				}
@@ -523,14 +533,14 @@ public class ExecFromService {
 		case Constant.EXPRESSION_GREATER_EQUALS:
 			if (dataType.equals(Constant.STR_TYPE_DATE)) {
 				// date
-				Date tmp1 = CommonService.convertStringToDate(currentVal);
-				Date tmp2 = CommonService.convertStringToDate(checkVal);
+				Date tmp1 = commonService.convertStringToDate(currentVal);
+				Date tmp2 = commonService.convertStringToDate(checkVal);
 				if (tmp2.compareTo(tmp1) >= 0) {
 					flgAdd = true;
 				}
 			} else if (dataType.equals(Constant.STR_TYPE_NUMBER)) {
-				Integer int1 = CommonService.convertStringToInt(currentVal);
-				Integer int2 = CommonService.convertStringToInt(checkVal);
+				Integer int1 = commonService.convertStringToInt(currentVal);
+				Integer int2 = commonService.convertStringToInt(checkVal);
 				if (int2 >= int1) {
 					flgAdd = true;
 				}
@@ -539,14 +549,14 @@ public class ExecFromService {
 		case Constant.EXPRESSION_LESS:
 			if (dataType.equals(Constant.STR_TYPE_DATE)) {
 				// date
-				Date tmp1 = CommonService.convertStringToDate(currentVal);
-				Date tmp2 = CommonService.convertStringToDate(checkVal);
+				Date tmp1 = commonService.convertStringToDate(currentVal);
+				Date tmp2 = commonService.convertStringToDate(checkVal);
 				if (tmp2.compareTo(tmp1) < 0) {
 					flgAdd = true;
 				}
 			} else if (dataType.equals(Constant.STR_TYPE_NUMBER)) {
-				Integer int1 = CommonService.convertStringToInt(currentVal);
-				Integer int2 = CommonService.convertStringToInt(checkVal);
+				Integer int1 = commonService.convertStringToInt(currentVal);
+				Integer int2 = commonService.convertStringToInt(checkVal);
 				if (int2 < int1) {
 					flgAdd = true;
 				}
@@ -555,14 +565,14 @@ public class ExecFromService {
 		case Constant.EXPRESSION_GREATER:
 			if (dataType.equals(Constant.STR_TYPE_DATE)) {
 				// date
-				Date tmp1 = CommonService.convertStringToDate(currentVal);
-				Date tmp2 = CommonService.convertStringToDate(checkVal);
+				Date tmp1 = commonService.convertStringToDate(currentVal);
+				Date tmp2 = commonService.convertStringToDate(checkVal);
 				if (tmp2.compareTo(tmp1) > 0) {
 					flgAdd = true;
 				}
 			} else if (dataType.equals(Constant.STR_TYPE_NUMBER)) {
-				Integer int1 = CommonService.convertStringToInt(currentVal);
-				Integer int2 = CommonService.convertStringToInt(checkVal);
+				Integer int1 = commonService.convertStringToInt(currentVal);
+				Integer int2 = commonService.convertStringToInt(checkVal);
 				if (int2 > int1) {
 					flgAdd = true;
 				}
@@ -603,8 +613,8 @@ public class ExecFromService {
 				if (cd.getRight() == null || !cd.getRight().startsWith(Constant.STR_KEYS)) {
 					continue;
 				}
-				String tableAliasName = CommonService.getTableAliasName(tableSQL.getTableName() + Constant.STR_DOT + tableSQL.getAlias());
-				String[] arrTableAliasColumnName = CommonService.getArrInColumns(cd.getLeft());
+				String tableAliasName = commonService.getTableAliasName(tableSQL.getTableName() + Constant.STR_DOT + tableSQL.getAlias());
+				String[] arrTableAliasColumnName = commonService.getArrInColumns(cd.getLeft());
 				String tableAliasColumnName = tableAliasName + Constant.STR_DOT + arrTableAliasColumnName[2];
 				String tableAliasColumnName2 = "";
 				for (String t : keysFormat.get(cd.getRight())) {
