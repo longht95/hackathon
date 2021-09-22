@@ -18,4 +18,5 @@ public class ObjectCommonCreate {
 	private List<String> listTableName;
 	private Map<String, List<ColumnInfo>> tableInfo;
 	private Set<String> hasReFormat;
+	private Map<String, List<String>> listTableAlias;
 }

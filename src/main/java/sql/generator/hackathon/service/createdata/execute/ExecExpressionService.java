@@ -35,27 +35,32 @@ public class ExecExpressionService {
 	@Autowired
 	private ExecuteDBSQLServer dbService;
 	
+	private CommonService commonService;
+	
+	
 	/**
 	 * Get last values from list conditions for each column
 	 * @param conditions (Key -> tablesName.aliasName.colName)
 	 * @return
 	 */
-	public Map<String, ExpressionObject> calcLastValue(Map<String, List<ObjectMappingTable>> mappingTables) throws SQLException{
+	public Map<String, ExpressionObject> calcLastValue(CommonService commonService, Map<String, List<ObjectMappingTable>> mappingTables) throws SQLException{
+		init(commonService);
+		
 		HashMap<String, ExpressionObject> res = new HashMap<>();
 		if (mappingTables == null) {
 			return res;
 		}
 		for (Map.Entry<String, List<ObjectMappingTable>> x : mappingTables.entrySet()) {
 			String tableAliasName = x.getKey();
-			String[] tableAliasNameArr = CommonService.StringToArrWithRegex(Constant.STR_DOT, tableAliasName);
+			String[] tableAliasNameArr = commonService.StringToArrWithRegex(Constant.STR_DOT, tableAliasName);
 			for (ObjectMappingTable y : x.getValue()) {
 				List<ColumnCondition> conditions = y.getColumnsCondition();
 				String columnName = y.getColumnName();
-				String[] arrColumnName = CommonService.StringToArrWithRegex(Constant.STR_DOT, columnName);
-				String tableAliasColumnName = CommonService.getTableAliasColumnName(tableAliasName + Constant.STR_DOT + columnName);
-				ColumnInfo columnInfo = CommonService.getColumnInfo(tableAliasNameArr[0], arrColumnName[arrColumnName.length - 1]);
-				String dataType = CommonService.getCommonDataType(columnInfo.getTypeName());
-				int length = CommonService.convertLength(columnInfo.getTypeValue());
+				String[] arrColumnName = commonService.StringToArrWithRegex(Constant.STR_DOT, columnName);
+				String tableAliasColumnName = commonService.getTableAliasColumnName(tableAliasName + Constant.STR_DOT + columnName);
+				ColumnInfo columnInfo = commonService.getColumnInfo(tableAliasNameArr[0], arrColumnName[arrColumnName.length - 1]);
+				String dataType = commonService.getCommonDataType(columnInfo.getTypeName());
+				int length = commonService.convertLength(columnInfo.getTypeValue());
 				processComparatorPriority(conditions);
 				ExpressionObject expressionObj = processCalcValue(conditions, tableAliasNameArr[0], columnInfo, dataType, length);
 				res.put(tableAliasColumnName, expressionObj);
@@ -79,6 +84,9 @@ public class ExecExpressionService {
 		});
 	}
 	
+	private void init(CommonService commonService) {
+		this.commonService = commonService;
+	}
 	
 	/**
 	 * Calculator last value from list condition for 1 column
@@ -183,7 +191,7 @@ public class ExecExpressionService {
 	 * @return
 	 */
 	private boolean checkOtherChar(String dataType) {
-		return dataType.equals("number") || dataType.equals("date");
+		return dataType.equals(Constant.STR_TYPE_NUMBER) || dataType.equals(Constant.STR_TYPE_DATE);
 	}
 	
 	/**
@@ -228,7 +236,7 @@ public class ExecExpressionService {
 						if (isKey) {
 							res.addAll(dbService.genListUniqueVal(tableName, columnInfo, valGreater, valLess));
 						} else {
-							res.addAll(CommonService.processGenValue(dataType, length, valGreater, valLess));
+							res.addAll(commonService.processGenValue(dataType, length, valGreater, valLess));
 						}
 						valLess = "";
 						valGreater = "";
@@ -240,8 +248,8 @@ public class ExecExpressionService {
 							res.addAll(dbService.genListUniqueVal(tableName, columnInfo, valGreater, ""));
 							res.addAll(dbService.genListUniqueVal(tableName, columnInfo, "", valLess));
 						} else {
-							res.addAll(CommonService.processGenValue(dataType, length, valGreater, ""));
-							res.addAll(CommonService.processGenValue(dataType, length, "", valLess));
+							res.addAll(commonService.processGenValue(dataType, length, valGreater, ""));
+							res.addAll(commonService.processGenValue(dataType, length, "", valLess));
 						}
 						valLess = "";
 						valGreater = "";
@@ -260,7 +268,7 @@ public class ExecExpressionService {
 			if (isKey) {
 				res.addAll(dbService.genListUniqueVal(tableName, columnInfo, valGreater, valLess));
 			} else {
-				res.addAll(CommonService.processGenValue(dataType, length, valGreater, valLess));
+				res.addAll(commonService.processGenValue(dataType, length, valGreater, valLess));
 			}
 		}
 		return res;
@@ -280,8 +288,8 @@ public class ExecExpressionService {
 				String val1 = o1.getValues().get(0);
 				String val2 = o2.getValues().get(0);
 				if (dataType.equals(Constant.STR_TYPE_NUMBER)) {
-					int x = CommonService.convertStringToInt(val1);
-					int y = CommonService.convertStringToInt(val2);
+					int x = commonService.convertStringToInt(val1);
+					int y = commonService.convertStringToInt(val2);
 					if (Integer.compare(x, y) == 0) {
 						int priority1 = Constant.priorityOperators.get(o1.getExpression());
 						int priority2 = Constant.priorityOperators.get(o2.getExpression());
@@ -289,8 +297,8 @@ public class ExecExpressionService {
 					}
 					return Integer.compare(x, y);
 				} else if (dataType.equals(Constant.STR_TYPE_DATE)) {
-					Date x = CommonService.convertStringToDate(val1);
-					Date y = CommonService.convertStringToDate(val2);
+					Date x = commonService.convertStringToDate(val1);
+					Date y = commonService.convertStringToDate(val2);
 					if (x.compareTo(y) < 0) {
 						return -1;
 					} else if (x.compareTo(y) > 0) {
@@ -316,8 +324,8 @@ public class ExecExpressionService {
 		String lastValue;
 		boolean flgLess = false;
 		boolean flgGreater = false;
-		if (dataType.equals("number")) {
-			int v = CommonService.convertStringToInt(value);
+		if (dataType.equals(Constant.STR_TYPE_NUMBER)) {
+			int v = commonService.convertStringToInt(value);
 			if (expression.equals(Constant.EXPRESSION_GREATER)) {
 				flgGreater = true;
 				v += 1;
@@ -329,8 +337,8 @@ public class ExecExpressionService {
 			lastValue = String.valueOf(v);
 		} else {
 			// Date
-			Date v = CommonService.convertStringToDate(value);
-			String format = CommonService.readFormatDate(value);
+			Date v = commonService.convertStringToDate(value);
+			String format = commonService.readFormatDate(value);
 			Calendar c = Calendar.getInstance();
 			c.setTime(v);
 			if (expression.equals(Constant.EXPRESSION_GREATER)) {
@@ -341,7 +349,7 @@ public class ExecExpressionService {
 				flgLess = true;
 				c.add(Calendar.DATE, -1);
 			}
-			lastValue = CommonService.convertDateToString(format, c.getTime());
+			lastValue = commonService.convertDateToString(format, c.getTime());
 		}
 		if (flgLess) {
 			res.setExpression(Constant.EXPRESSION_LESS_EQUALS);

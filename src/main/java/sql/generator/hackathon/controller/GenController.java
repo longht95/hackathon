@@ -34,6 +34,7 @@ import sql.generator.hackathon.model.FlowDataQuery;
 import sql.generator.hackathon.model.ObjectGenate;
 import sql.generator.hackathon.model.ParseObject;
 import sql.generator.hackathon.model.ViewQuery;
+import sql.generator.hackathon.model.createdata.constant.Constant;
 import sql.generator.hackathon.service.ExcelExporter;
 import sql.generator.hackathon.service.ExecuteDBSQLServer;
 import sql.generator.hackathon.service.ServiceDatabase;
@@ -122,11 +123,11 @@ public class GenController {
 		String type = objectGenate.infoDatabase.getType();
 		
 		try {
-//			if (!type.equalsIgnoreCase("No database")) {
-//				executeDBServer.connectDB(objectGenate.infoDatabase.getType(), objectGenate.infoDatabase.getUrl(), 
-//						objectGenate.infoDatabase.getSchema(), objectGenate.infoDatabase.getUser(), 
-//						objectGenate.infoDatabase.getPassword());
-//			}
+			if (!type.equalsIgnoreCase(Constant.STR_NO_CONNECTION)) {
+				executeDBServer.connectDB(objectGenate.infoDatabase.getType(), objectGenate.infoDatabase.getUrl(), 
+						objectGenate.infoDatabase.getSchema(), objectGenate.infoDatabase.getUser(), 
+						objectGenate.infoDatabase.getPassword());
+			}
 			ParseObject parseObject = serviceParse.parseSelectStatement(objectGenate.queryInput);
 //			Map<String, TableSQL> fullTableInfo = serviceParse.getColumnInfo(objectGenate.queryInput);
 //			if (type.equalsIgnoreCase("No database")) {
@@ -144,7 +145,7 @@ public class GenController {
 //			Map<String, List<List<ColumnInfo>>> response = createObj.listData;
 			
 			// Ver2 create data
-			CreateObject createObj = serviceCreateData.process(objectGenate, parseObject, dataPick, false);
+			CreateObject createObj = serviceCreateData.process(executeDBServer, objectGenate, parseObject, dataPick, false);
 			Map<String, List<List<ColumnInfo>>> response = createObj.listData;
 			
 			ByteArrayInputStream resource ;

@@ -87,8 +87,7 @@ public class ExecuteDBSQLServer {
 			p.setString(1, tableName);
 			p.setString(2, schemaName);
 	        ResultSet resultSet = p.executeQuery();
-	        
-	        while (resultSet.next()) {
+        	while (resultSet.next()) {
 	        	columnInfo = new ColumnInfo();
 				columnInfo.setName(resultSet.getString("COLUMN_NAME"));
 				columnInfo.setTypeName(resultSet.getString("DATA_TYPE"));
@@ -108,6 +107,58 @@ public class ExecuteDBSQLServer {
 				}
 				list_col.add(columnInfo);
 			}
+	        
+	        inforTable.put(tableName, list_col);
+	        resultSet.close();
+		}
+        return inforTable;
+	}
+	
+	//------------------------------------------------------------------------------
+	// get infor table (columnName, isNull, dataType, PK, FK, unique, maxLength)
+	public Map<String, List<ColumnInfo>> getInforTable(String schemaName, List<String> lstTableName,
+			Map<String, List<String>> mappingAliasName) throws Exception {
+		Map<String, List<ColumnInfo>> inforTable = new HashMap<String, List<ColumnInfo>>();
+		List<ColumnInfo> list_col;
+		ColumnInfo columnInfo;
+		PreparedStatement p;
+		for (String tableName : lstTableName) {
+			list_col = new ArrayList<ColumnInfo>();
+			p = connect.prepareStatement("SELECT COLUMN_NAME, COLUMN_KEY, IS_NULLABLE, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH\r\n" + 
+					"FROM    \r\n" + 
+					"    information_schema.columns c\r\n" + 
+					"WHERE\r\n" + 
+					"	TABLE_NAME = ? AND TABLE_SCHEMA = ?\r\n"
+					+ "\n" +
+					"order by ORDINAL_POSITION");
+			p.setString(1, tableName);
+			p.setString(2, schemaName);
+	        ResultSet resultSet = p.executeQuery();
+	        List<String> listAliasName = mappingAliasName.get(tableName);
+	        for (String aliasName : listAliasName) {
+	        	while (resultSet.next()) {
+		        	columnInfo = new ColumnInfo();
+					columnInfo.setName(resultSet.getString("COLUMN_NAME"));
+					columnInfo.setTypeName(resultSet.getString("DATA_TYPE"));
+					columnInfo.setTypeValue(resultSet.getString("CHARACTER_MAXIMUM_LENGTH"));
+					
+					if(resultSet.getString("IS_NULLABLE").equals("YES")) {
+						columnInfo.setIsNull(true);
+					}
+					
+					if(resultSet.getString("COLUMN_KEY").equals("PRI")){
+						columnInfo.setIsPrimarykey(true);
+					} else if (resultSet.getString("COLUMN_KEY").equals("UNI")) {
+						columnInfo.setUnique(true);
+					}
+					if(isColForeignKey(schemaName, tableName, resultSet.getString("COLUMN_NAME"))) {
+						columnInfo.setIsForeignKey(true);
+					}
+					columnInfo.setTableAlias(aliasName);
+					list_col.add(columnInfo);
+				}
+	        }
+	        
 	        inforTable.put(tableName, list_col);
 	        resultSet.close();
 		}

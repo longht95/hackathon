@@ -48,9 +48,15 @@ public class ServiceCreateData {
 	@Autowired
 	private ServerFaker fakerService;
 	
+	@Autowired
+	public ExecuteDBSQLServer dbService;
+	
+	@Autowired
+	public CommonService commonService;
+	
 	private Map<String, InforTableReferFK> foreignKeyNotExistsInmainTable;
 	
-	public static ExecuteDBSQLServer dbService = new ExecuteDBSQLServer();
+	
 	
 	public static int indexColor;
 	
@@ -63,22 +69,23 @@ public class ServiceCreateData {
 	 * @param flagInsert
 	 * @throws SQLException
 	 */
-	public CreateObject process(ObjectGenate objectGenate, ParseObject parseObject, 
+	public CreateObject process(ExecuteDBSQLServer executeDBServer, ObjectGenate objectGenate, ParseObject parseObject, 
 			Map<String, List<List<ColumnInfo>>> dataPicker, boolean flgInsert) throws SQLException {
 		CreateObject response = new CreateObject();
 		try {
 			int rowCreate = objectGenate.getRow();
-			init(objectGenate, parseObject);
+			init(executeDBServer, objectGenate, parseObject);
 			
 			
-			ReturnObjectWhere objWhere = execWhereService.processWhere(parseObject);
-			ReturnObjectFrom objFrom = execFromService.processFrom(parseObject, objWhere);
+			ReturnObjectWhere objWhere = execWhereService.processWhere(commonService, parseObject);
+			ReturnObjectFrom objFrom = execFromService.processFrom(commonService, executeDBServer, 
+					parseObject, objWhere);
 			
 			Map<String, List<ColumnInfo>> lastValue = processCalcLastValue(objFrom, objWhere);
 			
 			response = processMultipleRow(lastValue, dataPicker, rowCreate, flgInsert);
 		} catch (Exception e) {
-			e.printStackTrace();
+ 			e.printStackTrace();
 		} finally {
 			// Close connection
 			if (dbService != null) {
@@ -88,18 +95,14 @@ public class ServiceCreateData {
 		return response;
 	}
 	
-	private void init(ObjectGenate objectGenate, ParseObject parseObject) throws Exception {
+	private void init(ExecuteDBSQLServer executeDBServer, ObjectGenate objectGenate, 
+			ParseObject parseObject) throws Exception {
 		indexColor = 1;
 		
 		foreignKeyNotExistsInmainTable = new HashMap<>();
 
-		// Open connection		
-		if (!objectGenate.getInfoDatabase().getType().equalsIgnoreCase(Constant.STR_NO_CONNECTION)) {
-			openConnection(objectGenate);
-		}
-
-		CommonService.init(objectGenate, parseObject);
-		execClientService.init(parseObject);
+		commonService.init(executeDBServer, objectGenate, parseObject);
+		execClientService.init(commonService, parseObject);
 		processFormatTableSQL(parseObject.getListTableSQL());
 	}
 	
@@ -108,13 +111,13 @@ public class ServiceCreateData {
 			List<Condition> conditions = table.getCondition();
 			for (Condition cond : conditions) {
 				if (cond.getRight() != null && !cond.getRight().startsWith(Constant.STR_KEYS)) {
-					cond.setRight(CommonService.removeSpecifyCharacterFirstLastStr(Constant.CHAR_APOSTROPHE, cond.getRight()));
+					cond.setRight(commonService.removeSpecifyCharacterFirstLastStr(Constant.CHAR_APOSTROPHE, cond.getRight()));
 				}
 				
 				if (cond.getListRight() != null) {
 					List<String> reListRight = new ArrayList<>();
 					for (String val : cond.getListRight()) {
-						reListRight.add(CommonService.removeSpecifyCharacterFirstLastStr(Constant.CHAR_APOSTROPHE, val));
+						reListRight.add(commonService.removeSpecifyCharacterFirstLastStr(Constant.CHAR_APOSTROPHE, val));
 					}
 					cond.setListRight(reListRight);
 				}
@@ -135,14 +138,14 @@ public class ServiceCreateData {
 	
 	private Map<String, List<ColumnInfo>> processCalcLastValue(ReturnObjectFrom objFrom, ReturnObjectWhere objWhere) {
 		Map<String, List<ColumnInfo>> res = new HashMap<>();
-		Map<String, List<ColumnInfo>> tableInfo = CommonService.objCommon.getTableInfo();
+		Map<String, List<ColumnInfo>> tableInfo = commonService.objCommon.getTableInfo();
 		for (Map.Entry<String, List<ColumnInfo>> x : tableInfo.entrySet()) {
 			String tableNameInfo = x.getKey();
 			List<ColumnInfo> listColumnInfo = x.getValue();
 			for (ColumnInfo y : listColumnInfo) {
 				String aliasTableInfo = y.tableAlias;
 				String columnNameInfo = y.name;
-				String tableAliasColumnName = CommonService.getTableAliasColumnName(tableNameInfo + Constant.STR_DOT + aliasTableInfo + Constant.STR_DOT + columnNameInfo);
+				String tableAliasColumnName = commonService.getTableAliasColumnName(tableNameInfo + Constant.STR_DOT + aliasTableInfo + Constant.STR_DOT + columnNameInfo);
 				
 				ColumnInfo resColumnInfo = new ColumnInfo();
 				resColumnInfo.setName(columnNameInfo);
@@ -169,11 +172,11 @@ public class ServiceCreateData {
 							lastValue = innerReturnObjWhere.getValidValueForColumn().get(0);
 							markColor = innerReturnObjWhere.getMarkColor();
 						} else {
-							ColumnInfo colInfo = CommonService.getColumnInfo(tableNameInfo, columnNameInfo);
+							ColumnInfo colInfo = commonService.getColumnInfo(tableNameInfo, columnNameInfo);
 							String typeName = colInfo.getTypeName();
-							int typeValue = CommonService.convertLength(colInfo.getTypeValue());
+							int typeValue = commonService.convertLength(colInfo.getTypeValue());
 							List<String> inValidValues = innerReturnObjWhere.getInValidValueForColumn();
-							lastValue = execInAndNotInService.processNotIn(CommonService.processGenValue(typeName, typeValue, "", ""), 
+							lastValue = execInAndNotInService.processNotIn(commonService.processGenValue(typeName, typeValue, "", ""), 
 									inValidValues).get(0);
 							markColor = Constant.KEY_MARK_COLOR + Constant.STR_UNDERLINE + Constant.DEFAULT_NUM_MARK_COLOR;
 						}
@@ -224,7 +227,7 @@ public class ServiceCreateData {
 			Map<String, List<List<ColumnInfo>>> dataPicker,
 			int idxRow, List<String> listMarkColor) {
 		Map<String, List<ColumnInfo>> res = new HashMap<>();
-		Map<String, List<ColumnInfo>> tableInfo = CommonService.objCommon.getTableInfo();
+		Map<String, List<ColumnInfo>> tableInfo = commonService.objCommon.getTableInfo();
 		for (Map.Entry<String, List<ColumnInfo>> e : tableInfo.entrySet()) {
 			String tableName = e.getKey();
 			List<ColumnInfo> l = new ArrayList<>();
@@ -252,7 +255,7 @@ public class ServiceCreateData {
 				for (ColumnInfo colInfo : l) {
 					for (ColumnInfo d : data) {
 						if (colInfo.getName().equals(d.getName()) && colInfo.getTableAlias().equals(d.getTableAlias())) {
-							colInfo.setVal(CommonService.removeSpecifyCharacterFirstLastStr(Constant.CHAR_APOSTROPHE, d.getVal()));
+							colInfo.setVal(d.getVal());
 							colInfo.setColor(d.getColor());
 						}
 					}
@@ -272,7 +275,7 @@ public class ServiceCreateData {
 				}
 				for (ColumnInfo colInfo : l) {
 					if (colInfo.isKey() && (colInfo.getVal() == null || colInfo.getVal().isEmpty())) {
-						colInfo.setVal(CommonService.removeSpecifyCharacter("'", mapVal.get(tableName + "." + colInfo.getName()).getVal()));
+						colInfo.setVal(commonService.removeSpecifyCharacterFirstLastStr(Constant.CHAR_APOSTROPHE, mapVal.get(tableName + Constant.STR_DOT + colInfo.getName()).getVal()));
 					}
 				}
 			}
@@ -281,7 +284,7 @@ public class ServiceCreateData {
 			for (ColumnInfo colInfo : l) {
 				if (colInfo.getUnique() && (colInfo.getVal() == null || colInfo.getVal().isEmpty())) {
 					try {
-						colInfo.setVal(CommonService.removeSpecifyCharacterFirstLastStr(Constant.CHAR_APOSTROPHE, dbService.genListUniqueVal(tableName, colInfo, "", "").get(0)));
+						colInfo.setVal(commonService.removeSpecifyCharacterFirstLastStr(Constant.CHAR_APOSTROPHE, dbService.genListUniqueVal(tableName, colInfo, "", "").get(0)));
 					} catch (SQLException e1) {
 						e1.printStackTrace();
 					}
@@ -304,8 +307,8 @@ public class ServiceCreateData {
 				if (colInfo.getIsForeignKey()) {
 					try {
 						InforTableReferFK foreingKeyInfo = dbService.checkInforFK(
-								CommonService.objCommon.getObjectGenate().getInfoDatabase().getSchema(), 
-								CommonService.removeSpecifyCharacter("'", tableName), colInfo);
+								commonService.objCommon.getObjectGenate().getInfoDatabase().getSchema(), 
+								commonService.removeSpecifyCharacter("'", tableName), colInfo);
 						if (!foreingKeyInfo.isHasExist()) {
 							foreignKeyNotExistsInmainTable.put(foreingKeyInfo.getTableReferFKName(), foreingKeyInfo);
 						}
@@ -339,11 +342,11 @@ public class ServiceCreateData {
 		List<String> listVal = dbService.genListUniqueVal(tableName, colInfo, "", "");
 		
 		// Gen value for key with no condition
-		if (!CommonService.isCompositeKey(tableName)) {
+		if (!commonService.isCompositeKey(tableName)) {
 			res.put(tableName + "." + colInfo.name, new ColumnInfo(colInfo.name, listVal.get(0)));
 		} else {
 			for (String val : listVal) {
-				Map<String, String> m = dbService.genUniqueCol(CommonService.objCommon.getObjectGenate().getInfoDatabase().getSchema(), tableName, colInfo, val);
+				Map<String, String> m = dbService.genUniqueCol(commonService.objCommon.getObjectGenate().getInfoDatabase().getSchema(), tableName, colInfo, val);
 				if (m.size() > 0) {
 					res.put(tableName + "." + colInfo.name, new ColumnInfo(colInfo.name, val));
 					for (Map.Entry<String, String> e : m.entrySet()) {
@@ -367,7 +370,7 @@ public class ServiceCreateData {
 			if (reponseData.containsKey(tableRefer)) {
 				Map<String, String> mapVal = new HashMap<>();
 				for (ColumnInfo colInfo : columnsRefer) {
-					ColumnInfo currentInfo = CommonService.getColumnInfo(tableRefer, colInfo.getName());
+					ColumnInfo currentInfo = commonService.getColumnInfo(tableRefer, colInfo.getName());
 					if (currentInfo.getIsPrimarykey()) {
 						mapVal.put(colInfo.getName(), colInfo.getVal());
 					}

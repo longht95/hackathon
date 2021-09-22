@@ -26,12 +26,15 @@ public class ExecClientService {
 	
 	private ParseObject parseObject;
 	
+	private CommonService commonService;
+	
 	private Map<String, TableSQL> fullTableInfo;
 	
-	public void init(ParseObject parseObject) throws JSQLParserException {
+	public void init(CommonService commonService, ParseObject parseObject) throws JSQLParserException {
 		this.parseObject = parseObject;
+		this.commonService = commonService;
 		fullTableInfo = new HashMap<>();
-		fullTableInfo = parseService.getColumnInfo(CommonService.objCommon.getObjectGenate().getQueryInput());
+		fullTableInfo = parseService.getColumnInfo(commonService.objCommon.getObjectGenate().getQueryInput());
 	}
 	
 	public void setClientData(String tableName, int idxRow, 
@@ -57,7 +60,7 @@ public class ExecClientService {
 			}
 		}
 		
-		if (CommonService.objCommon.getObjectGenate().getInfoDatabase().getType().equalsIgnoreCase(Constant.STR_NO_CONNECTION)) {
+		if (commonService.objCommon.getObjectGenate().getInfoDatabase().getType().equalsIgnoreCase(Constant.STR_NO_CONNECTION)) {
 			Set<ColumnInfo> clientTableData = new HashSet<>();
 			for (ColumnInfo c : client) {
 				boolean flg = true;
@@ -81,7 +84,7 @@ public class ExecClientService {
 	 * Add column get from select
 	 */
 	public void addColumnGetFromSelect(List<ColumnInfo> columns, String tableName, String aliasName) {
-		if (!CommonService.objCommon.getObjectGenate().getInfoDatabase().getType().equalsIgnoreCase(Constant.STR_NO_CONNECTION)) {
+		if (!commonService.objCommon.getObjectGenate().getInfoDatabase().getType().equalsIgnoreCase(Constant.STR_NO_CONNECTION)) {
 			return;
 		}
 
