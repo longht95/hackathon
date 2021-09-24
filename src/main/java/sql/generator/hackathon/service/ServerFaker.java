@@ -11,10 +11,9 @@ import com.github.javafaker.service.RandomService;
 
 @Service
 public class ServerFaker {
-	public String getDataByColumn(String column, String dataType) {
-		FakeValuesService fakeValuesService = new FakeValuesService(
-			      new Locale("en-us"), new RandomService());
-		Faker faker = new Faker(new Locale("en-us"));
+	public String getDataByColumn(String column, String dataType, String locale) {
+		FakeValuesService fakeValuesService = new FakeValuesService(new Locale(locale), new RandomService());
+		Faker faker = new Faker(new Locale(locale));
 		if (!dataType.isEmpty()) {
 			Calendar end = Calendar.getInstance();
 			end.add(Calendar.YEAR, 1);
@@ -58,11 +57,11 @@ public class ServerFaker {
 		if (column.toLowerCase().contains("color")) {
 			return faker.color().name();
 		}
-		
+
 		if (column.toLowerCase().contains("company")) {
 			return faker.company().name();
 		}
-		
+
 		if (column.toLowerCase().contains("code")) {
 			return faker.code().isbn10();
 		}

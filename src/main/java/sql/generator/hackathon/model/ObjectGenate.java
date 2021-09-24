@@ -17,4 +17,5 @@ public class ObjectGenate {
 	public List<ObjectDataPicker> dataPicker;
 	public String typeExport;
 	public int row;
+	public String language;
 }

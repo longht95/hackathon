@@ -57,7 +57,7 @@ public class ServiceCreateData {
 	
 	private Map<String, InforTableReferFK> foreignKeyNotExistsInmainTable;
 	
-	
+	private static String locale;
 	
 	public static int indexColor;
 	
@@ -71,9 +71,10 @@ public class ServiceCreateData {
 	 * @throws SQLException
 	 */
 	public CreateObject process(ExecuteDBSQLServer executeDBServer, ObjectGenate objectGenate, ParseObject parseObject, 
-			Map<String, List<List<ColumnInfo>>> dataPicker, boolean flgInsert) throws SQLException {
+			Map<String, List<List<ColumnInfo>>> dataPicker, boolean flgInsert, String locale) throws SQLException {
 		CreateObject response = new CreateObject();
 		try {
+			this.locale = locale;
 			int rowCreate = objectGenate.getRow();
 			init(executeDBServer, objectGenate, parseObject);
 			
@@ -293,7 +294,7 @@ public class ServiceCreateData {
 			for (ColumnInfo colInfo : l) {
 				if (colInfo.getVal() == null || colInfo.getVal().isEmpty()) {
 					String dataType = colInfo.getTypeName().equals(Constant.STR_TYPE_DATE) ? Constant.STR_TYPE_DATE : ""; 
-					colInfo.setVal(fakerService.getDataByColumn(colInfo.getName(), dataType));	
+					colInfo.setVal(fakerService.getDataByColumn(colInfo.getName(), dataType, this.locale));	
 				}
 			}
 			

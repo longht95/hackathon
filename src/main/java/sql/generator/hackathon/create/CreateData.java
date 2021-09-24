@@ -62,6 +62,8 @@ public class CreateData {
 	
 	private String SCHEMA_NAME = "admindb";
 	
+	private static String locale;
+	
 	@Autowired
 	private CommonCreateService commonService;
 	
@@ -98,8 +100,9 @@ public class CreateData {
 	}
 	
 	public void init(String type, ExecuteDBSQLServer dbServer, String schema, List<String> listTables, List<TableSQL> tables, 
-			Map<String, List<String>> keys, Map<String, TableSQL> fulltableInfo) throws Exception {
+			Map<String, List<String>> keys, Map<String, TableSQL> fulltableInfo, String locale) throws Exception {
 		this.dbServer = dbServer;
+		this.locale = locale;
 		SCHEMA_NAME = schema;
 		this.tables = tables;
 		this.keys = keys;
@@ -1745,7 +1748,7 @@ public class CreateData {
 			for (ColumnInfo colInfo : l) {
 				if (colInfo.getVal().isEmpty()) {
 					String dataType = colInfo.getTypeName().equals("date") ? "date" : ""; 
-					colInfo.val = fakerService.getDataByColumn(colInfo.getName(), dataType);	
+					colInfo.val = fakerService.getDataByColumn(colInfo.getName(), dataType, this.locale);	
 				}
 			}
 			

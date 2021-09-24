@@ -82,6 +82,11 @@
 			<div class="content-right-layout" id="box-table-info-content">
 				<h4 style="margin-top: 0px;">DATA SET</h4>
 				<div class="box-action-table">
+					<select class="select-database" id="select-language"
+						style="margin-right: 2.5px;">
+						<option value="en-us">EN</option>
+						<option value="ja-jp">JP</option>
+					</select>
 					<input type="submit" id="addColumn" value="Add column"
 						onclick="addColumnDataSet()"> <input type="submit"
 						value="Add row" onclick="addRowDataSet()">
@@ -319,6 +324,7 @@
 					dataPicker : dataClient,
 					infoDatabase : infoDatabase,
 					row :1,
+					language : $('#select-language').val(),
 			}
 			xhr.send(JSON.stringify(jsonData));
 			

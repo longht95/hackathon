@@ -145,7 +145,7 @@ public class GenController {
 //			Map<String, List<List<ColumnInfo>>> response = createObj.listData;
 			
 			// Ver2 create data
-			CreateObject createObj = serviceCreateData.process(executeDBServer, objectGenate, parseObject, dataPick, false);
+			CreateObject createObj = serviceCreateData.process(executeDBServer, objectGenate, parseObject, dataPick, false, objectGenate.getLanguage());
 			Map<String, List<List<ColumnInfo>>> response = createObj.listData;
 			
 			ByteArrayInputStream resource ;
