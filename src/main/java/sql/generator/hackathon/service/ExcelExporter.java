@@ -16,6 +16,7 @@ import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.FillPatternType;
+import org.apache.poi.ss.usermodel.Font;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.springframework.stereotype.Service;
@@ -27,7 +28,6 @@ public class ExcelExporter {
 	private Map<String, List<List<ColumnInfo>>> dataList;
 
 	private HSSFCellStyle createHeaderRow(HSSFWorkbook workbook) {
-		// dataList = new HashMap<>();
 		HSSFFont font = workbook.createFont();
 		font.setBold(true);
 		HSSFCellStyle style = workbook.createCellStyle();
@@ -38,7 +38,6 @@ public class ExcelExporter {
 
 	public HSSFWorkbook createEex(Map<String, List<List<ColumnInfo>>> dataList, List<String> listMarkColors) {
 		HSSFWorkbook workbook = new HSSFWorkbook();
-		System.out.println(listMarkColors.toString());
 		dataList.entrySet().forEach(entry -> {
 			System.out.println("Name Table" + entry.getKey());
 			HSSFSheet sheet = workbook.createSheet(entry.getKey());
@@ -50,8 +49,6 @@ public class ExcelExporter {
 
 				Row row = sheet.createRow(rownum);
 				// Auto size all the columns
-
-				System.out.println("ROW Table" + rownum);
 				if (rownum == 0) {
 					createheader(sheet, imtem, row, workbook);
 					rownum++;
@@ -71,25 +68,22 @@ public class ExcelExporter {
 	private void createRow(Sheet sheet, List<ColumnInfo> isNameTable, Row row, HSSFWorkbook workbook,
 			List<String> listMarkColors) {
 		Map<String, Short> listMapingMarkColor = mapingColer(listMarkColors);
-		System.out.println("Colume" + "********" + isNameTable.size() + "********");
 		for (int i = 0; i < isNameTable.size(); i++) {
 
 			Cell cell = row.createCell(i, CellType.STRING);
 			cell.setCellValue(isNameTable.get(i).val);
-			// isNameTable.get(1).color = "MarkColor_0";
-			// isNameTable.get(4).color = "MarkColor_0";
-
 			for (String entry : listMapingMarkColor.keySet()) {
 				if (isNameTable.get(i).color != null) {
 					if (isNameTable.get(i).color.equals(entry)) {
-						System.out.println("xxxxxxxxxxx" + isNameTable.get(i).color + "xxxx" + "xxxxxx" + entry);
 						CellStyle style1 = workbook.createCellStyle();
 						style1.setFillForegroundColor(listMapingMarkColor.get(entry));
+						Font font = workbook.createFont();
+						font.setColor(HSSFColor.HSSFColorPredefined.WHITE.getIndex());
+						style1.setFont(font);
 						style1.setFillPattern(FillPatternType.SOLID_FOREGROUND);
 						cell.setCellStyle(style1);
 					}
 				} else {
-					System.out.println(isNameTable.get(i));
 					CellStyle style1_a2 = workbook.createCellStyle();
 					cell.setCellStyle(style1_a2);
 					cell.setCellStyle(style1_a2);
@@ -145,8 +139,7 @@ public class ExcelExporter {
 			case "MARK_COLOR_19":
 				listMapingMarkColor.put("MARK_COLOR_19", HSSFColor.HSSFColorPredefined.SEA_GREEN.getIndex());
 			case "MARK_COLOR_20":
-				listMapingMarkColor.put("MARK_COLOR_20",
-						HSSFColor.HSSFColorPredefined.AQUA.getIndex());
+				listMapingMarkColor.put("MARK_COLOR_20", HSSFColor.HSSFColorPredefined.AQUA.getIndex());
 			case "MARK_COLOR_21":
 				listMapingMarkColor.put("MARK_COLOR_21", HSSFColor.HSSFColorPredefined.LIGHT_BLUE.getIndex());
 			case "MARK_COLOR_22":
@@ -198,10 +191,10 @@ public class ExcelExporter {
 			case "MARK_COLOR_45":
 				listMapingMarkColor.put("MARK_COLOR_45", HSSFColor.HSSFColorPredefined.ROYAL_BLUE.getIndex());
 			case "MARK_COLOR_46":
-				listMapingMarkColor.put("MARK_COLOR_46", HSSFColor.HSSFColorPredefined.LIGHT_CORNFLOWER_BLUE.getIndex());
+				listMapingMarkColor.put("MARK_COLOR_46",
+						HSSFColor.HSSFColorPredefined.LIGHT_CORNFLOWER_BLUE.getIndex());
 			case "MARK_COLOR_47":
-				listMapingMarkColor.put("MARK_COLOR_47",
-						HSSFColor.HSSFColorPredefined.TAN.getIndex());
+				listMapingMarkColor.put("MARK_COLOR_47", HSSFColor.HSSFColorPredefined.TAN.getIndex());
 			default:
 			}
 			// System.out.println(temp);
@@ -233,7 +226,6 @@ public class ExcelExporter {
 			cell = row.createCell(i, CellType.STRING);
 			cell.setCellValue(isNameTable.get(i).val);
 			cell.setCellStyle(style);
-			System.out.println(isNameTable.get(i).val + "header");
 		}
 	}
 
