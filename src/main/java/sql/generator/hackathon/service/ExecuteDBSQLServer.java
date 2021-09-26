@@ -280,6 +280,30 @@ public class ExecuteDBSQLServer {
 		return lstUniqueVal;
 	}
 	
+	public List<String> getListUniqueVal(String tableName, ColumnInfo columnInfo) throws SQLException {
+		List<String> res = new ArrayList<>();
+		String sql = "select " + columnInfo.getName() + " from " + tableName;
+		Statement stmt = connect.createStatement();
+		ResultSet rs = stmt.executeQuery(sql);
+		while (rs.next()) {
+			String val = "";
+			switch (columnInfo.getTypeName()) {
+			case "bigint":
+			case "int":
+				val = String.valueOf(rs.getInt(columnInfo.getName()));
+				break;
+			case "varchar":
+			case "nvarchar":
+			case "nchar":
+			case "char":
+				val = rs.getString(columnInfo.getName());
+				break;
+			}
+			res.add(val);
+		}
+		return res;
+	}
+	
 	private List<String> genListStringUnique(String tableName, ColumnInfo columnInfo) throws SQLException {
 		CreateData createData = new CreateData();
 		List<String> lstStringUnique = new ArrayList<String>();

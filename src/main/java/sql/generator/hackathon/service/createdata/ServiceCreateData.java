@@ -190,7 +190,7 @@ public class ServiceCreateData {
 	}
 	
 	private CreateObject processMultipleRow(Map<String, List<ColumnInfo>> lastValue,
-			Map<String, List<List<ColumnInfo>>> dataPicker, int row, boolean flgInsert) {
+			Map<String, List<List<ColumnInfo>>> dataPicker, int row, boolean flgInsert) throws Exception {
 		Map<String, List<List<ColumnInfo>>> responseListData = new HashMap<>();
 		List<String> listMarkColor = new ArrayList<>();
 		for (int idxRow = 1; idxRow <= row; ++idxRow) {
@@ -216,7 +216,7 @@ public class ServiceCreateData {
 	
 	private Map<String, List<ColumnInfo>> processOneRow(Map<String, List<ColumnInfo>> lastValueTable,
 			Map<String, List<List<ColumnInfo>>> dataPicker,
-			int idxRow, List<String> listMarkColor) {
+			int idxRow, List<String> listMarkColor) throws Exception {
 		Map<String, List<ColumnInfo>> res = new HashMap<>();
 		Map<String, List<ColumnInfo>> tableInfo = commonService.objCommon.getTableInfo();
 		for (Map.Entry<String, List<ColumnInfo>> e : tableInfo.entrySet()) {
@@ -258,12 +258,7 @@ public class ServiceCreateData {
 			} 
 			
 			if (colNoVal != null) {
-				Map<String, ColumnInfo> mapVal = new HashMap<>();
-				try {
-					mapVal = genValueForKey(tableName, colNoVal);
-				} catch (SQLException e1) {
-					e1.printStackTrace();
-				}
+				Map<String, ColumnInfo> mapVal = genValueForKey(tableName, colNoVal);
 				for (ColumnInfo colInfo : l) {
 					if (colInfo.isKey() && (colInfo.getVal() == null || colInfo.getVal().isEmpty())) {
 						colInfo.setVal(commonService.removeSpecifyCharacterFirstLastStr(Constant.CHAR_APOSTROPHE, mapVal.get(tableName + Constant.STR_DOT + colInfo.getName()).getVal()));
@@ -271,14 +266,16 @@ public class ServiceCreateData {
 				}
 			}
 			
+			// TODO
+			// Prepare for next version
+			// Update meaningful value
+			List<String> listCurrentUnique = new ArrayList<>();
+			
 			// Get unique val
 			for (ColumnInfo colInfo : l) {
 				if (colInfo.getUnique() && (colInfo.getVal() == null || colInfo.getVal().isEmpty())) {
-					try {
-						colInfo.setVal(commonService.removeSpecifyCharacterFirstLastStr(Constant.CHAR_APOSTROPHE, dbService.genListUniqueVal(tableName, colInfo, "", "").get(0)));
-					} catch (SQLException e1) {
-						e1.printStackTrace();
-					}
+					listCurrentUnique = dbService.getListUniqueVal(tableName, colInfo);
+					colInfo.setVal(commonService.removeSpecifyCharacterFirstLastStr(Constant.CHAR_APOSTROPHE, dbService.genListUniqueVal(tableName, colInfo, "", "").get(0)));
 				}
 			}
 
@@ -301,15 +298,11 @@ public class ServiceCreateData {
 			// Check foreign key has exists
 			for (ColumnInfo colInfo : l) {
 				if (colInfo.getIsForeignKey()) {
-					try {
-						InforTableReferFK foreingKeyInfo = dbService.checkInforFK(
-								commonService.objCommon.getObjectGenate().getInfoDatabase().getSchema(), 
-								commonService.removeSpecifyCharacter("'", tableName), colInfo);
-						if (!foreingKeyInfo.isHasExist()) {
-							foreignKeyNotExistsInmainTable.put(foreingKeyInfo.getTableReferFKName(), foreingKeyInfo);
-						}
-					} catch (Exception e1) {
-						e1.printStackTrace();
+					InforTableReferFK foreingKeyInfo = dbService.checkInforFK(
+							commonService.objCommon.getObjectGenate().getInfoDatabase().getSchema(), 
+							commonService.removeSpecifyCharacter("'", tableName), colInfo);
+					if (!foreingKeyInfo.isHasExist()) {
+						foreignKeyNotExistsInmainTable.put(foreingKeyInfo.getTableReferFKName(), foreingKeyInfo);
 					}
 				}
 			}
